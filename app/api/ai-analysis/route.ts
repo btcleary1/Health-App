@@ -126,12 +126,24 @@ Please analyze every detail — especially the parent notes about what was happe
     }
 
     const text = content.text;
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('Could not parse structured response from AI');
-    }
 
-    const analysis = JSON.parse(jsonMatch[0]);
+    // Strip markdown code fences if present
+    const stripped = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
+
+    // Find the outermost JSON object
+    const start = stripped.indexOf('{');
+    const end = stripped.lastIndexOf('}');
+    if (start === -1 || end === -1) {
+      throw new Error('Could not find JSON in AI response');
+    }
+    const jsonStr = stripped.slice(start, end + 1);
+
+    let analysis;
+    try {
+      analysis = JSON.parse(jsonStr);
+    } catch {
+      throw new Error('AI returned malformed JSON. Try again.');
+    }
 
     return NextResponse.json({ analysis, model: response.model, usage: response.usage });
   } catch (error: any) {
