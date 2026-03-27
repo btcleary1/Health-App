@@ -245,7 +245,11 @@ export default function HealthDashboard() {
   };
 
   if (!mounted) {
-    return <div>Loading dashboard...</div>;
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <HealthHeader />
+      </div>
+    );
   }
 
 
