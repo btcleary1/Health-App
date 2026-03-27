@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import HealthHeader from '@/components/HealthHeader';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, ReferenceLine, Legend } from 'recharts';
 
 interface CareTeamMember {
@@ -507,7 +508,9 @@ export default function HealthDashboard() {
   const cprCount = cprEvents.length;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50">
+      <HealthHeader />
+      <div className="p-6">
       {/* Toast notification */}
       {toastMessage && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-800 text-white text-sm px-5 py-3 rounded-xl shadow-lg">
@@ -1428,6 +1431,7 @@ export default function HealthDashboard() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
