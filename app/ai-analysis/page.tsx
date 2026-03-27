@@ -88,8 +88,8 @@ export default function AIAnalysisPage() {
 
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <Brain className="w-7 h-7 text-purple-600" />
-            <h1 className="text-2xl font-bold text-gray-900">AI Medical Research Analysis</h1>
+            <Brain className="w-7 h-7 text-purple-600 shrink-0" />
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">AI Medical Research Analysis</h1>
           </div>
           <p className="text-gray-600">
             Claude analyzes every detail of Ethan's history — including parent notes — against the world's medical knowledge to find what may have been missed and surface the best diagnostic paths forward.
@@ -112,7 +112,7 @@ export default function AIAnalysisPage() {
           <button
             onClick={runAnalysis}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold text-base transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-2 px-4 py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold text-sm sm:text-base transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {loading ? (
               <><Loader2 className="w-5 h-5 animate-spin" /> Analyzing Ethan's complete history with Claude AI...</>
