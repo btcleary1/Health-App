@@ -80,7 +80,7 @@ export default function DoctorBriefingPage() {
       <HealthHeader />
 
       <div className="max-w-3xl mx-auto px-4 py-6">
-        <div className="flex items-center justify-between mb-6 print:hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 print:hidden">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Doctor Briefing</h1>
             <p className="text-sm text-gray-500 mt-1">Hand this to any new doctor at the start of the appointment</p>
@@ -144,7 +144,7 @@ export default function DoctorBriefingPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-6 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
             <div>
               <div className="flex items-center gap-2 font-bold text-gray-800 mb-3 text-sm uppercase tracking-wide border-b border-gray-200 pb-1">
                 <ClipboardList className="w-4 h-4" />Current Medications

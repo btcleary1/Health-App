@@ -44,7 +44,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-button, a, input, select, textarea {
+button, input, select, textarea {
   min-height: var(--touch-target-min);
 }
 
