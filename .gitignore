@@ -1,0 +1,6 @@
+.env.local
+.env
+node_modules/
+.next/
+public/health-uploads/*
+!public/health-uploads/.gitkeep
