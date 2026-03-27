@@ -1,16 +1,8 @@
+import { put } from '@vercel/blob';
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { existsSync } from 'fs';
-
-const UPLOAD_DIR = join(process.cwd(), 'public', 'health-uploads');
 
 export async function POST(req: NextRequest) {
   try {
-    if (!existsSync(UPLOAD_DIR)) {
-      await mkdir(UPLOAD_DIR, { recursive: true });
-    }
-
     const formData = await req.formData();
     const file = formData.get('file') as File;
     const category = (formData.get('category') as string) || 'general';
@@ -32,21 +24,18 @@ export async function POST(req: NextRequest) {
 
     const timestamp = Date.now();
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const filename = `${timestamp}_${category}_${safeName}`;
-    const filepath = join(UPLOAD_DIR, filename);
+    const filename = `health-uploads/${timestamp}_${category}_${safeName}`;
 
-    const bytes = await file.arrayBuffer();
-    await writeFile(filepath, Buffer.from(bytes));
+    const blob = await put(filename, file, { access: 'public' });
 
     const record = {
       id: timestamp.toString(),
-      filename,
       originalName: file.name,
       category,
       note,
       size: file.size,
       type: file.type,
-      url: `/health-uploads/${filename}`,
+      url: blob.url,
       uploadedAt: new Date().toISOString(),
     };
 
