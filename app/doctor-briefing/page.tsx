@@ -85,23 +85,13 @@ export default function DoctorBriefingPage() {
             <h1 className="text-2xl font-bold text-gray-900">Doctor Briefing</h1>
             <p className="text-sm text-gray-500 mt-1">Hand this to any new doctor at the start of the appointment</p>
           </div>
-          <div className="flex gap-3">
-            <button
-              onClick={generateAISummary}
-              disabled={loadingAI}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium disabled:opacity-60"
-            >
-              {loadingAI ? <Loader2 className="w-4 h-4 animate-spin" /> : <Brain className="w-4 h-4" />}
-              AI Summary
-            </button>
-            <button
-              onClick={() => window.print()}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium"
-            >
-              <Printer className="w-4 h-4" />
-              Print / Save PDF
-            </button>
-          </div>
+          <button
+            onClick={() => window.print()}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium"
+          >
+            <Printer className="w-4 h-4" />
+            Print / Save PDF
+          </button>
         </div>
 
         {error && <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4 text-red-700 text-sm print:hidden">{error}</div>}
