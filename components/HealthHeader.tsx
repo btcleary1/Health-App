@@ -24,21 +24,22 @@ export default function HealthHeader() {
             <Activity className="w-5 h-5 text-accent" />
           </Link>
 
-          <nav className="flex items-center gap-0.5 flex-1 justify-around sm:justify-start sm:gap-1">
+          <nav className="flex items-center gap-1 flex-1 justify-around sm:justify-start sm:gap-1">
             {navItems.map(({ href, label, icon: Icon, exact }) => {
               const isActive = exact ? pathname === href : pathname?.startsWith(href);
               return (
                 <Link
                   key={href}
                   href={href}
-                  className={`flex flex-col sm:flex-row items-center gap-0.5 sm:gap-1.5 px-1.5 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition-colors min-w-0 ${
+                  title={label}
+                  className={`flex items-center gap-1.5 p-2.5 sm:px-3 sm:py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                     isActive
                       ? 'bg-accent text-white'
                       : 'text-text-secondary hover:text-text-primary hover:bg-background'
                   }`}
                 >
-                  <Icon className="w-4 h-4 shrink-0" />
-                  <span className="text-[10px] sm:text-sm">{label}</span>
+                  <Icon className="w-5 h-5 sm:w-4 sm:h-4 shrink-0" />
+                  <span className="hidden sm:inline">{label}</span>
                 </Link>
               );
             })}
