@@ -98,8 +98,13 @@ export default function AIAnalysisPage() {
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900">AI Medical Research Analysis</h1>
           </div>
           <p className="text-gray-600">
-            Claude analyzes every detail of Ethan's history — including parent notes — against the world's medical knowledge to find what may have been missed and surface the best diagnostic paths forward.
+            Claude reviews the patient's complete history and generates research questions, conditions to explore, and talking points to help you prepare for doctor appointments.
           </p>
+          <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
+            <p className="text-xs text-amber-800 leading-relaxed">
+              <strong>Research preparation tool only.</strong> This is not a medical device and does not provide diagnoses, clinical recommendations, or medical advice. All output is for appointment preparation — review everything with your licensed healthcare provider before acting on it. In an emergency, call <strong>911</strong>.
+            </p>
+          </div>
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
@@ -146,7 +151,7 @@ export default function AIAnalysisPage() {
               <div className="text-red-900 font-semibold">{analysis.doctorBriefing?.oneLineSummary}</div>
             </div>
 
-            <Section title="Possible Diagnoses" icon={<Search className="w-5 h-5 text-purple-600" />}>
+            <Section title="Conditions to Research & Discuss with Your Doctor" icon={<Search className="w-5 h-5 text-purple-600" />}>
               <div className="space-y-4 pt-4">
                 {analysis.topDiagnoses?.map((d, i) => (
                   <div key={i} className="border border-gray-200 rounded-lg p-4">
@@ -172,7 +177,7 @@ export default function AIAnalysisPage() {
               </div>
             </Section>
 
-            <Section title="What Doctors May Have Missed" icon={<AlertTriangle className="w-5 h-5 text-orange-500" />}>
+            <Section title="Observations to Raise with Your Care Team" icon={<AlertTriangle className="w-5 h-5 text-orange-500" />}>
               <div className="space-y-3 pt-4">
                 {analysis.whatDoctorsMayHaveMissed?.map((item, i) => (
                   <div key={i} className="bg-orange-50 border border-orange-200 rounded-lg p-4">
@@ -184,7 +189,7 @@ export default function AIAnalysisPage() {
               </div>
             </Section>
 
-            <Section title="Recommended Diagnostic Tests" icon={<ClipboardList className="w-5 h-5 text-blue-600" />}>
+            <Section title="Tests to Ask Your Doctor About" icon={<ClipboardList className="w-5 h-5 text-blue-600" />}>
               <div className="space-y-3 pt-4">
                 {analysis.recommendedTests?.map((t, i) => (
                   <div key={i} className="flex gap-4 items-start border-b border-gray-100 pb-3 last:border-0 last:pb-0">
