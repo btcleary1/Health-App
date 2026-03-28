@@ -71,7 +71,12 @@ export default function AIAnalysisPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ patientData: PATIENT_DATA, events: SAMPLE_EVENTS, focusArea }),
       });
-      const data = await res.json();
+      let data: any;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error('Analysis timed out or returned an invalid response. Please try again.');
+      }
       if (!res.ok) throw new Error(data.error || 'Analysis failed');
       setAnalysis(data.analysis);
     } catch (e: any) {
