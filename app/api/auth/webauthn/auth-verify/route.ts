@@ -20,7 +20,14 @@ export async function POST(req: NextRequest) {
     const stored = creds.find(c => c.id === body.id);
 
     if (!stored) {
-      return NextResponse.json({ error: 'Passkey not recognized. Use your passphrase.' }, { status: 400 });
+      return NextResponse.json({
+        error: 'Passkey not recognized.',
+        debug: {
+          credCount: creds.length,
+          storedIds: creds.map(c => c.id.slice(0, 20)),
+          incomingId: body.id?.slice(0, 20),
+        }
+      }, { status: 400 });
     }
 
     const verification = await verifyAuthenticationResponse({
