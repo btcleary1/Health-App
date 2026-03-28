@@ -44,7 +44,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5">
           <p className="text-xs text-amber-800 leading-relaxed">
-            <strong>⚠ HIPAA Notice:</strong> This application contains Protected Health Information (PHI) for a minor child. Unauthorized access is prohibited.
+            <strong>⚠ HIPAA Notice:</strong> This application contains Protected Health Information (PHI). Unauthorized access is prohibited.
           </p>
         </div>
 
@@ -71,7 +71,7 @@ export default function LoginPage() {
               style={{ minHeight: 'unset' }}
             />
             <span className="text-xs text-gray-600 leading-relaxed">
-              I am an authorized user (parent, guardian, or healthcare provider for Ethan Alvarez). I have read and agree to the{' '}
+              I am an authorized user of this application. I have read and agree to the{' '}
               <a href="/terms" target="_blank" className="text-blue-600 underline" style={{ minHeight: 'unset' }}>Terms of Service</a>
               {' '}and{' '}
               <a href="/privacy" target="_blank" className="text-blue-600 underline" style={{ minHeight: 'unset' }}>Privacy Policy</a>.
