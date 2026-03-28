@@ -1,7 +1,7 @@
-import { put, list } from '@vercel/blob';
+import { put, get, list } from '@vercel/blob';
 
 export interface StoredCredential {
-  id: string;        // base64url
+  id: string;
   publicKey: string; // base64
   counter: number;
 }
@@ -13,8 +13,10 @@ export async function getCredentials(): Promise<StoredCredential[]> {
     const { blobs } = await list({ prefix: 'webauthn/' });
     const blob = blobs.find(b => b.pathname === CREDS_PATH);
     if (!blob) return [];
-    const res = await fetch(blob.url, { cache: 'no-store' });
-    return await res.json();
+    const res = await get(blob.url);
+    if (!res) return [];
+    const text = await res.text();
+    return JSON.parse(text);
   } catch {
     return [];
   }
@@ -22,7 +24,7 @@ export async function getCredentials(): Promise<StoredCredential[]> {
 
 export async function saveCredentials(creds: StoredCredential[]): Promise<void> {
   await put(CREDS_PATH, JSON.stringify(creds), {
-    access: 'public',
+    access: 'private',
     addRandomSuffix: false,
   });
 }
