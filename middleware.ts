@@ -1,4 +1,8 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
+
+// Feature flag: set AUTH_ENABLED=true in env to enforce Clerk login
+const AUTH_ENABLED = process.env.AUTH_ENABLED === 'true';
 
 const isPublicRoute = createRouteMatcher([
   '/sign-in(.*)',
@@ -8,6 +12,7 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
+  if (!AUTH_ENABLED) return NextResponse.next();
   if (!isPublicRoute(req)) {
     await auth.protect();
   }
