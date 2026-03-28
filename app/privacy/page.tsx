@@ -9,7 +9,7 @@ export default function PrivacyPage() {
       <div className="max-w-3xl mx-auto px-4 py-8">
         <Link href="/dashboard" className="flex items-center gap-2 mb-8 text-gray-600 hover:text-gray-900">
           <Activity className="w-5 h-5 text-red-600" />
-          <span className="font-semibold">Ethan's Health</span>
+          <span className="font-semibold">Health Wiz</span>
         </Link>
 
         <div className="bg-white rounded-2xl border border-gray-200 p-8">
@@ -20,7 +20,7 @@ export default function PrivacyPage() {
 
             <section>
               <h2 className="text-lg font-bold text-gray-900 mb-2">1. Overview</h2>
-              <p>This application ("Ethan's Health Dashboard") is a private, family-operated health tracking tool for Ethan Alvarez, a minor child. It is not a covered entity under HIPAA, but we treat all information with the same level of care and confidentiality as Protected Health Information (PHI).</p>
+              <p>This application ("Health Wiz Dashboard") is a private, family-operated health tracking tool for Ethan Alvarez, a minor child. It is not a covered entity under HIPAA, but we treat all information with the same level of care and confidentiality as Protected Health Information (PHI).</p>
             </section>
 
             <section>

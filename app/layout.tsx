@@ -4,8 +4,8 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: {
-    default: "Ethan's Health Dashboard",
-    template: "%s | Ethan's Health Dashboard",
+    default: "Health Wiz",
+    template: "%s | Health Wiz",
   },
   description: 'Pediatric cardiac health tracking, AI medical analysis, and doctor briefings for Ethan Alvarez.',
 };

@@ -37,7 +37,7 @@ export default function LoginPage() {
         <div className="inline-flex items-center justify-center w-14 h-14 bg-red-100 rounded-2xl mb-3">
           <Activity className="w-7 h-7 text-red-600" />
         </div>
-        <h1 className="text-xl font-bold text-gray-900">Ethan's Health Dashboard</h1>
+        <h1 className="text-xl font-bold text-gray-900">Health Wiz</h1>
         <p className="text-sm text-gray-500 mt-1">Authorized access only — PHI protected</p>
       </div>
 

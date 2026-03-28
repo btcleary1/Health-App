@@ -9,7 +9,7 @@ export default function TermsPage() {
       <div className="max-w-3xl mx-auto px-4 py-8">
         <Link href="/dashboard" className="flex items-center gap-2 mb-8 text-gray-600 hover:text-gray-900">
           <Activity className="w-5 h-5 text-red-600" />
-          <span className="font-semibold">Ethan's Health</span>
+          <span className="font-semibold">Health Wiz</span>
         </Link>
 
         <div className="bg-white rounded-2xl border border-gray-200 p-8">

@@ -13,7 +13,7 @@ export default function HIPAAFooter() {
           <span>🔒 PHI — Authorized Access Only</span>
           <Link href="/privacy" className="hover:text-gray-600 underline" style={{ minHeight: 'unset' }}>Privacy Policy</Link>
           <Link href="/terms" className="hover:text-gray-600 underline" style={{ minHeight: 'unset' }}>Terms of Service</Link>
-          <span>© {new Date().getFullYear()} Ethan's Health Dashboard</span>
+          <span>© {new Date().getFullYear()} Health Wiz</span>
         </div>
       </div>
     </footer>

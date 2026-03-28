@@ -27,7 +27,7 @@ export default function HealthHeader() {
           <div className="flex items-center justify-between">
             <Link href="/dashboard" className="flex items-center gap-2">
               <Activity className="w-5 h-5 text-accent" />
-              <span className="font-bold text-text-primary text-base">Ethan's Health</span>
+              <span className="font-bold text-text-primary text-base">Health Wiz</span>
             </Link>
 
             {/* Desktop nav + logout */}
