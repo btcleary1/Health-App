@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
   res.cookies.set('webauthn_challenge', options.challenge, {
     httpOnly: true,
     secure: true,
-    sameSite: 'strict',
+    sameSite: 'lax',
     maxAge: 300,
     path: '/',
   });

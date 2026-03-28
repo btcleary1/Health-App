@@ -10,7 +10,8 @@ const ORIGIN = process.env.WEBAUTHN_ORIGIN || `https://${RP_ID}`;
 export async function POST(req: NextRequest) {
   const challenge = req.cookies.get('webauthn_challenge')?.value;
   if (!challenge) {
-    return NextResponse.json({ error: 'Challenge expired. Please try again.' }, { status: 400 });
+    const allCookies = [...req.cookies.getAll()].map(c => c.name);
+    return NextResponse.json({ error: `Challenge missing. Cookies present: ${allCookies.join(', ')}` }, { status: 400 });
   }
 
   try {
