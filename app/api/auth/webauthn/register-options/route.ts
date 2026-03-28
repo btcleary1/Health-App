@@ -21,9 +21,8 @@ export async function POST(req: NextRequest) {
     userDisplayName: 'Health Wiz',
     excludeCredentials: existing.map(c => ({ id: c.id, type: 'public-key' })),
     authenticatorSelection: {
-      residentKey: 'required',
-      userVerification: 'required',
-      authenticatorAttachment: 'platform',
+      residentKey: 'preferred',
+      userVerification: 'preferred',
     },
   });
 

@@ -8,7 +8,7 @@ const RP_ID = process.env.WEBAUTHN_RP_ID || 'health-app-blond-omega.vercel.app';
 export async function POST(_req: NextRequest) {
   const options = await generateAuthenticationOptions({
     rpID: RP_ID,
-    userVerification: 'required',
+    userVerification: 'preferred',
     // No allowCredentials — browser will find the resident key automatically
   });
 
