@@ -1,8 +1,8 @@
 import { clerkMiddleware } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 
-// Feature flag: set AUTH_ENABLED=true in Vercel env to enforce login
-const AUTH_ENABLED = process.env.AUTH_ENABLED === 'true';
+// Feature flag: controlled via code — set to true to enforce login
+const AUTH_ENABLED = true;
 
 const PUBLIC_PATHS = ['/login', '/api/auth/login', '/privacy', '/terms'];
 
