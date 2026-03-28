@@ -42,11 +42,8 @@ export default function SettingsPage() {
         setMessage({ type: 'error', text: d.error || 'Registration failed.' });
       }
     } catch (err: unknown) {
-      if (err instanceof Error && err.name === 'NotAllowedError') {
-        setMessage({ type: 'error', text: 'Cancelled.' });
-      } else {
-        setMessage({ type: 'error', text: 'Failed to register. Try again.' });
-      }
+      const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+      setMessage({ type: 'error', text: msg });
     }
     setLoading(false);
   };
@@ -98,10 +95,6 @@ export default function SettingsPage() {
                     : 'Enable biometric login to skip the passphrase on this device.'}
                 </p>
 
-                {!supportsWebAuthn && (
-                  <p className="text-xs text-amber-600 mt-2">This device or browser does not support biometric login.</p>
-                )}
-
                 {message && (
                   <div className={`flex items-center gap-1.5 mt-3 text-xs font-medium ${message.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
                     {message.type === 'success'
@@ -112,7 +105,7 @@ export default function SettingsPage() {
                 )}
 
                 <div className="flex gap-2 mt-4">
-                  {!registered && supportsWebAuthn && (
+                  {!registered && (
                     <button
                       onClick={handleEnable}
                       disabled={loading || registered === null}
@@ -132,7 +125,7 @@ export default function SettingsPage() {
                       Disable Face ID
                     </button>
                   )}
-                  {registered && supportsWebAuthn && (
+                  {registered && (
                     <button
                       onClick={handleEnable}
                       disabled={loading}
