@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 // Feature flag: controlled via code
 const AUTH_ENABLED = true;
 
-const PUBLIC_PATHS = ['/login', '/api/auth/login', '/privacy', '/terms'];
+const PUBLIC_PATHS = ['/login', '/api/auth/login', '/api/auth/webauthn', '/privacy', '/terms'];
 
 function isPublic(req: NextRequest) {
   return PUBLIC_PATHS.some(p => req.nextUrl.pathname.startsWith(p));
