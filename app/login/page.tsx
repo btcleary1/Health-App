@@ -33,12 +33,7 @@ export default function LoginPage() {
     });
     const data = await res.json();
     if (res.ok) {
-      if (supportsWebAuthn) {
-        setStage('register-passkey');
-      } else {
-        router.push('/dashboard');
-        router.refresh();
-      }
+      setStage('register-passkey');
     } else {
       setError(data.error || 'Incorrect passphrase.');
     }
@@ -146,8 +141,7 @@ export default function LoginPage() {
         <p className="text-sm text-gray-500 mt-1">Authorized access only — PHI protected</p>
       </div>
 
-      {supportsWebAuthn && (
-        <div className="w-full max-w-sm mb-3">
+      <div className="w-full max-w-sm mb-3">
           <button
             onClick={handleFaceIdLogin}
             disabled={faceIdLoading}
@@ -164,7 +158,6 @@ export default function LoginPage() {
             <div className="flex-1 h-px bg-gray-200" />
           </div>
         </div>
-      )}
 
       <div className="w-full max-w-sm bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5">
