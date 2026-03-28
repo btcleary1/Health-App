@@ -60,7 +60,7 @@ export default function LoginPage() {
       if (verRes.ok) {
         window.location.href = '/dashboard';
       } else {
-        setFaceIdError(result.error || 'Auth failed.');
+        setFaceIdError(JSON.stringify(result));
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
