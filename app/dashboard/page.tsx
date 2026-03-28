@@ -538,12 +538,6 @@ export default function HealthDashboard() {
               <span className="font-semibold">CRITICAL ALERT</span>
               <span className="block text-xs">{trendAnalysis.eventFrequency}/week</span>
             </div>
-            <button 
-              onClick={handleAnalyzeWithAI}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-            >
-              AI Analysis
-            </button>
           </div>
         </div>
 
@@ -566,12 +560,6 @@ export default function HealthDashboard() {
         <div className="bg-red-50 border border-red-200 rounded-xl p-6 mb-6">
           <div className="flex justify-between items-center mb-3">
             <h2 className="text-xl font-bold text-red-800">AI Trend Analysis Summary</h2>
-            <button 
-              onClick={handleAnalyzeWithAI}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-            >
-              AI Analysis
-            </button>
           </div>
           <p className="text-red-700 mb-4">{trendAnalysis.aiAnalysis}</p>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
