@@ -77,25 +77,27 @@ export default function LoginPage() {
     try {
       const optRes = await fetch('/api/auth/webauthn/register-options', { method: 'POST' });
       const options = await optRes.json();
+      if (!optRes.ok) {
+        setError(`Server: ${options.error || optRes.status}`);
+        setLoading(false);
+        return;
+      }
       const attestation = await startRegistration({ optionsJSON: options });
       const verRes = await fetch('/api/auth/webauthn/register-verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(attestation),
       });
+      const verData = await verRes.json();
       if (verRes.ok) {
         router.push('/dashboard');
         router.refresh();
       } else {
-        const d = await verRes.json();
-        setError(d.error || 'Registration failed.');
+        setError(`Verify: ${verData.error || verRes.status}`);
       }
     } catch (err: unknown) {
-      if (err instanceof Error && err.name === 'NotAllowedError') {
-        setError('Cancelled.');
-      } else {
-        setError('Registration failed. You can set it up later in settings.');
-      }
+      const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+      setError(msg);
     }
     setLoading(false);
   };
@@ -111,7 +113,11 @@ export default function LoginPage() {
           <p className="text-sm text-gray-500 mb-6">
             Skip the passphrase next time. Use Face ID or fingerprint to sign in instantly — only works on this device.
           </p>
-          {error && <p className="text-xs text-red-600 mb-4">{error}</p>}
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4 text-left">
+              <p className="text-xs text-red-700 font-mono break-all">{error}</p>
+            </div>
+          )}
           <button
             onClick={handleRegisterPasskey}
             disabled={loading}
