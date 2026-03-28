@@ -2,7 +2,8 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
+import { useClerk } from '@clerk/nextjs';
 import { Activity, LayoutDashboard, Brain, Clipboard, Upload, LogOut } from 'lucide-react';
 
 const navItems = [
@@ -14,12 +15,10 @@ const navItems = [
 
 export default function HealthHeader() {
   const pathname = usePathname();
-  const router = useRouter();
+  const { signOut } = useClerk();
 
-  const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/login');
-    router.refresh();
+  const handleLogout = () => {
+    signOut({ redirectUrl: '/sign-in' });
   };
 
   return (
