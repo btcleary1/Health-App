@@ -1,27 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const PASSPHRASE = 'bc26';
+export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
+  let step = 'init';
   try {
-    const body = await req.json();
+    step = 'parse_json';
+    const text = await req.text();
+    step = 'json_parse';
+    const body = JSON.parse(text);
+    step = 'check_passphrase';
     const passphrase = body?.passphrase ?? '';
 
-    if (passphrase !== PASSPHRASE) {
+    if (passphrase !== 'bc26') {
       return NextResponse.json({ error: 'Incorrect passphrase.' }, { status: 401 });
     }
 
+    step = 'build_response';
     const res = NextResponse.json({ success: true });
+    step = 'set_cookie';
     res.cookies.set('app_auth', 'granted', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: true,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
       path: '/',
     });
     return res;
   } catch (err) {
-    console.error('Login error:', err);
-    return NextResponse.json({ error: 'Server error. Please try again.' }, { status: 500 });
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: `Failed at step: ${step} — ${msg}` }, { status: 500 });
   }
 }
