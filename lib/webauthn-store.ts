@@ -10,14 +10,12 @@ const CREDS_PATH = 'webauthn/credentials.json';
 
 export async function getCredentials(): Promise<StoredCredential[]> {
   try {
-    const token = process.env.BLOB_READ_WRITE_TOKEN ?? '';
     const { blobs } = await list({ prefix: 'webauthn/' });
     const blob = blobs.find(b => b.pathname === CREDS_PATH);
     if (!blob) return [];
-    const res = await fetch(blob.url, {
-      headers: { authorization: `Bearer ${token}` },
-      cache: 'no-store',
-    });
+    // Use downloadUrl (pre-signed) for private blobs — no auth header needed
+    const fetchUrl = (blob as any).downloadUrl ?? blob.url;
+    const res = await fetch(fetchUrl, { cache: 'no-store' });
     if (!res.ok) return [];
     return await res.json();
   } catch {

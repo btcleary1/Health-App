@@ -11,22 +11,18 @@ export async function GET() {
 
     if (!blob) return NextResponse.json({ error: 'no blob found', blobCount: blobs.length });
 
-    // Try fetching with bearer token
-    const res = await fetch(blob.url, {
-      headers: { authorization: `Bearer ${token}` },
-      cache: 'no-store',
-    });
-
+    // Try downloadUrl (pre-signed) first, fall back to bearer token
+    const downloadUrl = (blob as any).downloadUrl ?? blob.url;
+    const res = await fetch(downloadUrl, { cache: 'no-store' });
     const text = await res.text();
 
     return NextResponse.json({
       status: res.status,
       ok: res.ok,
-      blobUrl: blob.url.slice(0, 60),
-      downloadUrl: blob.downloadUrl?.slice(0, 60),
+      usedDownloadUrl: !!(blob as any).downloadUrl,
       tokenPresent: !!token,
       tokenLength: token.length,
-      bodyPreview: text.slice(0, 200),
+      bodyPreview: text.slice(0, 300),
     });
   } catch (err) {
     return NextResponse.json({ error: String(err) });
