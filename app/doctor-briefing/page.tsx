@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import HealthHeader from '@/components/HealthHeader';
+import HIPAAFooter from '@/components/HIPAAFooter';
 import { Printer, Brain, Loader2, AlertTriangle, ClipboardList, HeartPulse, User } from 'lucide-react';
 
 const PATIENT_DATA = {
@@ -223,6 +224,7 @@ export default function DoctorBriefingPage() {
           </div>
         </div>
       </div>
+      <HIPAAFooter />
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import HealthHeader from '@/components/HealthHeader';
+import HIPAAFooter from '@/components/HIPAAFooter';
 import { Brain, Loader2, ChevronDown, ChevronUp, AlertTriangle, Search, ClipboardList, Lightbulb, HeartPulse, Shield } from 'lucide-react';
 
 const PATIENT_DATA = {
@@ -271,6 +272,7 @@ export default function AIAnalysisPage() {
           </div>
         )}
       </div>
+      <HIPAAFooter />
     </div>
   );
 }

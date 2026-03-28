@@ -2,6 +2,8 @@
 
 import { useState, useRef, useCallback } from 'react';
 import HealthHeader from '@/components/HealthHeader';
+import HIPAAFooter from '@/components/HIPAAFooter';
+import UploadConsent from '@/components/UploadConsent';
 import { Upload, FileImage, FileText, File, X, Check, AlertCircle, Brain, Loader2 } from 'lucide-react';
 
 const CATEGORIES = [
@@ -48,14 +50,28 @@ export default function UploadsPage() {
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [error, setError] = useState('');
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
+  const [showConsent, setShowConsent] = useState(false);
+  const [consentAccepted, setConsentAccepted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setDragging(false);
     const file = e.dataTransfer.files[0];
-    if (file) setPendingFile(file);
-  }, []);
+    if (file) {
+      if (!consentAccepted) { setShowConsent(true); setPendingFile(file); } else { setPendingFile(file); }
+    }
+  }, [consentAccepted]);
+
+  const handleBrowseClick = () => {
+    if (!consentAccepted) { setShowConsent(true); } else { fileInputRef.current?.click(); }
+  };
+
+  const handleConsentAccept = () => {
+    setConsentAccepted(true);
+    setShowConsent(false);
+    fileInputRef.current?.click();
+  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -116,6 +132,12 @@ export default function UploadsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {showConsent && (
+        <UploadConsent
+          onAccept={handleConsentAccept}
+          onCancel={() => { setShowConsent(false); setPendingFile(null); }}
+        />
+      )}
       <HealthHeader />
       <div className="max-w-3xl mx-auto px-4 py-8">
 
@@ -163,7 +185,7 @@ export default function UploadsPage() {
                   <div className="text-sm mt-1 text-gray-500">Photos, screenshots, PDFs, lab results, ECGs — up to 10MB</div>
                 </div>
                 <button
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={handleBrowseClick}
                   className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm transition-colors"
                 >
                   Browse Files
@@ -271,6 +293,7 @@ export default function UploadsPage() {
           </div>
         )}
       </div>
+      <HIPAAFooter />
     </div>
   );
 }

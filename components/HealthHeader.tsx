@@ -2,8 +2,8 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Activity, LayoutDashboard, FileText, Brain, Clipboard, Upload } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { Activity, LayoutDashboard, Brain, Clipboard, Upload, LogOut } from 'lucide-react';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -14,37 +14,65 @@ const navItems = [
 
 export default function HealthHeader() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    router.push('/login');
+    router.refresh();
+  };
 
   return (
     <>
-      {/* Top header — visible on all screens */}
-      <header className="sticky top-0 z-50 bg-card border-b border-border" style={{ backgroundColor: '#0B1120' }}>
+      {/* Top header */}
+      <header className="sticky top-0 z-50 border-b border-border" style={{ backgroundColor: '#0B1120' }}>
         <div className="w-full px-4 py-3">
           <div className="flex items-center justify-between">
             <Link href="/dashboard" className="flex items-center gap-2">
               <Activity className="w-5 h-5 text-accent" />
               <span className="font-bold text-text-primary text-base">Ethan's Health</span>
             </Link>
-            {/* Desktop nav */}
-            <nav className="hidden sm:flex items-center gap-1">
-              {navItems.map(({ href, label, icon: Icon }) => {
-                const isActive = pathname?.startsWith(href);
-                return (
-                  <Link
-                    key={href}
-                    href={href}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      isActive
-                        ? 'bg-accent text-white'
-                        : 'text-text-secondary hover:text-text-primary hover:bg-background'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4 shrink-0" />
-                    {label}
-                  </Link>
-                );
-              })}
-            </nav>
+
+            {/* Desktop nav + logout */}
+            <div className="hidden sm:flex items-center gap-1">
+              <nav className="flex items-center gap-1">
+                {navItems.map(({ href, label, icon: Icon }) => {
+                  const isActive = pathname?.startsWith(href);
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        isActive
+                          ? 'bg-accent text-white'
+                          : 'text-text-secondary hover:text-text-primary hover:bg-background'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4 shrink-0" />
+                      {label}
+                    </Link>
+                  );
+                })}
+              </nav>
+              <button
+                onClick={handleLogout}
+                title="Sign out"
+                className="ml-2 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-text-secondary hover:text-text-primary hover:bg-background transition-colors"
+                style={{ minHeight: 'unset' }}
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Mobile logout */}
+            <button
+              onClick={handleLogout}
+              className="sm:hidden text-text-secondary hover:text-text-primary p-1"
+              title="Sign out"
+              style={{ minHeight: 'unset' }}
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </header>
