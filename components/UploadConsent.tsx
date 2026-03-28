@@ -27,9 +27,9 @@ export default function UploadConsent({ onAccept, onCancel }: Props) {
         <div className="bg-gray-50 rounded-xl p-4 mb-4 text-sm text-gray-700 space-y-2">
           <p>By uploading a file, you confirm:</p>
           <ul className="list-disc pl-5 space-y-1 text-xs">
-            <li>You are a parent/guardian of Ethan Alvarez or authorized representative</li>
+            <li>You are an authorized user of this application</li>
             <li>You have the right to upload and share this document</li>
-            <li>The file contains health information related to Ethan's care</li>
+            <li>The file contains health information relevant to the registered patient</li>
             <li>Files are stored securely on Vercel's cloud infrastructure</li>
             <li>You will not upload content about other individuals without their consent</li>
           </ul>

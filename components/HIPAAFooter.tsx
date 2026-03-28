@@ -10,7 +10,7 @@ export default function HIPAAFooter() {
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-gray-400">
-          <span>🔒 PHI — Authorized Access Only</span>
+          <span>🔒 Sensitive Health Data — Authorized Access Only</span>
           <Link href="/privacy" className="hover:text-gray-600 underline" style={{ minHeight: 'unset' }}>Privacy Policy</Link>
           <Link href="/terms" className="hover:text-gray-600 underline" style={{ minHeight: 'unset' }}>Terms of Service</Link>
           <span>© {new Date().getFullYear()} Health Wiz</span>

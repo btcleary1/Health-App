@@ -141,7 +141,7 @@ export default function LoginPage() {
           <Activity className="w-7 h-7 text-red-600" />
         </div>
         <h1 className="text-xl font-bold text-gray-900">Health Wiz</h1>
-        <p className="text-sm text-gray-500 mt-1">Authorized access only — PHI protected</p>
+        <p className="text-sm text-gray-500 mt-1">Authorized access only — Health data protected</p>
       </div>
 
       <div className="w-full max-w-sm mb-3">
@@ -170,7 +170,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5">
           <p className="text-xs text-amber-800 leading-relaxed">
-            <strong>⚠ HIPAA Notice:</strong> This application contains Protected Health Information (PHI). Unauthorized access is prohibited.
+            <strong>⚠ Health Data Notice:</strong> This application contains sensitive personal health information. Unauthorized access is prohibited.
           </p>
         </div>
 
@@ -201,7 +201,7 @@ export default function LoginPage() {
               <a href="/terms" target="_blank" className="text-blue-600 underline" style={{ minHeight: 'unset' }}>Terms of Service</a>
               {' '}and{' '}
               <a href="/privacy" target="_blank" className="text-blue-600 underline" style={{ minHeight: 'unset' }}>Privacy Policy</a>.
-              I understand this app contains PHI and will not share access.
+              I understand this app contains sensitive health information and will not share access.
             </span>
           </label>
 
