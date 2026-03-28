@@ -1,4 +1,4 @@
-import { put, list, getDownloadUrl } from '@vercel/blob';
+import { put, list } from '@vercel/blob';
 
 export interface StoredCredential {
   id: string;
@@ -13,8 +13,8 @@ export async function getCredentials(): Promise<StoredCredential[]> {
     const { blobs } = await list({ prefix: 'webauthn/' });
     const blob = blobs.find(b => b.pathname === CREDS_PATH);
     if (!blob) return [];
-    const signedUrl = await getDownloadUrl(blob.url);
-    const res = await fetch(signedUrl, { cache: 'no-store' });
+    // Use downloadUrl directly from list result (works for private stores)
+    const res = await fetch(blob.downloadUrl, { cache: 'no-store' });
     if (!res.ok) return [];
     return await res.json();
   } catch {
