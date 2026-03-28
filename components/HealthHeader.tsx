@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Activity, LayoutDashboard, Brain, Clipboard, Upload, LogOut } from 'lucide-react';
+import { Activity, LayoutDashboard, Brain, Clipboard, Upload, LogOut, Settings } from 'lucide-react';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -51,25 +51,37 @@ export default function HealthHeader() {
                   );
                 })}
               </nav>
+              <Link
+                href="/settings"
+                title="Settings"
+                className={`ml-1 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-colors ${pathname?.startsWith('/settings') ? 'bg-accent text-white' : 'text-text-secondary hover:text-text-primary hover:bg-background'}`}
+              >
+                <Settings className="w-4 h-4" />
+              </Link>
               <button
                 onClick={handleLogout}
                 title="Sign out"
-                className="ml-2 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-text-secondary hover:text-text-primary hover:bg-background transition-colors"
+                className="ml-1 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-text-secondary hover:text-text-primary hover:bg-background transition-colors"
                 style={{ minHeight: 'unset' }}
               >
                 <LogOut className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Mobile logout */}
-            <button
-              onClick={handleLogout}
-              className="sm:hidden text-text-secondary hover:text-text-primary p-1"
-              title="Sign out"
-              style={{ minHeight: 'unset' }}
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
+            {/* Mobile: settings + logout */}
+            <div className="sm:hidden flex items-center gap-1">
+              <Link href="/settings" title="Settings" className="text-text-secondary hover:text-text-primary p-1">
+                <Settings className="w-4 h-4" />
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="text-text-secondary hover:text-text-primary p-1"
+                title="Sign out"
+                style={{ minHeight: 'unset' }}
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       </header>
