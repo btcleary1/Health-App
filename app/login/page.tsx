@@ -14,6 +14,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [faceIdLoading, setFaceIdLoading] = useState(false);
+  const [faceIdError, setFaceIdError] = useState('');
   const [stage, setStage] = useState<Stage>('login');
   const [supportsWebAuthn, setSupportsWebAuthn] = useState(false);
 
@@ -44,10 +45,11 @@ export default function LoginPage() {
 
   const handleFaceIdLogin = async () => {
     setFaceIdLoading(true);
-    setError('');
+    setFaceIdError('');
     try {
       const optRes = await fetch('/api/auth/webauthn/auth-options', { method: 'POST' });
       const options = await optRes.json();
+      if (!optRes.ok) { setFaceIdError(`Options: ${options.error}`); setFaceIdLoading(false); return; }
       const assertion = await startAuthentication({ optionsJSON: options });
       const verRes = await fetch('/api/auth/webauthn/auth-verify', {
         method: 'POST',
@@ -58,16 +60,11 @@ export default function LoginPage() {
       if (verRes.ok) {
         window.location.href = '/dashboard';
       } else {
-        setError(result.error || 'Face ID login failed.');
+        setFaceIdError(result.error || 'Auth failed.');
       }
     } catch (err: unknown) {
-      if (err instanceof Error && err.name === 'NotAllowedError') {
-        setError('Face ID cancelled.');
-      } else if (err instanceof Error && err.message?.includes('No credentials')) {
-        setError('No passkey registered yet. Use your passphrase first.');
-      } else {
-        setError('Face ID failed. Use your passphrase.');
-      }
+      const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+      setFaceIdError(msg);
     }
     setFaceIdLoading(false);
   };
@@ -158,6 +155,11 @@ export default function LoginPage() {
               : <Fingerprint className="w-4 h-4" />}
             Sign in with Face ID / Fingerprint
           </button>
+          {faceIdError && (
+            <div className="mt-2 bg-red-50 border border-red-200 rounded-xl p-3">
+              <p className="text-xs text-red-700 font-mono break-all">{faceIdError}</p>
+            </div>
+          )}
           <div className="flex items-center gap-3 my-4">
             <div className="flex-1 h-px bg-gray-200" />
             <span className="text-xs text-gray-400">or use passphrase</span>
