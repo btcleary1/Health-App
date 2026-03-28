@@ -17,8 +17,10 @@ export default function HealthHeader() {
   const pathname = usePathname();
   const { signOut } = useClerk();
 
-  const handleLogout = () => {
-    signOut({ redirectUrl: '/sign-in' });
+  const handleLogout = async () => {
+    // Cookie-based auth logout (used when AUTH_ENABLED=true with passphrase)
+    await fetch('/api/auth/logout', { method: 'POST' });
+    window.location.href = '/login';
   };
 
   return (
