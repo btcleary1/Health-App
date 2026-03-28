@@ -1,7 +1,6 @@
-import { clerkMiddleware } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 
-// Feature flag: controlled via code — set to true to enforce login
+// Feature flag: controlled via code
 const AUTH_ENABLED = true;
 
 const PUBLIC_PATHS = ['/login', '/api/auth/login', '/privacy', '/terms'];
@@ -10,17 +9,16 @@ function isPublic(req: NextRequest) {
   return PUBLIC_PATHS.some(p => req.nextUrl.pathname.startsWith(p));
 }
 
-export default clerkMiddleware(async (_auth, req) => {
+export function middleware(req: NextRequest) {
   if (!AUTH_ENABLED) return NextResponse.next();
   if (isPublic(req)) return NextResponse.next();
 
   const authed = req.cookies.get('app_auth')?.value === 'granted';
   if (!authed) {
-    const loginUrl = new URL('/login', req.url);
-    return NextResponse.redirect(loginUrl);
+    return NextResponse.redirect(new URL('/login', req.url));
   }
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: [

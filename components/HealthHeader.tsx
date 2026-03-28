@@ -3,7 +3,6 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useClerk } from '@clerk/nextjs';
 import { Activity, LayoutDashboard, Brain, Clipboard, Upload, LogOut } from 'lucide-react';
 
 const navItems = [
@@ -15,10 +14,7 @@ const navItems = [
 
 export default function HealthHeader() {
   const pathname = usePathname();
-  const { signOut } = useClerk();
-
   const handleLogout = async () => {
-    // Cookie-based auth logout (used when AUTH_ENABLED=true with passphrase)
     await fetch('/api/auth/logout', { method: 'POST' });
     window.location.href = '/login';
   };
