@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyRegistrationResponse } from '@simplewebauthn/server';
-import { signCredential } from '@/lib/webauthn-hmac';
+import { getCredentials, saveCredentials } from '@/lib/webauthn-store';
 
 export const runtime = 'nodejs';
 
@@ -32,23 +32,16 @@ export async function POST(req: NextRequest) {
     }
 
     const { credential } = verification.registrationInfo;
-    const credJson = JSON.stringify({
+    const newCred = {
       id: credential.id,
       publicKey: Buffer.from(credential.publicKey).toString('base64'),
       counter: credential.counter,
-    });
+    };
 
-    const backup = signCredential(credJson);
-    const res = NextResponse.json({ success: true, backup });
+    await saveCredentials([newCred]);
+
+    const res = NextResponse.json({ success: true });
     res.cookies.delete('webauthn_challenge');
-    // Store credential in a long-lived httpOnly cookie
-    res.cookies.set('webauthn_cred', credJson, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 365,
-      path: '/',
-    });
     return res;
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });

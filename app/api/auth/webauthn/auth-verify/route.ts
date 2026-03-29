@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuthenticationResponse } from '@simplewebauthn/server';
-import { verifyCredentialToken } from '@/lib/webauthn-hmac';
+import { getCredentials, saveCredentials } from '@/lib/webauthn-store';
 
 export const runtime = 'nodejs';
 
@@ -15,29 +15,18 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { backup, ...assertion } = body;
+    const creds = await getCredentials();
+    const stored = creds.find(c => c.id === body.id);
 
-    // Accept credential from cookie OR from HMAC-signed backup token in request body
-    const credCookie = req.cookies.get('webauthn_cred')?.value;
-    let credJson: string | null = credCookie ?? null;
-    if (!credJson && backup) {
-      credJson = verifyCredentialToken(backup);
-    }
-    if (!credJson) {
-      return NextResponse.json({ error: 'No passkey registered on this device.' }, { status: 400 });
-    }
-
-    const stored = JSON.parse(credJson) as { id: string; publicKey: string; counter: number };
-
-    if (assertion.id !== stored.id) {
+    if (!stored) {
       return NextResponse.json({
         error: 'Passkey not recognized.',
-        debug: { storedId: stored.id.slice(0, 20), incomingId: assertion.id?.slice(0, 20) },
+        debug: { credCount: creds.length, storedIds: creds.map(c => c.id.slice(0, 20)), incomingId: body.id?.slice(0, 20) },
       }, { status: 400 });
     }
 
     const verification = await verifyAuthenticationResponse({
-      response: assertion,
+      response: body,
       expectedChallenge: challenge,
       expectedOrigin: ORIGIN,
       expectedRPID: RP_ID,
@@ -55,19 +44,14 @@ export async function POST(req: NextRequest) {
 
     // Update counter
     stored.counter = verification.authenticationInfo.newCounter;
+    await saveCredentials(creds);
+
     const res = NextResponse.json({ success: true });
     res.cookies.set('app_auth', 'granted', {
       httpOnly: true,
       secure: true,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
-      path: '/',
-    });
-    res.cookies.set('webauthn_cred', JSON.stringify(stored), {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 365,
       path: '/',
     });
     res.cookies.delete('webauthn_challenge');
