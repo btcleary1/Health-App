@@ -15,12 +15,13 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
+    const { backup, ...assertion } = body;
 
     // Accept credential from cookie OR from HMAC-signed backup token in request body
     const credCookie = req.cookies.get('webauthn_cred')?.value;
     let credJson: string | null = credCookie ?? null;
-    if (!credJson && body.backup) {
-      credJson = verifyCredentialToken(body.backup);
+    if (!credJson && backup) {
+      credJson = verifyCredentialToken(backup);
     }
     if (!credJson) {
       return NextResponse.json({ error: 'No passkey registered on this device.' }, { status: 400 });
@@ -28,15 +29,15 @@ export async function POST(req: NextRequest) {
 
     const stored = JSON.parse(credJson) as { id: string; publicKey: string; counter: number };
 
-    if (body.id !== stored.id) {
+    if (assertion.id !== stored.id) {
       return NextResponse.json({
         error: 'Passkey not recognized.',
-        debug: { storedId: stored.id.slice(0, 20), incomingId: body.id?.slice(0, 20) },
+        debug: { storedId: stored.id.slice(0, 20), incomingId: assertion.id?.slice(0, 20) },
       }, { status: 400 });
     }
 
     const verification = await verifyAuthenticationResponse({
-      response: body,
+      response: assertion,
       expectedChallenge: challenge,
       expectedOrigin: ORIGIN,
       expectedRPID: RP_ID,
