@@ -1,25 +1,21 @@
-import { NextResponse } from 'next/server';
-import { list, getDownloadUrl } from '@vercel/blob';
+import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const credCookie = req.cookies.get('webauthn_cred')?.value;
+  if (!credCookie) {
+    return NextResponse.json({ registered: false, message: 'No webauthn_cred cookie found' });
+  }
   try {
-    const { blobs } = await list({ prefix: 'webauthn/' });
-    const blob = blobs.find(b => b.pathname === 'webauthn/credentials.json');
-    if (!blob) return NextResponse.json({ error: 'blob not found', blobCount: blobs.length });
-
-    const downloadUrl = await getDownloadUrl(blob.url);
-    const res = await fetch(downloadUrl, { cache: 'no-store' });
-    const text = await res.text();
-
+    const cred = JSON.parse(credCookie);
     return NextResponse.json({
-      status: res.status,
-      ok: res.ok,
-      tokenPresent: !!process.env.BLOB_READ_WRITE_TOKEN,
-      bodyPreview: text.slice(0, 300),
+      registered: true,
+      credId: cred.id?.slice(0, 20),
+      counter: cred.counter,
+      hasPublicKey: !!cred.publicKey,
     });
-  } catch (err) {
-    return NextResponse.json({ error: String(err) });
+  } catch {
+    return NextResponse.json({ registered: false, error: 'Invalid credential cookie' });
   }
 }
