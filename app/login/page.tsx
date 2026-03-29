@@ -47,15 +47,7 @@ export default function LoginPage() {
     setFaceIdLoading(true);
     setFaceIdError('');
     try {
-      // Restore credential cookie from localStorage backup if it was cleared by iOS
-      const backup = localStorage.getItem('webauthn_backup');
-      if (backup) {
-        await fetch('/api/auth/webauthn/restore', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ backup }),
-        });
-      }
+      const backup = localStorage.getItem('webauthn_backup') ?? undefined;
 
       const optRes = await fetch('/api/auth/webauthn/auth-options', { method: 'POST' });
       const options = await optRes.json();
@@ -64,7 +56,7 @@ export default function LoginPage() {
       const verRes = await fetch('/api/auth/webauthn/auth-verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(assertion),
+        body: JSON.stringify({ ...assertion, backup }),
       });
       const result = await verRes.json();
       if (verRes.ok) {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuthenticationResponse } from '@simplewebauthn/server';
+import { verifyCredentialToken } from '@/lib/webauthn-hmac';
 
 export const runtime = 'nodejs';
 
@@ -12,14 +13,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Challenge expired. Please try again.' }, { status: 400 });
   }
 
-  const credCookie = req.cookies.get('webauthn_cred')?.value;
-  if (!credCookie) {
-    return NextResponse.json({ error: 'No passkey registered on this device.' }, { status: 400 });
-  }
-
   try {
-    const stored = JSON.parse(credCookie) as { id: string; publicKey: string; counter: number };
     const body = await req.json();
+
+    // Accept credential from cookie OR from HMAC-signed backup token in request body
+    const credCookie = req.cookies.get('webauthn_cred')?.value;
+    let credJson: string | null = credCookie ?? null;
+    if (!credJson && body.backup) {
+      credJson = verifyCredentialToken(body.backup);
+    }
+    if (!credJson) {
+      return NextResponse.json({ error: 'No passkey registered on this device.' }, { status: 400 });
+    }
+
+    const stored = JSON.parse(credJson) as { id: string; publicKey: string; counter: number };
 
     if (body.id !== stored.id) {
       return NextResponse.json({
