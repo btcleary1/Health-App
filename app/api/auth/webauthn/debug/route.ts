@@ -1,14 +1,16 @@
 import { NextResponse } from 'next/server';
-import { get } from '@vercel/blob';
+import { list, getDownloadUrl } from '@vercel/blob';
 
 export const runtime = 'nodejs';
 
 export async function GET() {
   try {
-    const blobResult = await get('webauthn/credentials.json');
-    if (!blobResult) return NextResponse.json({ error: 'blob not found via get()' });
+    const { blobs } = await list({ prefix: 'webauthn/' });
+    const blob = blobs.find(b => b.pathname === 'webauthn/credentials.json');
+    if (!blob) return NextResponse.json({ error: 'blob not found', blobCount: blobs.length });
 
-    const res = await fetch(blobResult.downloadUrl, { cache: 'no-store' });
+    const downloadUrl = await getDownloadUrl(blob.url);
+    const res = await fetch(downloadUrl, { cache: 'no-store' });
     const text = await res.text();
 
     return NextResponse.json({

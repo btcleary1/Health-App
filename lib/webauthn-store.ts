@@ -1,4 +1,4 @@
-import { put, get } from '@vercel/blob';
+import { put, list, getDownloadUrl } from '@vercel/blob';
 
 export interface StoredCredential {
   id: string;
@@ -10,9 +10,11 @@ const CREDS_PATH = 'webauthn/credentials.json';
 
 export async function getCredentials(): Promise<StoredCredential[]> {
   try {
-    const blobResult = await get(CREDS_PATH);
-    if (!blobResult) return [];
-    const res = await fetch(blobResult.downloadUrl, { cache: 'no-store' });
+    const { blobs } = await list({ prefix: 'webauthn/' });
+    const blob = blobs.find(b => b.pathname === CREDS_PATH);
+    if (!blob) return [];
+    const downloadUrl = await getDownloadUrl(blob.url);
+    const res = await fetch(downloadUrl, { cache: 'no-store' });
     if (!res.ok) return [];
     return await res.json();
   } catch {
