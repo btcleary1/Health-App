@@ -38,7 +38,10 @@ export async function POST(req: NextRequest) {
       counter: credential.counter,
     };
 
-    await saveCredentials([newCred]);
+    // Keep existing credentials from other devices, replace if same ID
+    const existing = await getCredentials();
+    const others = existing.filter(c => c.id !== newCred.id);
+    await saveCredentials([...others, newCred]);
 
     const res = NextResponse.json({ success: true });
     res.cookies.delete('webauthn_challenge');

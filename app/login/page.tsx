@@ -17,9 +17,18 @@ export default function LoginPage() {
   const [faceIdError, setFaceIdError] = useState('');
   const [stage, setStage] = useState<Stage>('login');
   const [supportsWebAuthn, setSupportsWebAuthn] = useState(false);
+  const [biometricLabel, setBiometricLabel] = useState('Sign in with Biometrics');
 
   useEffect(() => {
     setSupportsWebAuthn(browserSupportsWebAuthn());
+    const ua = navigator.userAgent;
+    if (/iPhone|iPad|iPod/.test(ua)) {
+      setBiometricLabel('Sign in with Face ID');
+    } else if (/Mac/.test(ua) || /CrOS/.test(ua) || /Win/.test(ua)) {
+      setBiometricLabel('Sign in with Fingerprint / Touch ID');
+    } else {
+      setBiometricLabel('Sign in with Biometrics');
+    }
   }, []);
 
   const handlePassphraseLogin = async (e: React.FormEvent) => {
@@ -153,7 +162,7 @@ export default function LoginPage() {
             {faceIdLoading
               ? <Loader2 className="w-4 h-4 animate-spin" />
               : <Fingerprint className="w-4 h-4" />}
-            Sign in with Face ID / Fingerprint
+            {faceIdLoading ? 'Verifying…' : biometricLabel}
           </button>
           {faceIdError && (
             <div className="mt-2 bg-red-50 border border-red-200 rounded-xl p-3">
