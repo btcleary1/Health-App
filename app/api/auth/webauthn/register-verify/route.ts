@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyRegistrationResponse } from '@simplewebauthn/server';
+import { signCredential } from '@/lib/webauthn-hmac';
 
 export const runtime = 'nodejs';
 
@@ -37,7 +38,8 @@ export async function POST(req: NextRequest) {
       counter: credential.counter,
     });
 
-    const res = NextResponse.json({ success: true });
+    const backup = signCredential(credJson);
+    const res = NextResponse.json({ success: true, backup });
     res.cookies.delete('webauthn_challenge');
     // Store credential in a long-lived httpOnly cookie
     res.cookies.set('webauthn_cred', credJson, {

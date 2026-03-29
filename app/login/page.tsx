@@ -47,6 +47,16 @@ export default function LoginPage() {
     setFaceIdLoading(true);
     setFaceIdError('');
     try {
+      // Restore credential cookie from localStorage backup if it was cleared by iOS
+      const backup = localStorage.getItem('webauthn_backup');
+      if (backup) {
+        await fetch('/api/auth/webauthn/restore', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ backup }),
+        });
+      }
+
       const optRes = await fetch('/api/auth/webauthn/auth-options', { method: 'POST' });
       const options = await optRes.json();
       if (!optRes.ok) { setFaceIdError(`Options: ${options.error}`); setFaceIdLoading(false); return; }
@@ -88,6 +98,7 @@ export default function LoginPage() {
       });
       const verData = await verRes.json();
       if (verRes.ok) {
+        if (verData.backup) localStorage.setItem('webauthn_backup', verData.backup);
         window.location.href = '/dashboard';
       } else {
         setError(`Verify: ${verData.error || verRes.status}`);

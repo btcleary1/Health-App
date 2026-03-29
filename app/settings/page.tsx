@@ -35,6 +35,8 @@ export default function SettingsPage() {
         body: JSON.stringify(attestation),
       });
       if (verRes.ok) {
+        const verData = await verRes.json();
+        if (verData.backup) localStorage.setItem('webauthn_backup', verData.backup);
         setRegistered(true);
         setMessage({ type: 'success', text: 'Face ID enabled. You can now sign in with biometrics.' });
       } else {
@@ -54,6 +56,7 @@ export default function SettingsPage() {
     setMessage(null);
     const res = await fetch('/api/auth/webauthn/delete', { method: 'POST' });
     if (res.ok) {
+      localStorage.removeItem('webauthn_backup');
       setRegistered(false);
       setMessage({ type: 'success', text: 'Face ID disabled. Use your passphrase to sign in.' });
     } else {
