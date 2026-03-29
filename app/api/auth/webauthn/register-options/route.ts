@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateRegistrationOptions } from '@simplewebauthn/server';
-import { getCredentials } from '@/lib/webauthn-store';
 
 export const runtime = 'nodejs';
 
@@ -11,15 +10,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
-  const existing = await getCredentials();
-
   const options = await generateRegistrationOptions({
     rpName: 'Health Wiz',
     rpID: RP_ID,
     userID: new TextEncoder().encode('healthwiz-owner'),
     userName: 'healthwiz',
     userDisplayName: 'Health Wiz',
-    excludeCredentials: existing.map(c => ({ id: c.id, type: 'public-key' })),
     authenticatorSelection: {
       residentKey: 'preferred',
       userVerification: 'preferred',
