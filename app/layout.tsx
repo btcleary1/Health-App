@@ -7,7 +7,14 @@ export const metadata: Metadata = {
     default: "Health Wiz",
     template: "%s | Health Wiz",
   },
-  description: 'Pediatric cardiac health tracking, AI medical analysis, and doctor briefings for Ethan Alvarez.',
+  description: 'Personal health tracking, AI medical analysis, and doctor briefings.',
+  applicationName: 'Health Wiz',
+  appleWebApp: {
+    capable: true,
+    title: 'Health Wiz',
+    statusBarStyle: 'default',
+  },
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
