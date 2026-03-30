@@ -118,34 +118,51 @@ ${focusArea ? `SPECIFIC FOCUS FOR THIS ANALYSIS: ${focusArea}` : ''}
 
 Please analyze every detail — especially the parent notes about what was happening before, during, and after each event. Look for patterns across events. Identify what is being missed. Give this family the best medical knowledge available.`;
 
-  const message = await client.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 4096,
-    system: systemPrompt,
-    messages: [{ role: 'user', content: userPrompt }],
+  // Stream from Claude so the connection stays alive past Vercel's timeout
+  const encoder = new TextEncoder();
+  const stream = new TransformStream();
+  const writer = stream.writable.getWriter();
+
+  (async () => {
+    try {
+      let fullText = '';
+      const response = await client.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 4096,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }],
+        stream: true,
+      });
+
+      for await (const event of response) {
+        if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+          fullText += event.delta.text;
+        }
+        // Send a space periodically to keep the connection alive
+        await writer.write(encoder.encode(' '));
+      }
+
+      const stripped = fullText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
+      const start = stripped.indexOf('{');
+      const end = stripped.lastIndexOf('}');
+      if (start === -1 || end === -1) {
+        await writer.write(encoder.encode(JSON.stringify({ error: 'Could not find JSON in AI response. Try again.' })));
+      } else {
+        try {
+          const analysis = JSON.parse(stripped.slice(start, end + 1));
+          await writer.write(encoder.encode(JSON.stringify({ analysis })));
+        } catch {
+          await writer.write(encoder.encode(JSON.stringify({ error: 'AI returned malformed JSON. Try again.' })));
+        }
+      }
+    } catch (err: any) {
+      await writer.write(encoder.encode(JSON.stringify({ error: err.message || 'AI analysis failed.' })));
+    } finally {
+      await writer.close();
+    }
+  })();
+
+  return new Response(stream.readable, {
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
   });
-
-  const rawText = message.content[0].type === 'text' ? message.content[0].text : '';
-  const stripped = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
-  const start = stripped.indexOf('{');
-  const end = stripped.lastIndexOf('}');
-  if (start === -1 || end === -1) {
-    return new Response(JSON.stringify({ error: 'Could not find JSON in AI response. Try again.' }), {
-      status: 500, headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  let analysis;
-  try {
-    analysis = JSON.parse(stripped.slice(start, end + 1));
-  } catch {
-    return new Response(JSON.stringify({ error: 'AI returned malformed JSON. Try again.' }), {
-      status: 500, headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  return new Response(
-    JSON.stringify({ analysis, model: message.model, usage: message.usage }),
-    { headers: { 'Content-Type': 'application/json' } }
-  );
 }
