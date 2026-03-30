@@ -2,11 +2,24 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createUser, userCount } from '@/lib/users';
 import { validatePassword } from '@/lib/password-rules';
 import { setSessionCookie } from '@/lib/session';
+import { checkRateLimit, recordFailure } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 
+function getClientIp(req: NextRequest): string {
+  return (
+    req.headers.get('x-forwarded-for')?.split(',')[0].trim() ??
+    req.headers.get('x-real-ip') ??
+    'unknown'
+  );
+}
+
 export async function POST(req: NextRequest) {
+  const ip = getClientIp(req);
+
   try {
+    await checkRateLimit(ip);
+
     const { email, name, password } = await req.json();
 
     if (!email || !name || !password) {
@@ -39,6 +52,10 @@ export async function POST(req: NextRequest) {
     return res;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
+    if (msg.startsWith('Too many')) {
+      return NextResponse.json({ error: msg }, { status: 429 });
+    }
+    await recordFailure(ip);
     return NextResponse.json({ error: msg }, { status: 400 });
   }
 }
