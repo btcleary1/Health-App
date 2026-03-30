@@ -1,23 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getUserByEmail, hashPassword } from '@/lib/users';
+import { setSessionCookie } from '@/lib/session';
 
 export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = JSON.parse(await req.text());
-    const passphrase = body?.passphrase ?? '';
+    const { email, password } = await req.json();
 
-    if (passphrase !== 'bc26') {
-      return NextResponse.json({ error: 'Incorrect passphrase.' }, { status: 401 });
+    if (!email || !password) {
+      return NextResponse.json({ error: 'Email and password are required.' }, { status: 400 });
     }
 
-    const res = NextResponse.json({ success: true });
-    res.cookies.set('app_auth', 'granted', {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7,
-      path: '/',
+    const user = await getUserByEmail(email);
+    if (!user || user.passwordHash !== hashPassword(password)) {
+      return NextResponse.json({ error: 'Incorrect email or password.' }, { status: 401 });
+    }
+
+    const res = NextResponse.json({ success: true, name: user.name });
+    setSessionCookie(res, {
+      userId: user.userId,
+      email: user.email,
+      name: user.name,
+      role: user.role,
     });
     return res;
   } catch (err) {

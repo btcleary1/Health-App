@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyRegistrationResponse } from '@simplewebauthn/server';
-import { getCredentials, saveCredentials } from '@/lib/webauthn-store';
+import { getCredentialsForUser, saveCredentialsForUser } from '@/lib/webauthn-store';
+import { getSessionFromRequest } from '@/lib/session';
 
 export const runtime = 'nodejs';
 
@@ -8,7 +9,8 @@ const RP_ID = process.env.WEBAUTHN_RP_ID || 'health-app-blond-omega.vercel.app';
 const ORIGIN = process.env.WEBAUTHN_ORIGIN || `https://${RP_ID}`;
 
 export async function POST(req: NextRequest) {
-  if (req.cookies.get('app_auth')?.value !== 'granted') {
+  const session = getSessionFromRequest(req);
+  if (!session) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
@@ -36,12 +38,12 @@ export async function POST(req: NextRequest) {
       id: credential.id,
       publicKey: Buffer.from(credential.publicKey).toString('base64'),
       counter: credential.counter,
+      userId: session.userId,
     };
 
-    // Keep existing credentials from other devices, replace if same ID
-    const existing = await getCredentials();
+    const existing = await getCredentialsForUser(session.userId);
     const others = existing.filter(c => c.id !== newCred.id);
-    await saveCredentials([...others, newCred]);
+    await saveCredentialsForUser(session.userId, [...others, newCred]);
 
     const res = NextResponse.json({ success: true });
     res.cookies.delete('webauthn_challenge');

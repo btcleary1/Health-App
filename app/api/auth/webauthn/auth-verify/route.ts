@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuthenticationResponse } from '@simplewebauthn/server';
-import { getCredentials, saveCredentials } from '@/lib/webauthn-store';
+import { findCredentialById, updateCredentialCounter } from '@/lib/webauthn-store';
+import { getUserById } from '@/lib/users';
+import { setSessionCookie } from '@/lib/session';
 
 export const runtime = 'nodejs';
 
@@ -15,14 +17,10 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const creds = await getCredentials();
-    const stored = creds.find(c => c.id === body.id);
+    const stored = await findCredentialById(body.id);
 
     if (!stored) {
-      return NextResponse.json({
-        error: 'Passkey not recognized.',
-        debug: { credCount: creds.length, storedIds: creds.map(c => c.id.slice(0, 20)), incomingId: body.id?.slice(0, 20) },
-      }, { status: 400 });
+      return NextResponse.json({ error: 'Passkey not recognized on this account.' }, { status: 400 });
     }
 
     const verification = await verifyAuthenticationResponse({
@@ -42,17 +40,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Verification failed.' }, { status: 400 });
     }
 
-    // Update counter
-    stored.counter = verification.authenticationInfo.newCounter;
-    await saveCredentials(creds);
+    await updateCredentialCounter(stored.id, verification.authenticationInfo.newCounter);
+
+    // Look up the user who owns this credential
+    const user = await getUserById(stored.userId);
+    if (!user) {
+      return NextResponse.json({ error: 'User account not found.' }, { status: 400 });
+    }
 
     const res = NextResponse.json({ success: true });
-    res.cookies.set('app_auth', 'granted', {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7,
-      path: '/',
+    setSessionCookie(res, {
+      userId: user.userId,
+      email: user.email,
+      name: user.name,
+      role: user.role,
     });
     res.cookies.delete('webauthn_challenge');
     return res;

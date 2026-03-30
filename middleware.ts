@@ -1,23 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { verifySessionToken } from '@/lib/session';
 
-// Feature flag: controlled via code
-const AUTH_ENABLED = true;
+const PUBLIC_PATHS = [
+  '/login',
+  '/register',
+  '/api/auth/login',
+  '/api/auth/register',
+  '/api/auth/webauthn/auth-options',
+  '/api/auth/webauthn/auth-verify',
+  '/privacy',
+  '/terms',
+];
 
-const PUBLIC_PATHS = ['/login', '/api/auth/login', '/api/auth/webauthn', '/privacy', '/terms'];
+// All other /api/auth/* and /api/health-data/* and /api/admin/* routes require session (handled below)
 
 function isPublic(req: NextRequest) {
   return PUBLIC_PATHS.some(p => req.nextUrl.pathname.startsWith(p));
 }
 
 export function middleware(req: NextRequest) {
-  if (!AUTH_ENABLED) return NextResponse.next();
   if (isPublic(req)) return NextResponse.next();
 
-  const authed = req.cookies.get('app_auth')?.value === 'granted';
-  if (!authed) {
+  const token = req.cookies.get('health_session')?.value;
+  const session = token ? verifySessionToken(token) : null;
+
+  if (!session) {
     return NextResponse.redirect(new URL('/login', req.url));
   }
-  return NextResponse.next();
+
+  // Forward userId as a header for API routes that need it
+  const res = NextResponse.next();
+  res.headers.set('x-user-id', session.userId);
+  res.headers.set('x-user-email', session.email);
+  res.headers.set('x-user-role', session.role);
+  return res;
 }
 
 export const config = {

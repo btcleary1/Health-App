@@ -111,13 +111,8 @@ export default function HealthDashboard() {
     observations: '', emotionalState: '', activitiesPrior: '',
     medicationsGiven: '', followUpActions: ''
   });
-  const [allCardiacEvents, setAllCardiacEvents] = useState<CardiacEvent[]>([
-    { id: '1', date: '2023-11-20', time: '14:30', type: 'cardiac_arrest', severity: 'critical', duration: '45 minutes', triggers: ['physical exertion'], symptoms: ['sudden collapse', 'no pulse', 'unresponsive'], vitals: { heartRate: 0, bloodPressure: '0/0', oxygen: 85 }, notes: 'Sudden cardiac arrest during PE class - CPR performed for 8 minutes', resolved: true, cprRequired: true, cprDuration: '8 minutes', medicalResponse: { calledEMS: true, emsResponseTime: '6 minutes', hospitalTransport: true, defibrillatorUsed: true }, parentNotes: { beforeEvent: 'Child was excited about PE class, had normal breakfast, seemed healthy', duringEvent: 'Suddenly collapsed during running exercise, turned blue, no breathing, immediately started CPR', afterEvent: 'Child was confused but responsive after EMS arrived, transported to hospital', observations: 'Other kids said he seemed normal before collapse, no warning signs', emotionalState: 'Happy and energetic before event, scared and confused after', activitiesPrior: 'PE class - running laps, normal school day', medicationsGiven: 'Emergency epinephrine by EMS', followUpActions: 'Hospitalized for 3 days, now has ICD implant scheduled' }},
-    { id: '2', date: '2023-11-18', time: '22:15', type: 'palpitations', severity: 'mild', duration: '5 minutes', triggers: ['lying down'], symptoms: ['racing heart'], vitals: { heartRate: 88, bloodPressure: '125/82', oxygen: 99 }, notes: 'Occasional fluttering sensation', resolved: true, parentNotes: { beforeEvent: 'Watching bedtime story, calm and relaxed', duringEvent: 'Complained of heart racing, seemed anxious', afterEvent: 'Symptoms resolved on their own, child fell asleep normally', observations: 'No visible distress, just verbal complaint', emotionalState: 'Calm before, slightly anxious during, normal after', activitiesPrior: 'Quiet evening routine, no excitement', medicationsGiven: 'None needed', followUpActions: 'Documented in symptom diary' }},
-    { id: '3', date: '2023-11-15', time: '10:30', type: 'arrhythmia', severity: 'moderate', duration: '15 minutes', triggers: ['stress'], symptoms: ['irregular heartbeat', 'dizziness'], vitals: { heartRate: 120, bloodPressure: '140/90', oxygen: 96 }, notes: 'Irregular heartbeat during math test', resolved: true, parentNotes: { beforeEvent: 'Stressed about upcoming math test, seemed anxious', duringEvent: 'Complained of heart fluttering, looked pale', afterEvent: 'Symptoms subsided after resting, returned to class', observations: 'Teacher noticed child was holding chest', emotionalState: 'Anxious before, scared during, relieved after', activitiesPrior: 'Taking math test at school', medicationsGiven: 'None needed', followUpActions: 'Teacher notified, parents called' }},
-    { id: '4', date: '2023-11-12', time: '16:45', type: 'dizziness', severity: 'mild', duration: '10 minutes', triggers: ['standing up quickly'], symptoms: ['lightheadedness', 'nausea'], vitals: { heartRate: 95, bloodPressure: '110/70', oxygen: 98 }, notes: 'Felt dizzy when standing up from chair', resolved: true, parentNotes: { beforeEvent: 'Sitting watching TV, seemed fine', duringEvent: 'Stood up quickly, felt dizzy, had to sit back down', afterEvent: 'Recovered after a few minutes of rest', observations: 'No loss of consciousness, just brief dizziness', emotionalState: 'Normal before, briefly concerned during', activitiesPrior: 'Watching TV after school', medicationsGiven: 'None needed', followUpActions: 'Monitored for 30 minutes, no further issues' }},
-    { id: '5', date: '2023-11-10', time: '19:20', type: 'chest_pain', severity: 'moderate', duration: '20 minutes', triggers: ['emotional upset'], symptoms: ['chest tightness', 'shortness of breath'], vitals: { heartRate: 110, bloodPressure: '135/85', oxygen: 97 }, notes: 'Chest pain after argument with sibling', resolved: true, parentNotes: { beforeEvent: 'Had argument with sibling, was upset and crying', duringEvent: 'Complained of chest feeling tight, breathing difficulty', afterEvent: 'Symptoms improved after calming down and deep breathing', observations: 'Child was visibly upset before symptoms started', emotionalState: 'Upset before, scared during, calm after', activitiesPrior: 'Family disagreement at home', medicationsGiven: 'None needed', followUpActions: 'Family discussion about conflict resolution' }}
-  ]);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [allCardiacEvents, setAllCardiacEvents] = useState<CardiacEvent[]>([]);
   const [newEvent, setNewEvent] = useState<Partial<CardiacEvent>>({
     date: new Date().toISOString().split('T')[0],
     time: new Date().toTimeString().slice(0, 5),
@@ -143,6 +138,16 @@ export default function HealthDashboard() {
 
   useEffect(() => {
     setMounted(true);
+    // Load persisted events for this user
+    fetch('/api/health-data/events')
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data.events) && data.events.length > 0) {
+          setAllCardiacEvents(data.events as CardiacEvent[]);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setDataLoading(false));
   }, []);
 
   const [toastMessage, setToastMessage] = useState('');
@@ -204,7 +209,15 @@ export default function HealthDashboard() {
       medicalResponse: newEvent.medicalResponse,
       parentNotes: newEvent.parentNotes,
     };
-    setAllCardiacEvents(prev => [eventToSave, ...prev]);
+    setAllCardiacEvents(prev => {
+      const updated = [eventToSave, ...prev];
+      fetch('/api/health-data/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ events: updated }),
+      }).catch(() => {});
+      return updated;
+    });
     setShowNewEventForm(false);
     setNewEvent(blankEventForm);
   };
@@ -219,9 +232,15 @@ export default function HealthDashboard() {
   };
 
   const handleSaveEditedNotes = () => {
-    setAllCardiacEvents(prev =>
-      prev.map(e => e.id === editingEventId ? { ...e, parentNotes: editingNotes } : e)
-    );
+    setAllCardiacEvents(prev => {
+      const updated = prev.map(e => e.id === editingEventId ? { ...e, parentNotes: editingNotes } : e);
+      fetch('/api/health-data/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ events: updated }),
+      }).catch(() => {});
+      return updated;
+    });
     setEditingEventId(null);
   };
 
@@ -244,10 +263,16 @@ export default function HealthDashboard() {
     router.push('/ai-analysis');
   };
 
-  if (!mounted) {
+  if (!mounted || dataLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <HealthHeader />
+        <div className="flex items-center justify-center pt-32">
+          <div className="text-center text-gray-400">
+            <div className="w-8 h-8 border-2 border-gray-300 border-t-red-500 rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-sm">Loading your health data…</p>
+          </div>
+        </div>
       </div>
     );
   }

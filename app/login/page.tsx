@@ -2,19 +2,22 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Activity, Fingerprint, Loader2 } from 'lucide-react';
+import { Activity, Fingerprint, Loader2, Eye, EyeOff } from 'lucide-react';
 import { startAuthentication, startRegistration, browserSupportsWebAuthn } from '@simplewebauthn/browser';
+import Link from 'next/link';
 
 type Stage = 'login' | 'register-passkey';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [passphrase, setPassphrase] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [faceIdLoading, setFaceIdLoading] = useState(false);
-  const [faceIdError, setFaceIdError] = useState('');
+  const [biometricLoading, setBiometricLoading] = useState(false);
+  const [biometricError, setBiometricError] = useState('');
   const [stage, setStage] = useState<Stage>('login');
   const [supportsWebAuthn, setSupportsWebAuthn] = useState(false);
   const [biometricLabel, setBiometricLabel] = useState('Sign in with Biometrics');
@@ -24,14 +27,16 @@ export default function LoginPage() {
     const ua = navigator.userAgent;
     if (/iPhone|iPad|iPod/.test(ua)) {
       setBiometricLabel('Sign in with Face ID');
-    } else if (/Mac/.test(ua) || /CrOS/.test(ua) || /Win/.test(ua)) {
-      setBiometricLabel('Sign in with Fingerprint / Touch ID');
+    } else if (/Mac/.test(ua) && /Safari/.test(ua)) {
+      setBiometricLabel('Sign in with Touch ID');
+    } else if (/Win/.test(ua) || /CrOS/.test(ua)) {
+      setBiometricLabel('Sign in with Windows Hello / Fingerprint');
     } else {
       setBiometricLabel('Sign in with Biometrics');
     }
   }, []);
 
-  const handlePassphraseLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!agreed) { setError('You must confirm you are an authorized user.'); return; }
     setLoading(true);
@@ -39,26 +44,24 @@ export default function LoginPage() {
     const res = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ passphrase }),
+      body: JSON.stringify({ email, password }),
     });
     const data = await res.json();
     if (res.ok) {
       setStage('register-passkey');
-      setLoading(false);
-      return;
     } else {
-      setError(data.error || 'Incorrect passphrase.');
+      setError(data.error || 'Incorrect email or password.');
     }
     setLoading(false);
   };
 
-  const handleFaceIdLogin = async () => {
-    setFaceIdLoading(true);
-    setFaceIdError('');
+  const handleBiometricLogin = async () => {
+    setBiometricLoading(true);
+    setBiometricError('');
     try {
       const optRes = await fetch('/api/auth/webauthn/auth-options', { method: 'POST' });
       const options = await optRes.json();
-      if (!optRes.ok) { setFaceIdError(`Options: ${options.error}`); setFaceIdLoading(false); return; }
+      if (!optRes.ok) { setBiometricError(options.error); setBiometricLoading(false); return; }
       const assertion = await startAuthentication({ optionsJSON: options });
       const verRes = await fetch('/api/auth/webauthn/auth-verify', {
         method: 'POST',
@@ -69,13 +72,17 @@ export default function LoginPage() {
       if (verRes.ok) {
         window.location.href = '/dashboard';
       } else {
-        setFaceIdError(JSON.stringify(result));
+        setBiometricError(result.error || 'Biometric sign-in failed.');
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
-      setFaceIdError(msg);
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('NotAllowedError') || msg.includes('cancelled')) {
+        setBiometricError('Biometric sign-in was cancelled.');
+      } else {
+        setBiometricError(msg);
+      }
     }
-    setFaceIdLoading(false);
+    setBiometricLoading(false);
   };
 
   const handleRegisterPasskey = async () => {
@@ -84,11 +91,7 @@ export default function LoginPage() {
     try {
       const optRes = await fetch('/api/auth/webauthn/register-options', { method: 'POST' });
       const options = await optRes.json();
-      if (!optRes.ok) {
-        setError(`Server: ${options.error || optRes.status}`);
-        setLoading(false);
-        return;
-      }
+      if (!optRes.ok) { setError(options.error || 'Could not start setup.'); setLoading(false); return; }
       const attestation = await startRegistration({ optionsJSON: options });
       const verRes = await fetch('/api/auth/webauthn/register-verify', {
         method: 'POST',
@@ -99,10 +102,10 @@ export default function LoginPage() {
       if (verRes.ok) {
         window.location.href = '/dashboard';
       } else {
-        setError(`Verify: ${verData.error || verRes.status}`);
+        setError(verData.error || 'Setup failed.');
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+      const msg = err instanceof Error ? err.message : String(err);
       setError(msg);
     }
     setLoading(false);
@@ -115,12 +118,12 @@ export default function LoginPage() {
           <div className="inline-flex items-center justify-center w-14 h-14 bg-blue-50 rounded-2xl mb-4">
             <Fingerprint className="w-7 h-7 text-blue-600" />
           </div>
-          <h2 className="text-lg font-bold text-gray-900 mb-2">Enable Face ID?</h2>
+          <h2 className="text-lg font-bold text-gray-900 mb-2">Enable Face ID / Touch ID?</h2>
           <p className="text-sm text-gray-500 mb-6">
-            Skip the passphrase next time. Use Face ID or fingerprint to sign in instantly — only works on this device.
+            Skip the password next time. Use Face ID or fingerprint to sign in instantly — only works on this device.
           </p>
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4 text-left">
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4">
               <p className="text-xs text-red-700 font-mono break-all">{error}</p>
             </div>
           )}
@@ -130,7 +133,7 @@ export default function LoginPage() {
             className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-sm disabled:opacity-40 transition-colors mb-3 flex items-center justify-center gap-2"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Fingerprint className="w-4 h-4" />}
-            Set Up Face ID
+            Set Up Face ID / Touch ID
           </button>
           <button
             onClick={() => { window.location.href = '/dashboard'; }}
@@ -153,28 +156,26 @@ export default function LoginPage() {
         <p className="text-sm text-gray-500 mt-1">Authorized access only — Health data protected</p>
       </div>
 
-      <div className="w-full max-w-sm mb-3">
+      {supportsWebAuthn && (
+        <div className="w-full max-w-sm mb-3">
           <button
-            onClick={handleFaceIdLogin}
-            disabled={faceIdLoading}
+            onClick={handleBiometricLogin}
+            disabled={biometricLoading}
             className="w-full py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
           >
-            {faceIdLoading
-              ? <Loader2 className="w-4 h-4 animate-spin" />
-              : <Fingerprint className="w-4 h-4" />}
-            {faceIdLoading ? 'Verifying…' : biometricLabel}
+            {biometricLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Fingerprint className="w-4 h-4" />}
+            {biometricLoading ? 'Verifying…' : biometricLabel}
           </button>
-          {faceIdError && (
-            <div className="mt-2 bg-red-50 border border-red-200 rounded-xl p-3">
-              <p className="text-xs text-red-700 font-mono break-all">{faceIdError}</p>
-            </div>
+          {biometricError && (
+            <p className="mt-2 text-xs text-red-600 text-center">{biometricError}</p>
           )}
           <div className="flex items-center gap-3 my-4">
             <div className="flex-1 h-px bg-gray-200" />
-            <span className="text-xs text-gray-400">or use passphrase</span>
+            <span className="text-xs text-gray-400">or sign in with email</span>
             <div className="flex-1 h-px bg-gray-200" />
           </div>
         </div>
+      )}
 
       <div className="w-full max-w-sm bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5">
@@ -183,18 +184,40 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <form onSubmit={handlePassphraseLogin} className="space-y-4">
+        <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1.5">Access Passphrase</label>
+            <label className="block text-xs font-semibold text-gray-700 mb-1.5">Email Address</label>
             <input
-              type="password"
-              value={passphrase}
-              onChange={e => setPassphrase(e.target.value)}
-              placeholder="Enter passphrase"
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="you@example.com"
               required
-              autoComplete="new-password"
+              autoComplete="email"
               className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-red-500"
             />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1.5">Password</label>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                required
+                autoComplete="current-password"
+                className="w-full pr-9 px-3 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-red-500"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(v => !v)}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
 
           <label className="flex items-start gap-3 cursor-pointer">
@@ -203,13 +226,12 @@ export default function LoginPage() {
               checked={agreed}
               onChange={e => setAgreed(e.target.checked)}
               className="mt-0.5 shrink-0"
-              style={{ minHeight: 'unset' }}
             />
             <span className="text-xs text-gray-600 leading-relaxed">
               I am an authorized user of this application. I have read and agree to the{' '}
-              <a href="/terms" target="_blank" className="text-blue-600 underline" style={{ minHeight: 'unset' }}>Terms of Service</a>
+              <a href="/terms" target="_blank" className="text-blue-600 underline">Terms of Service</a>
               {' '}and{' '}
-              <a href="/privacy" target="_blank" className="text-blue-600 underline" style={{ minHeight: 'unset' }}>Privacy Policy</a>.
+              <a href="/privacy" target="_blank" className="text-blue-600 underline">Privacy Policy</a>.
               I understand this app contains sensitive health information and will not share access.
             </span>
           </label>
@@ -221,12 +243,16 @@ export default function LoginPage() {
             disabled={loading || !agreed}
             className="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            {loading ? 'Verifying…' : 'Access Dashboard'}
+            {loading ? 'Signing in…' : 'Sign In'}
           </button>
         </form>
       </div>
 
-      <p className="text-center text-xs text-gray-400 mt-6">
+      <p className="text-center text-xs text-gray-500 mt-4">
+        Don&apos;t have an account?{' '}
+        <Link href="/register" className="text-blue-600 hover:underline font-medium">Create one</Link>
+      </p>
+      <p className="text-center text-xs text-gray-400 mt-3">
         <a href="/privacy" className="hover:underline">Privacy Policy</a>
         {' · '}
         <a href="/terms" className="hover:underline">Terms of Service</a>
