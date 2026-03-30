@@ -26,7 +26,13 @@ export default function TermsPage() {
 
             <section>
               <h2 className="text-lg font-bold text-gray-900 mb-2">1. Acceptance of Terms</h2>
-              <p>By accessing this application, you confirm that you are an authorized user who has been granted explicit access by the application owner. Unauthorized access is strictly prohibited and may be subject to applicable laws.</p>
+              <p>By creating an account and accessing this application, you confirm that:</p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>You are at least 18 years of age</li>
+                <li>You are an authorized user who has been granted access by the application owner</li>
+                <li>You accept full responsibility for all activity under your account</li>
+              </ul>
+              <p className="mt-2">Unauthorized access is strictly prohibited and may be subject to applicable laws.</p>
             </section>
 
             <section>
@@ -71,14 +77,16 @@ export default function TermsPage() {
             </section>
 
             <section>
-              <h2 className="text-lg font-bold text-gray-900 mb-2">6. Confidentiality</h2>
+              <h2 className="text-lg font-bold text-gray-900 mb-2">6. Account Responsibility &amp; Confidentiality</h2>
               <p>You agree to:</p>
               <ul className="list-disc pl-5 space-y-1">
-                <li>Keep your access credentials confidential</li>
-                <li>Not share access with unauthorized individuals</li>
+                <li>Keep your password and credentials strictly confidential — never share them</li>
+                <li>Not share your account with other people; each person must have their own account</li>
                 <li>Log out or close the application when not in use on shared devices</li>
                 <li>Notify the application administrator immediately if you suspect unauthorized access</li>
+                <li>Accept full responsibility for all actions taken under your account</li>
               </ul>
+              <p className="mt-2">Your health data is visible only to you. Other users of this application cannot access your data, and you cannot access theirs.</p>
             </section>
 
             <section>

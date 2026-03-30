@@ -68,19 +68,21 @@ export default function PrivacyPage() {
             </section>
 
             <section>
-              <h2 className="text-lg font-bold text-gray-900 mb-2">5. Data Security</h2>
+              <h2 className="text-lg font-bold text-gray-900 mb-2">5. Data Security &amp; Isolation</h2>
               <ul className="list-disc pl-5 space-y-1">
                 <li>All data is transmitted over encrypted HTTPS connections</li>
-                <li>Access requires authentication (passphrase or biometric)</li>
+                <li>Access requires a verified account with a strong password and optional biometric authentication</li>
+                <li>Each user's health data is stored in a separate, isolated namespace in Vercel Blob — no user can access another user's data</li>
                 <li>We do not share your information with any third party except as disclosed above</li>
                 <li>No data is sold or used for advertising purposes</li>
-                <li>Biometric credentials (Face ID / fingerprint) are stored on your device only — we store only a cryptographic public key</li>
+                <li>Biometric credentials (Face ID / Touch ID / fingerprint) are stored on your device only — we store only a cryptographic public key, never your biometric itself</li>
+                <li>Session tokens are cryptographically signed and expire after 7 days</li>
               </ul>
             </section>
 
             <section>
-              <h2 className="text-lg font-bold text-gray-900 mb-2">6. Data Retention</h2>
-              <p>Health event data is stored in application memory for the duration of your session. Uploaded files are stored in Vercel Blob storage until manually deleted by an authorized user.</p>
+              <h2 className="text-lg font-bold text-gray-900 mb-2">6. Data Retention &amp; Account Data</h2>
+              <p>Health event data is stored in Vercel Blob cloud storage under your unique account, isolated from all other users. Uploaded files remain in storage until manually deleted by you or an administrator. Your account — including all associated health data — can be deleted at any time by an administrator upon your request.</p>
             </section>
 
             <section>
