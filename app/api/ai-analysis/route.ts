@@ -1,5 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+
+export const runtime = 'edge';
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -7,9 +9,9 @@ const client = new Anthropic({
 
 export async function POST(req: NextRequest) {
   if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json(
-      { error: 'ANTHROPIC_API_KEY is not configured. Add it to your .env.local file.' },
-      { status: 500 }
+    return new Response(
+      JSON.stringify({ error: 'ANTHROPIC_API_KEY is not configured. Add it to your .env.local file.' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
 
@@ -115,42 +117,57 @@ ${focusArea ? `SPECIFIC FOCUS FOR THIS ANALYSIS: ${focusArea}` : ''}
 
 Please analyze every detail — especially the parent notes about what was happening before, during, and after each event. Look for patterns across events. Identify what is being missed. Give this family the best medical knowledge available.`;
 
-  try {
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 2000,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
-    });
+  const encoder = new TextEncoder();
+  const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
+  const writer = writable.getWriter();
 
-    const content = response.content[0];
-    if (content.type !== 'text') {
-      throw new Error('Unexpected response type from Claude');
-    }
-
-    const text = content.text;
-
-    // Strip markdown code fences if present
-    const stripped = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
-
-    // Find the outermost JSON object
-    const start = stripped.indexOf('{');
-    const end = stripped.lastIndexOf('}');
-    if (start === -1 || end === -1) {
-      throw new Error('Could not find JSON in AI response');
-    }
-    const jsonStr = stripped.slice(start, end + 1);
-
-    let analysis;
+  const run = async () => {
     try {
-      analysis = JSON.parse(jsonStr);
-    } catch {
-      throw new Error('AI returned malformed JSON. Try again.');
-    }
+      const stream = client.messages.stream({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 4096,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }],
+      });
 
-    return NextResponse.json({ analysis, model: response.model, usage: response.usage });
-  } catch (error: any) {
-    console.error('AI analysis error:', error);
-    return NextResponse.json({ error: error.message || 'AI analysis failed' }, { status: 500 });
-  }
+      let fullText = '';
+      for await (const text of stream.textStream) {
+        fullText += text;
+        // Send newlines to keep the connection alive while Claude generates.
+        // JSON.parse ignores leading whitespace, so the client can still call res.json().
+        await writer.write(encoder.encode('\n'));
+      }
+
+      const finalMessage = await stream.finalMessage();
+
+      const stripped = fullText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
+      const start = stripped.indexOf('{');
+      const end = stripped.lastIndexOf('}');
+      if (start === -1 || end === -1) {
+        throw new Error('Could not find JSON in AI response');
+      }
+
+      let analysis;
+      try {
+        analysis = JSON.parse(stripped.slice(start, end + 1));
+      } catch {
+        throw new Error('AI returned malformed JSON. Try again.');
+      }
+
+      await writer.write(
+        encoder.encode(JSON.stringify({ analysis, model: finalMessage.model, usage: finalMessage.usage }))
+      );
+    } catch (error: any) {
+      console.error('AI analysis error:', error);
+      await writer.write(encoder.encode(JSON.stringify({ error: error.message || 'AI analysis failed' })));
+    } finally {
+      await writer.close();
+    }
+  };
+
+  run();
+
+  return new Response(readable, {
+    headers: { 'Content-Type': 'application/json' },
+  });
 }
