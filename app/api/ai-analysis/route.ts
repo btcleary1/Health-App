@@ -131,8 +131,10 @@ Please analyze every detail — especially the parent notes about what was happe
       });
 
       let fullText = '';
-      for await (const text of stream.textStream) {
-        fullText += text;
+      for await (const event of stream) {
+        if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+          fullText += event.delta.text;
+        }
         // Send newlines to keep the connection alive while Claude generates.
         // JSON.parse ignores leading whitespace, so the client can still call res.json().
         await writer.write(encoder.encode('\n'));
