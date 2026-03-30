@@ -9,9 +9,8 @@ export async function POST(_req: NextRequest) {
   const options = await generateAuthenticationOptions({
     rpID: RP_ID,
     userVerification: 'required',
-    hints: ['client-device'],  // prefer Face ID / Touch ID, not security keys
     // No allowCredentials — browser finds the resident key automatically
-  });
+  } as any);
 
   const res = NextResponse.json(options);
   res.cookies.set('webauthn_challenge', options.challenge, {

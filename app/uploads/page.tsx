@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import HealthHeader from '@/components/HealthHeader';
 import HIPAAFooter from '@/components/HIPAAFooter';
 import UploadConsent from '@/components/UploadConsent';
@@ -43,7 +43,14 @@ function FileIcon({ type }: { type: string }) {
 
 export default function UploadsPage() {
   const [uploads, setUploads] = useState<UploadedFile[]>([]);
+  const [patientInfo, setPatientInfo] = useState<{ name: string; age: number; primaryConcern: string } | null>(null);
   const [dragging, setDragging] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/health-data/patient').then(r => r.json()).then(d => {
+      if (d.patient?.name) setPatientInfo(d.patient);
+    }).catch(() => {});
+  }, []);
   const [uploading, setUploading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('general');
   const [note, setNote] = useState('');
@@ -111,7 +118,7 @@ export default function UploadsPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          patientData: { name: 'Ethan Alvarez', age: 7, primaryConcern: 'Life-threatening cardiac arrhythmias, suspected Long QT Syndrome' },
+          patientData: patientInfo ?? { name: 'Patient', age: 0, primaryConcern: 'See uploaded document' },
           events: [],
           focusArea: `A document was uploaded: category="${upload.category}", filename="${upload.originalName}", note="${upload.note}". Based on the category and context of this pediatric cardiac patient, what key questions should the family ask about this type of document? What should they look for? What would be red flags? Keep the response to 2-3 sentences.`,
         }),
@@ -143,7 +150,7 @@ export default function UploadsPage() {
 
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Doctor Visit Uploads</h1>
-          <p className="text-gray-600 text-sm">Upload screenshots, photos, lab results, ECGs, and doctor letters. AI can help contextualize what they mean for Ethan's case.</p>
+          <p className="text-gray-600 text-sm">Upload screenshots, photos, lab results, ECGs, and doctor letters. AI can help contextualize what they mean for {patientInfo?.name ?? 'your patient'}&apos;s case.</p>
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">

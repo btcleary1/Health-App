@@ -1,16 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import HealthHeader from '@/components/HealthHeader';
 import HIPAAFooter from '@/components/HIPAAFooter';
 import { Brain, Loader2, ChevronDown, ChevronUp, AlertTriangle, Search, ClipboardList, Lightbulb, HeartPulse, Shield } from 'lucide-react';
 
-const PATIENT_DATA = {
+const SAMPLE_PATIENT_DATA = {
   name: 'Ethan Alvarez',
   age: 7,
   primaryConcern: 'Life-threatening cardiac arrhythmias requiring frequent CPR - suspected Long QT Syndrome',
-  lastVisit: '2 days ago',
-  nextAppointment: 'Tomorrow',
   careTeam: [
     { name: 'Dr. S. Patel', role: 'Pediatric Cardiologist' },
     { name: 'Dr. A. Nguyen', role: 'Pediatric Critical Care' },
@@ -61,6 +59,22 @@ export default function AIAnalysisPage() {
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [error, setError] = useState('');
   const [focusArea, setFocusArea] = useState('');
+  const [patientData, setPatientData] = useState<any>(SAMPLE_PATIENT_DATA);
+  const [events, setEvents] = useState<any[]>(SAMPLE_EVENTS);
+  const [isSample, setIsSample] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/health-data/patient').then(r => r.json()).catch(() => ({})),
+      fetch('/api/health-data/events').then(r => r.json()).catch(() => ({})),
+    ]).then(([pd, ev]) => {
+      const hasPatient = pd.patient?.name;
+      const hasEvents = Array.isArray(ev.events) && ev.events.length > 0;
+      if (hasPatient) setPatientData(pd.patient);
+      if (hasEvents) setEvents(ev.events);
+      if (hasPatient || hasEvents) setIsSample(false);
+    });
+  }, []);
 
   const runAnalysis = async () => {
     setLoading(true);
@@ -70,7 +84,7 @@ export default function AIAnalysisPage() {
       const res = await fetch('/api/ai-analysis', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ patientData: PATIENT_DATA, events: SAMPLE_EVENTS, focusArea }),
+        body: JSON.stringify({ patientData, events, focusArea }),
       });
       let data: any;
       try {
@@ -91,6 +105,16 @@ export default function AIAnalysisPage() {
     <div className="min-h-screen bg-gray-50">
       <HealthHeader />
       <div className="max-w-4xl mx-auto px-4 py-8">
+
+        {isSample && (
+          <div className="mb-4 bg-amber-50 border border-amber-300 rounded-xl px-5 py-3 flex items-start gap-3">
+            <span className="text-amber-500 font-bold text-lg shrink-0">⚠</span>
+            <div>
+              <p className="text-sm font-semibold text-amber-800">Sample Data — Analysis is running on demo data</p>
+              <p className="text-xs text-amber-700 mt-0.5">Add your patient profile and events on the dashboard and this analysis will automatically use your real data.</p>
+            </div>
+          </div>
+        )}
 
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
@@ -126,7 +150,7 @@ export default function AIAnalysisPage() {
             className="w-full flex items-center justify-center gap-2 px-4 py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold text-sm sm:text-base transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {loading ? (
-              <><Loader2 className="w-5 h-5 animate-spin" /> Analyzing Ethan's complete history with Claude AI...</>
+              <><Loader2 className="w-5 h-5 animate-spin" /> Analyzing {patientData.name}&apos;s complete history with Claude AI...</>
             ) : (
               <><Brain className="w-5 h-5" /> Run Deep Medical Analysis</>
             )}
@@ -257,7 +281,7 @@ export default function AIAnalysisPage() {
             </Section>
 
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 mt-4">
-              <div className="text-sm font-semibold text-blue-800 mb-3">For You, As Ethan's Parent</div>
+              <div className="text-sm font-semibold text-blue-800 mb-3">For You, As {patientData.name}&apos;s Parent</div>
               {analysis.parentGuidance?.immediateActions?.length > 0 && (
                 <div className="mb-3">
                   <div className="text-xs font-bold text-blue-700 mb-1">RIGHT NOW:</div>
