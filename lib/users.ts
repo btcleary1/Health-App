@@ -16,10 +16,14 @@ export interface User {
 export type PublicUser = Omit<User, 'passwordHash'>;
 
 export function hashPassword(password: string): string {
-  // PBKDF2-style: SHA-256 with a static app salt + password
-  // For production-scale this would use bcrypt, but we avoid adding deps
   const salt = process.env.SESSION_SECRET ?? 'health-app-salt';
   return createHash('sha256').update(salt + password).digest('hex');
+}
+
+function blobFetch(url: string): Promise<Response> {
+  return fetch(url, {
+    headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
+  });
 }
 
 // --- Index helpers (fast email lookups without listing all blobs) ---
@@ -28,7 +32,7 @@ async function readIndex(): Promise<{ email: string; userId: string }[]> {
   try {
     const { blobs } = await list({ prefix: INDEX_PATH });
     if (blobs.length === 0) return [];
-    const res = await fetch(blobs[0].url);
+    const res = await blobFetch(blobs[0].url);
     if (!res.ok) return [];
     return await res.json();
   } catch {
@@ -59,7 +63,7 @@ export async function getUserById(userId: string): Promise<User | null> {
     const path = `${PREFIX}${userId}.json`;
     const { blobs } = await list({ prefix: path });
     if (blobs.length === 0) return null;
-    const res = await fetch(blobs[0].url);
+    const res = await blobFetch(blobs[0].url);
     if (!res.ok) return null;
     return await res.json();
   } catch {

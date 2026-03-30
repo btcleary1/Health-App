@@ -6,7 +6,9 @@ async function readBlob<T>(path: string): Promise<T | null> {
   try {
     const { blobs } = await list({ prefix: path });
     if (blobs.length === 0) return null;
-    const res = await fetch(blobs[0].url);
+    const res = await fetch(blobs[0].url, {
+      headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
+    });
     if (!res.ok) return null;
     return await res.json() as T;
   } catch {

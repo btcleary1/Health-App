@@ -11,7 +11,9 @@ async function readStoredHash(): Promise<string | null> {
   try {
     const { blobs } = await list({ prefix: BLOB_PATH, token: process.env.BLOB_READ_WRITE_TOKEN });
     if (blobs.length === 0) return null;
-    const res = await fetch(blobs[0].url);
+    const res = await fetch(blobs[0].url, {
+      headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
+    });
     if (!res.ok) return null;
     const data = await res.json();
     return data?.hash ?? null;
