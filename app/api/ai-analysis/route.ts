@@ -1,7 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest } from 'next/server';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -117,59 +118,34 @@ ${focusArea ? `SPECIFIC FOCUS FOR THIS ANALYSIS: ${focusArea}` : ''}
 
 Please analyze every detail — especially the parent notes about what was happening before, during, and after each event. Look for patterns across events. Identify what is being missed. Give this family the best medical knowledge available.`;
 
-  const encoder = new TextEncoder();
-  const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
-  const writer = writable.getWriter();
-
-  const run = async () => {
-    try {
-      const stream = client.messages.stream({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 4096,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }],
-      });
-
-      let fullText = '';
-      for await (const event of stream) {
-        if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-          fullText += event.delta.text;
-        }
-        // Send newlines to keep the connection alive while Claude generates.
-        // JSON.parse ignores leading whitespace, so the client can still call res.json().
-        await writer.write(encoder.encode('\n'));
-      }
-
-      const finalMessage = await stream.finalMessage();
-
-      const stripped = fullText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
-      const start = stripped.indexOf('{');
-      const end = stripped.lastIndexOf('}');
-      if (start === -1 || end === -1) {
-        throw new Error('Could not find JSON in AI response');
-      }
-
-      let analysis;
-      try {
-        analysis = JSON.parse(stripped.slice(start, end + 1));
-      } catch {
-        throw new Error('AI returned malformed JSON. Try again.');
-      }
-
-      await writer.write(
-        encoder.encode(JSON.stringify({ analysis, model: finalMessage.model, usage: finalMessage.usage }))
-      );
-    } catch (error: any) {
-      console.error('AI analysis error:', error);
-      await writer.write(encoder.encode(JSON.stringify({ error: error.message || 'AI analysis failed' })));
-    } finally {
-      await writer.close();
-    }
-  };
-
-  run();
-
-  return new Response(readable, {
-    headers: { 'Content-Type': 'application/json' },
+  const message = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 4096,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: userPrompt }],
   });
+
+  const rawText = message.content[0].type === 'text' ? message.content[0].text : '';
+  const stripped = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
+  const start = stripped.indexOf('{');
+  const end = stripped.lastIndexOf('}');
+  if (start === -1 || end === -1) {
+    return new Response(JSON.stringify({ error: 'Could not find JSON in AI response. Try again.' }), {
+      status: 500, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  let analysis;
+  try {
+    analysis = JSON.parse(stripped.slice(start, end + 1));
+  } catch {
+    return new Response(JSON.stringify({ error: 'AI returned malformed JSON. Try again.' }), {
+      status: 500, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  return new Response(
+    JSON.stringify({ analysis, model: message.model, usage: message.usage }),
+    { headers: { 'Content-Type': 'application/json' } }
+  );
 }
