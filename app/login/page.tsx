@@ -70,7 +70,7 @@ export default function LoginPage() {
       });
       const result = await verRes.json();
       if (verRes.ok) {
-        window.location.href = '/dashboard';
+        router.push('/dashboard');
       } else {
         setBiometricError(result.error || 'Biometric sign-in failed.');
       }
@@ -100,7 +100,7 @@ export default function LoginPage() {
       });
       const verData = await verRes.json();
       if (verRes.ok) {
-        window.location.href = '/dashboard';
+        router.push('/dashboard');
       } else {
         setError(verData.error || 'Setup failed.');
       }
@@ -136,7 +136,7 @@ export default function LoginPage() {
             Set Up Face ID / Touch ID
           </button>
           <button
-            onClick={() => { window.location.href = '/dashboard'; }}
+            onClick={() => { router.push('/dashboard'); }}
             className="w-full py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
           >
             Skip for now
