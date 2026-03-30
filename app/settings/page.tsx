@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Fingerprint, ShieldCheck, ShieldOff, Loader2, CheckCircle, XCircle, KeyRound, Eye, EyeOff, Users, Trash2 } from 'lucide-react';
+import { Fingerprint, ShieldCheck, ShieldOff, Loader2, CheckCircle, XCircle, KeyRound, Eye, EyeOff, Users, Trash2, RefreshCw } from 'lucide-react';
 import { startRegistration, browserSupportsWebAuthn } from '@simplewebauthn/browser';
 import HealthHeader from '@/components/HealthHeader';
 
@@ -17,6 +17,8 @@ export default function SettingsPage() {
   const [users, setUsers] = useState<{ userId: string; email: string; name: string; role: string; createdAt: string }[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [deleteMessage, setDeleteMessage] = useState('');
+  const [resetResult, setResetResult] = useState<{ userId: string; tempPassword: string } | null>(null);
+  const [resetLoading, setResetLoading] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.json()).then(d => {
@@ -29,6 +31,25 @@ export default function SettingsPage() {
       }
     }).catch(() => {});
   }, []);
+
+  const handleResetPassword = async (userId: string, name: string) => {
+    if (!confirm(`Reset ${name}'s password? A temporary password will be generated.`)) return;
+    setResetLoading(userId);
+    setResetResult(null);
+    try {
+      const res = await fetch('/api/admin/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setResetResult({ userId, tempPassword: data.tempPassword });
+      }
+    } finally {
+      setResetLoading(null);
+    }
+  };
 
   const handleDeleteUser = async (userId: string, name: string) => {
     if (!confirm(`Remove ${name}'s account? This cannot be undone.`)) return;
@@ -328,6 +349,14 @@ export default function SettingsPage() {
                     </div>
                   )}
 
+                  {resetResult && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3">
+                      <div className="text-xs font-semibold text-yellow-800 mb-1">Temporary password generated — share this once:</div>
+                      <div className="font-mono text-sm bg-white border border-yellow-300 rounded px-2 py-1 text-yellow-900 select-all">{resetResult.tempPassword}</div>
+                      <div className="text-xs text-yellow-700 mt-1">User must change it after logging in.</div>
+                    </div>
+                  )}
+
                   {usersLoading ? (
                     <div className="flex items-center gap-2 text-sm text-gray-400">
                       <Loader2 className="w-4 h-4 animate-spin" /> Loading users…
@@ -346,13 +375,25 @@ export default function SettingsPage() {
                             <div className="text-xs text-gray-400 truncate">{u.email}</div>
                           </div>
                           {u.userId !== currentUser.userId && (
-                            <button
-                              onClick={() => handleDeleteUser(u.userId, u.name)}
-                              className="shrink-0 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Remove user"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                onClick={() => handleResetPassword(u.userId, u.name)}
+                                disabled={resetLoading === u.userId}
+                                className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                                title="Reset password"
+                              >
+                                {resetLoading === u.userId
+                                  ? <Loader2 className="w-4 h-4 animate-spin" />
+                                  : <RefreshCw className="w-4 h-4" />}
+                              </button>
+                              <button
+                                onClick={() => handleDeleteUser(u.userId, u.name)}
+                                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Remove user"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           )}
                         </div>
                       ))}
