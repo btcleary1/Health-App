@@ -43,7 +43,7 @@ export async function savePassphraseHash(hash: string): Promise<void> {
   if (!token) throw new Error('BLOB_READ_WRITE_TOKEN is not configured.');
 
   await put(BLOB_PATH, JSON.stringify({ hash }), {
-    access: 'public',
+    access: 'private',
     token,
     addRandomSuffix: false,
     allowOverwrite: true,

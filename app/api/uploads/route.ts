@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
     const filename = `health-uploads/${session.userId}/${timestamp}_${category}_${safeName}`;
 
-    const blob = await put(filename, file, { access: 'public' });
+    const blob = await put(filename, file, { access: 'private' });
 
     return NextResponse.json({
       success: true,

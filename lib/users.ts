@@ -38,7 +38,7 @@ async function readIndex(): Promise<{ email: string; userId: string }[]> {
 
 async function writeIndex(index: { email: string; userId: string }[]): Promise<void> {
   await put(INDEX_PATH, JSON.stringify(index), {
-    access: 'public',
+    access: 'private',
     addRandomSuffix: false,
     allowOverwrite: true,
     contentType: 'application/json',
@@ -100,7 +100,7 @@ export async function createUser(
 
   // Save user record
   await put(`${PREFIX}${userId}.json`, JSON.stringify(user), {
-    access: 'public',
+    access: 'private',
     addRandomSuffix: false,
     allowOverwrite: true,
     contentType: 'application/json',

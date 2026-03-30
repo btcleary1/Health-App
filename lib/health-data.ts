@@ -16,7 +16,7 @@ async function readBlob<T>(path: string): Promise<T | null> {
 
 async function writeBlob(path: string, data: unknown): Promise<void> {
   await put(path, JSON.stringify(data), {
-    access: 'public',
+    access: 'private',
     addRandomSuffix: false,
     allowOverwrite: true,
     contentType: 'application/json',
