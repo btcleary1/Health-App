@@ -8,7 +8,7 @@ const RP_ID = process.env.WEBAUTHN_RP_ID || 'healthwiz.vercel.app';
 export async function POST(_req: NextRequest) {
   const options = await generateAuthenticationOptions({
     rpID: RP_ID,
-    userVerification: 'preferred',
+    userVerification: 'required',
     // No allowCredentials — browser will find the resident key automatically
   });
 

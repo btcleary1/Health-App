@@ -19,8 +19,8 @@ export async function POST(req: NextRequest) {
     userName: session.email,
     userDisplayName: session.name,
     authenticatorSelection: {
-      residentKey: 'preferred',
-      userVerification: 'preferred',
+      residentKey: 'required',
+      userVerification: 'required',
     },
   });
 
