@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { saveCredentials } from '@/lib/webauthn-store';
+import { getSessionFromRequest } from '@/lib/session';
+import { saveCredentialsForUser } from '@/lib/webauthn-store';
 
 export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
-  if (req.cookies.get('app_auth')?.value !== 'granted') {
+  const session = getSessionFromRequest(req);
+  if (!session) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
-  await saveCredentials([]);
+  await saveCredentialsForUser(session.userId, []);
   return NextResponse.json({ success: true });
 }
