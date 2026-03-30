@@ -1,12 +1,7 @@
-import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest } from 'next/server';
 
-export const runtime = 'nodejs';
-export const maxDuration = 60;
-
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+// Edge runtime supports long-running streaming responses on Vercel Hobby plan
+export const runtime = 'edge';
 
 export async function POST(req: NextRequest) {
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -118,49 +113,52 @@ ${focusArea ? `SPECIFIC FOCUS FOR THIS ANALYSIS: ${focusArea}` : ''}
 
 Please analyze every detail — especially the parent notes about what was happening before, during, and after each event. Look for patterns across events. Identify what is being missed. Give this family the best medical knowledge available.`;
 
-  // Stream from Claude so the connection stays alive past Vercel's timeout
+  // Use direct fetch to Anthropic API — works in Edge runtime unlike the SDK
+  const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': process.env.ANTHROPIC_API_KEY!,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 4096,
+      stream: true,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }],
+    }),
+  });
+
+  if (!anthropicRes.ok) {
+    const err = await anthropicRes.text();
+    return new Response(JSON.stringify({ error: `Anthropic API error: ${err}` }), {
+      status: 500, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   const encoder = new TextEncoder();
-  const stream = new TransformStream();
-  const writer = stream.writable.getWriter();
+  const decoder = new TextDecoder();
 
-  (async () => {
-    try {
-      let fullText = '';
-      const response = await client.messages.create({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 4096,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }],
-        stream: true,
-      });
-
-      for await (const event of response) {
-        if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-          fullText += event.delta.text;
-        }
-        // Send a space periodically to keep the connection alive
-        await writer.write(encoder.encode(' '));
-      }
-
-      const stripped = fullText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
-      const start = stripped.indexOf('{');
-      const end = stripped.lastIndexOf('}');
-      if (start === -1 || end === -1) {
-        await writer.write(encoder.encode(JSON.stringify({ error: 'Could not find JSON in AI response. Try again.' })));
-      } else {
+  const stream = new TransformStream({
+    async transform(chunk, controller) {
+      const text = decoder.decode(chunk);
+      const lines = text.split('\n').filter(l => l.startsWith('data: '));
+      for (const line of lines) {
+        const data = line.slice(6);
+        if (data === '[DONE]') return;
         try {
-          const analysis = JSON.parse(stripped.slice(start, end + 1));
-          await writer.write(encoder.encode(JSON.stringify({ analysis })));
-        } catch {
-          await writer.write(encoder.encode(JSON.stringify({ error: 'AI returned malformed JSON. Try again.' })));
-        }
+          const parsed = JSON.parse(data);
+          if (parsed.type === 'content_block_delta' && parsed.delta?.type === 'text_delta') {
+            controller.enqueue(encoder.encode(parsed.delta.text));
+          }
+        } catch { /* skip malformed lines */ }
       }
-    } catch (err: any) {
-      await writer.write(encoder.encode(JSON.stringify({ error: err.message || 'AI analysis failed.' })));
-    } finally {
-      await writer.close();
-    }
-  })();
+    },
+  });
+
+  // Pipe Anthropic SSE through our transform, accumulate on client
+  anthropicRes.body!.pipeTo(stream.writable);
 
   return new Response(stream.readable, {
     headers: { 'Content-Type': 'text/plain; charset=utf-8' },
