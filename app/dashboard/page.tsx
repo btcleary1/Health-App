@@ -557,27 +557,27 @@ export default function HealthDashboard() {
           ))}
         </div>
 
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6 mb-6">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 mb-6">
           <div className="flex justify-between items-center mb-3">
-            <h2 className="text-xl font-bold text-red-800">AI Trend Analysis Summary</h2>
+            <h2 className="text-xl font-bold text-yellow-800">AI Trend Analysis Summary</h2>
           </div>
-          <p className="text-red-700 mb-4">{trendAnalysis.aiAnalysis}</p>
+          <p className="text-yellow-700 mb-4">{trendAnalysis.aiAnalysis}</p>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-white rounded-lg p-3">
               <div className="text-sm text-gray-500">Overall Trend</div>
-              <div className="text-lg font-bold text-red-600">{trendAnalysis.overallTrend.toUpperCase()}</div>
+              <div className="text-lg font-bold text-yellow-600">{trendAnalysis.overallTrend.toUpperCase()}</div>
             </div>
             <div className="bg-white rounded-lg p-3">
               <div className="text-sm text-gray-500">Event Frequency</div>
-              <div className="text-lg font-bold text-red-600">{trendAnalysis.eventFrequency}/week</div>
+              <div className="text-lg font-bold text-yellow-600">{trendAnalysis.eventFrequency}/week</div>
             </div>
             <div className="bg-white rounded-lg p-3">
               <div className="text-sm text-gray-500">Severity Trend</div>
-              <div className="text-lg font-bold text-red-600">{trendAnalysis.severityTrend.toUpperCase()}</div>
+              <div className="text-lg font-bold text-yellow-600">{trendAnalysis.severityTrend.toUpperCase()}</div>
             </div>
             <div className="bg-white rounded-lg p-3">
               <div className="text-sm text-gray-500">Primary Triggers</div>
-              <div className="text-sm font-bold text-red-600">{trendAnalysis.primaryTriggers.join(', ')}</div>
+              <div className="text-sm font-bold text-yellow-600">{trendAnalysis.primaryTriggers.join(', ')}</div>
             </div>
           </div>
         </div>
