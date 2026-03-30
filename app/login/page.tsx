@@ -48,7 +48,14 @@ export default function LoginPage() {
     });
     const data = await res.json();
     if (res.ok) {
-      setStage('register-passkey');
+      // Check if they already have a passkey — if so, skip the setup prompt
+      const statusRes = await fetch('/api/auth/webauthn/status');
+      const statusData = await statusRes.json();
+      if (statusData.registered) {
+        router.push('/dashboard');
+      } else {
+        setStage('register-passkey');
+      }
     } else {
       setError(data.error || 'Incorrect email or password.');
     }
