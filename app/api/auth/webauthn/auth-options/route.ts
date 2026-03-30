@@ -3,7 +3,7 @@ import { generateAuthenticationOptions } from '@simplewebauthn/server';
 
 export const runtime = 'nodejs';
 
-const RP_ID = process.env.WEBAUTHN_RP_ID || 'health-app-blond-omega.vercel.app';
+const RP_ID = process.env.WEBAUTHN_RP_ID || 'healthwiz.vercel.app';
 
 export async function POST(_req: NextRequest) {
   const options = await generateAuthenticationOptions({
