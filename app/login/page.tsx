@@ -260,7 +260,7 @@ export default function LoginPage() {
         <Link href="/register" className="text-blue-600 hover:underline font-medium">Create one</Link>
       </p>
       <p className="text-center text-xs text-gray-400 mt-2">
-        Forgot your password? Contact the app administrator to reset it.
+        <Link href="/forgot-password" className="hover:underline text-blue-500">Forgot your password?</Link>
       </p>
       <p className="text-center text-xs text-gray-400 mt-3">
         <a href="/privacy" className="hover:underline">Privacy Policy</a>

@@ -9,6 +9,9 @@ const PUBLIC_PATHS = [
   '/api/auth/webauthn/auth-options',
   '/api/auth/webauthn/auth-verify',
   '/api/debug',
+  '/api/auth/forgot-password',
+  '/api/auth/reset-password',
+  '/forgot-password',
   '/privacy',
   '/terms',
 ];
