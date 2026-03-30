@@ -4,7 +4,19 @@ import { getUserByEmail, hashPassword } from '@/lib/users';
 
 export const runtime = 'nodejs';
 
-export async function GET() {
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+  if (url.searchParams.get('action') === 'reset-users') {
+    const { blobs } = await list({ prefix: 'health-app/' });
+    const userBlobs = blobs.filter(b =>
+      b.pathname.startsWith('health-app/users/') ||
+      b.pathname === 'health-app/users-index.json'
+    );
+    if (userBlobs.length > 0) await del(userBlobs.map(b => b.url));
+    return NextResponse.json({ reset: true, deleted: userBlobs.map(b => b.pathname) });
+  }
+
+  // Normal diagnostic GET below
   const results: Record<string, unknown> = {};
 
   // 1. Check env vars
