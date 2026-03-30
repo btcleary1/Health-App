@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { list, put } from '@vercel/blob';
+import { list, put, del } from '@vercel/blob';
 import { getUserByEmail, hashPassword } from '@/lib/users';
 
 export const runtime = 'nodejs';
@@ -75,7 +75,23 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const { email, password } = await req.json();
+  const body = await req.json();
+
+  // Reset mode: wipe all user data
+  if (body.action === 'reset-users') {
+    const { blobs } = await list({ prefix: 'health-app/' });
+    const userBlobs = blobs.filter(b =>
+      b.pathname.startsWith('health-app/users/') ||
+      b.pathname === 'health-app/users-index.json'
+    );
+    if (userBlobs.length > 0) {
+      await del(userBlobs.map(b => b.url));
+    }
+    return NextResponse.json({ reset: true, deleted: userBlobs.map(b => b.pathname) });
+  }
+
+  // Hash check mode
+  const { email, password } = body;
   const user = await getUserByEmail(email);
   if (!user) return NextResponse.json({ found: false, message: 'No user found with that email' });
   const hash = hashPassword(password);
