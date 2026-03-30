@@ -99,6 +99,39 @@ interface TrendAnalysis {
   lastUpdated: string;
 }
 
+// --- Sample / demo data shown when no real data has been entered yet ---
+const SAMPLE_PATIENT: Patient = {
+  name: 'Ethan Alvarez',
+  age: 7,
+  primaryConcern: 'Life-threatening cardiac arrhythmias requiring frequent CPR - suspected Long QT Syndrome',
+  lastVisit: '2 days ago',
+  nextAppointment: 'Tomorrow',
+  careTeam: [
+    { name: 'Dr. S. Patel', role: 'Pediatric Cardiologist', specialty: 'Electrophysiology & Sudden Cardiac Death Prevention' },
+    { name: 'Dr. A. Nguyen', role: 'Pediatric Critical Care', specialty: 'Emergency Medicine & Resuscitation' },
+    { name: 'Dr. M. Johnson', role: 'Genetic Counselor', specialty: 'Inherited Cardiac Conditions' },
+  ],
+  medications: [
+    { name: 'Propranolol', dosage: '10mg', frequency: 'Three times daily' },
+    { name: 'Mexiletine', dosage: '50mg', frequency: 'Every 8 hours' },
+    { name: 'Emergency Epinephrine Auto-Injector', dosage: '0.15mg', frequency: 'As needed for cardiac arrest' },
+  ],
+  recentActivity: [
+    { date: '2023-11-15', type: 'Appointment', details: 'Follow-up with Dr. Patel' },
+    { date: '2023-11-10', type: 'Medication', details: 'Prescription refill: Propranolol' },
+  ],
+  incidentReports: [
+    { date: '2023-11-12', type: 'Medication Reaction', severity: 'medium', description: 'Mild rash appeared after starting new medication', status: 'monitoring' },
+    { date: '2023-10-28', type: 'Symptom Flare-up', severity: 'high', description: 'Increased neuroinflammatory symptoms reported', status: 'investigating' },
+  ],
+};
+
+const SAMPLE_DOCTOR_VISITS: DoctorVisit[] = [
+  { id: 'v1', date: '2023-11-21', doctor: 'Dr. S. Patel', visitType: 'emergency', personalNotes: 'Follow-up after cardiac arrest', doctorNotes: 'ICD implantation scheduled. Mexiletine dose reviewed.', treatment: ['ICD scheduling', 'Medication review'], medicationsChanged: true, cardiacEventsDuringVisit: 0 },
+  { id: 'v2', date: '2023-11-16', doctor: 'Dr. A. Nguyen', visitType: 'follow_up', personalNotes: 'Check-in after arrhythmia at school', doctorNotes: 'ECG reviewed. Stress management discussed.', treatment: ['ECG', 'Stress management referral'], medicationsChanged: false, cardiacEventsDuringVisit: 0 },
+  { id: 'v3', date: '2023-11-11', doctor: 'Dr. S. Patel', visitType: 'routine', personalNotes: 'Monthly cardiology check', doctorNotes: 'Propranolol dose maintained. QTc stable.', treatment: ['Holter monitor review'], medicationsChanged: false, cardiacEventsDuringVisit: 1 },
+];
+
 export default function HealthDashboard() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -113,6 +146,10 @@ export default function HealthDashboard() {
   });
   const [dataLoading, setDataLoading] = useState(true);
   const [allCardiacEvents, setAllCardiacEvents] = useState<CardiacEvent[]>([]);
+  const [patientInfo, setPatientInfo] = useState<Patient>(SAMPLE_PATIENT);
+  const [isPatientSample, setIsPatientSample] = useState(true);
+  const [doctorVisitsData, setDoctorVisitsData] = useState<DoctorVisit[]>(SAMPLE_DOCTOR_VISITS);
+  const [isVisitsSample, setIsVisitsSample] = useState(true);
   const [newEvent, setNewEvent] = useState<Partial<CardiacEvent>>({
     date: new Date().toISOString().split('T')[0],
     time: new Date().toTimeString().slice(0, 5),
@@ -138,16 +175,29 @@ export default function HealthDashboard() {
 
   useEffect(() => {
     setMounted(true);
-    // Load persisted events for this user
-    fetch('/api/health-data/events')
-      .then(r => r.json())
-      .then(data => {
-        if (Array.isArray(data.events) && data.events.length > 0) {
-          setAllCardiacEvents(data.events as CardiacEvent[]);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setDataLoading(false));
+    const loadAll = async () => {
+      await Promise.all([
+        fetch('/api/health-data/events').then(r => r.json()).then(data => {
+          if (Array.isArray(data.events) && data.events.length > 0) {
+            setAllCardiacEvents(data.events as CardiacEvent[]);
+          }
+        }).catch(() => {}),
+        fetch('/api/health-data/patient').then(r => r.json()).then(data => {
+          if (data.patient && data.patient.name) {
+            setPatientInfo(data.patient as Patient);
+            setIsPatientSample(false);
+          }
+        }).catch(() => {}),
+        fetch('/api/health-data/visits').then(r => r.json()).then(data => {
+          if (Array.isArray(data.visits) && data.visits.length > 0) {
+            setDoctorVisitsData(data.visits as DoctorVisit[]);
+            setIsVisitsSample(false);
+          }
+        }).catch(() => {}),
+      ]);
+      setDataLoading(false);
+    };
+    loadAll();
   }, []);
 
   const [toastMessage, setToastMessage] = useState('');
@@ -279,7 +329,7 @@ export default function HealthDashboard() {
 
 
   const getFilteredData = () => {
-    const now = new Date('2023-11-20');
+    const now = new Date();
     const startDate = new Date(now);
     
     switch (selectedTimeRange) {
@@ -362,12 +412,7 @@ export default function HealthDashboard() {
 
   const trendAnalysis = calculateTrendAnalysis();
 
-  // Sample doctor visits — dates chosen relative to cardiac events
-  const doctorVisits: DoctorVisit[] = [
-    { id: 'v1', date: '2023-11-21', doctor: 'Dr. S. Patel', visitType: 'emergency', personalNotes: 'Follow-up after cardiac arrest', doctorNotes: 'ICD implantation scheduled. Mexiletine dose reviewed.', treatment: ['ICD scheduling', 'Medication review'], medicationsChanged: true, cardiacEventsDuringVisit: 0 },
-    { id: 'v2', date: '2023-11-16', doctor: 'Dr. A. Nguyen', visitType: 'follow_up', personalNotes: 'Check-in after arrhythmia at school', doctorNotes: 'ECG reviewed. Stress management discussed.', treatment: ['ECG', 'Stress management referral'], medicationsChanged: false, cardiacEventsDuringVisit: 0 },
-    { id: 'v3', date: '2023-11-11', doctor: 'Dr. S. Patel', visitType: 'routine', personalNotes: 'Monthly cardiology check', doctorNotes: 'Propranolol dose maintained. QTc stable.', treatment: ['Holter monitor review'], medicationsChanged: false, cardiacEventsDuringVisit: 1 },
-  ];
+  const doctorVisits = doctorVisitsData;
 
   const generateVitalSignsData = () => {
     const eventData = filteredCardiacEvents.map(event => ({
@@ -444,10 +489,11 @@ export default function HealthDashboard() {
     );
   };
 
-  const medicationAdherenceData = [
-    { name: 'Ibuprofen', taken: 85, missed: 15 },
-    { name: 'Acetaminophen', taken: 92, missed: 8 },
-  ];
+  const medicationAdherenceData = patientInfo.medications.map(m => ({
+    name: m.name.length > 12 ? m.name.slice(0, 12) + '…' : m.name,
+    taken: 0,
+    missed: 0,
+  }));
 
   const incidentSeverityData = (() => {
     const severityCounts = filteredCardiacEvents.reduce((acc, event) => {
@@ -463,75 +509,7 @@ export default function HealthDashboard() {
     ];
   })();
 
-  const patient: Patient = {
-    name: 'Ethan Alvarez',
-    age: 7,
-    primaryConcern: 'Life-threatening cardiac arrhythmias requiring frequent CPR - suspected Long QT Syndrome',
-    lastVisit: '2 days ago',
-    nextAppointment: 'Tomorrow',
-    careTeam: [
-      { 
-        name: 'Dr. S. Patel', 
-        role: 'Pediatric Cardiologist',
-        specialty: 'Electrophysiology & Sudden Cardiac Death Prevention'
-      },
-      { 
-        name: 'Dr. A. Nguyen', 
-        role: 'Pediatric Critical Care',
-        specialty: 'Emergency Medicine & Resuscitation'
-      },
-      {
-        name: 'Dr. M. Johnson',
-        role: 'Genetic Counselor',
-        specialty: 'Inherited Cardiac Conditions'
-      }
-    ],
-    medications: [
-      {
-        name: 'Propranolol',
-        dosage: '10mg',
-        frequency: 'Three times daily'
-      },
-      {
-        name: 'Mexiletine',
-        dosage: '50mg',
-        frequency: 'Every 8 hours'
-      },
-      {
-        name: 'Emergency Epinephrine Auto-Injector',
-        dosage: '0.15mg',
-        frequency: 'As needed for cardiac arrest'
-      }
-    ],
-    recentActivity: [
-      {
-        date: '2023-11-15',
-        type: 'Appointment',
-        details: 'Follow-up with Dr. Patel'
-      },
-      {
-        date: '2023-11-10',
-        type: 'Medication',
-        details: 'Prescription refill: Ibuprofen'
-      }
-    ],
-    incidentReports: [
-      {
-        date: '2023-11-12',
-        type: 'Medication Reaction',
-        severity: 'medium',
-        description: 'Mild rash appeared after starting new medication',
-        status: 'monitoring'
-      },
-      {
-        date: '2023-10-28',
-        type: 'Symptom Flare-up',
-        severity: 'high',
-        description: 'Increased neuroinflammatory symptoms reported',
-        status: 'investigating'
-      }
-    ]
-  };
+  const patient = patientInfo;
 
   const cprEvents = filteredCardiacEvents.filter(event => event.cprRequired);
   const cprCount = cprEvents.length;
@@ -547,10 +525,24 @@ export default function HealthDashboard() {
         </div>
       )}
       <div className="max-w-7xl mx-auto">
+        {(isPatientSample || isVisitsSample) && (
+          <div className="mb-4 bg-amber-50 border border-amber-300 rounded-xl px-5 py-3 flex items-start gap-3">
+            <span className="text-amber-500 font-bold text-lg shrink-0">⚠</span>
+            <div>
+              <p className="text-sm font-semibold text-amber-800">Sample Data Shown</p>
+              <p className="text-xs text-amber-700 mt-0.5">
+                {isPatientSample && 'Patient profile, care team, and medications are sample data. '}
+                {isVisitsSample && 'Doctor visits are sample data. '}
+                Add your own data and it will replace this automatically.
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Pediatric Cardiac Emergency Dashboard</h1>
-            <p className="text-sm text-gray-500 mt-1">Ethan Alvarez (Age 7) - LIFE-THREATENING CONDITION</p>
+            <p className="text-sm text-gray-500 mt-1">{patient.name} (Age {patient.age}) - {patient.primaryConcern.split(' - ')[0]}</p>
           </div>
           <div className="flex items-center space-x-4">
             {cprCount > 0 && (
@@ -1203,12 +1195,6 @@ export default function HealthDashboard() {
                         <p className="text-xs text-gray-400">{member.specialty}</p>
                       )}
                     </div>
-                    <button 
-                      onClick={() => handleMessageClick(member.name)}
-                      className="text-blue-600 hover:text-blue-800 text-sm font-medium cursor-pointer"
-                    >
-                      Message
-                    </button>
                   </div>
                 ))}
               </div>

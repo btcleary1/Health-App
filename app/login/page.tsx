@@ -83,8 +83,10 @@ export default function LoginPage() {
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      if (msg.includes('NotAllowedError') || msg.includes('cancelled')) {
-        setBiometricError('Biometric sign-in was cancelled.');
+      if (msg.includes('NotAllowedError') || msg.includes('cancelled') || msg.includes('not allowed')) {
+        setBiometricError('Sign-in was cancelled or blocked. Check that your browser allows biometrics for this site, then try again.');
+      } else if (msg.includes('InvalidStateError') || msg.includes('not recognized')) {
+        setBiometricError('Passkey not found on this device. Try signing in with your password, then re-enable Face ID in Settings.');
       } else {
         setBiometricError(msg);
       }
