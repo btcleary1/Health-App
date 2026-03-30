@@ -5,7 +5,7 @@ import { getSessionFromRequest } from '@/lib/session';
 export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
-  const session = getSessionFromRequest(req);
+  const session = await getSessionFromRequest(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {

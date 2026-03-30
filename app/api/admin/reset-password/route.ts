@@ -22,7 +22,7 @@ function generateTempPassword(): string {
 }
 
 export async function POST(req: NextRequest) {
-  const session = getSessionFromRequest(req);
+  const session = await getSessionFromRequest(req);
   if (!session || session.role !== 'admin') {
     return NextResponse.json({ error: 'Admin access required.' }, { status: 403 });
   }

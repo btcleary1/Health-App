@@ -13,23 +13,20 @@ const PUBLIC_PATHS = [
   '/terms',
 ];
 
-// All other /api/auth/* and /api/health-data/* and /api/admin/* routes require session (handled below)
-
 function isPublic(req: NextRequest) {
   return PUBLIC_PATHS.some(p => req.nextUrl.pathname.startsWith(p));
 }
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   if (isPublic(req)) return NextResponse.next();
 
   const token = req.cookies.get('health_session')?.value;
-  const session = token ? verifySessionToken(token) : null;
+  const session = token ? await verifySessionToken(token) : null;
 
   if (!session) {
     return NextResponse.redirect(new URL('/login', req.url));
   }
 
-  // Forward userId as a header for API routes that need it
   const res = NextResponse.next();
   res.headers.set('x-user-id', session.userId);
   res.headers.set('x-user-email', session.email);

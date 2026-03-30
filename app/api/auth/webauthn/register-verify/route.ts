@@ -9,7 +9,7 @@ const RP_ID = process.env.WEBAUTHN_RP_ID || 'health-app-blond-omega.vercel.app';
 const ORIGIN = process.env.WEBAUTHN_ORIGIN || `https://${RP_ID}`;
 
 export async function POST(req: NextRequest) {
-  const session = getSessionFromRequest(req);
+  const session = await getSessionFromRequest(req);
   if (!session) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }

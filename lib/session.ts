@@ -29,6 +29,7 @@ export interface SessionPayload {
   exp: number;
 }
 
+// Uses Node.js crypto — only call from nodejs runtime (API routes)
 export function createSessionToken(payload: Omit<SessionPayload, 'iat' | 'exp'>): string {
   const now = Math.floor(Date.now() / 1000);
   const full: SessionPayload = { ...payload, iat: now, exp: now + SESSION_TTL };
@@ -37,12 +38,28 @@ export function createSessionToken(payload: Omit<SessionPayload, 'iat' | 'exp'>)
   return `${data}.${sig}`;
 }
 
-export function verifySessionToken(token: string): SessionPayload | null {
+// Uses Web Crypto API — works in both Edge (middleware) and Node.js (API routes)
+export async function verifySessionToken(token: string): Promise<SessionPayload | null> {
   try {
-    const [data, sig] = token.split('.');
+    const lastDot = token.lastIndexOf('.');
+    if (lastDot === -1) return null;
+    const data = token.slice(0, lastDot);
+    const sig = token.slice(lastDot + 1);
     if (!data || !sig) return null;
-    const expected = createHmac('sha256', getSecret()).update(data).digest('hex');
-    if (sig !== expected) return null;
+
+    const secret = getSecret();
+    const enc = new TextEncoder();
+    const key = await globalThis.crypto.subtle.importKey(
+      'raw',
+      enc.encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['verify']
+    );
+    const sigBytes = new Uint8Array(sig.match(/.{2}/g)!.map(b => parseInt(b, 16)));
+    const valid = await globalThis.crypto.subtle.verify('HMAC', key, sigBytes, enc.encode(data));
+    if (!valid) return null;
+
     const payload: SessionPayload = JSON.parse(fromB64url(data));
     if (Math.floor(Date.now() / 1000) > payload.exp) return null;
     return payload;
@@ -51,7 +68,7 @@ export function verifySessionToken(token: string): SessionPayload | null {
   }
 }
 
-export function getSessionFromRequest(req: NextRequest): SessionPayload | null {
+export async function getSessionFromRequest(req: NextRequest): Promise<SessionPayload | null> {
   const token = req.cookies.get(COOKIE_NAME)?.value;
   if (!token) return null;
   return verifySessionToken(token);

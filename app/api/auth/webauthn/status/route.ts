@@ -5,7 +5,7 @@ import { getCredentialsForUser } from '@/lib/webauthn-store';
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
-  const session = getSessionFromRequest(req);
+  const session = await getSessionFromRequest(req);
   if (!session) {
     return NextResponse.json({ registered: false, count: 0 });
   }
