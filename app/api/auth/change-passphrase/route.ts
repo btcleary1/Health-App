@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStoredHash, hashPassphrase, savePassphraseHash } from '@/lib/passphrase';
+import { getSessionFromRequest } from '@/lib/session';
 
 export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
-  // Must be authenticated
-  const authed = req.cookies.get('app_auth')?.value === 'granted';
-  if (!authed) {
+  const session = await getSessionFromRequest(req);
+  if (!session) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
   }
 

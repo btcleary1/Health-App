@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest } from 'next/server';
+import { getSessionFromRequest } from '@/lib/session';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -7,6 +8,11 @@ export const maxDuration = 60;
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 export async function POST(req: NextRequest) {
+  const session = await getSessionFromRequest(req);
+  if (!session) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
+  }
+
   if (!process.env.ANTHROPIC_API_KEY) {
     return new Response(
       JSON.stringify({ error: 'ANTHROPIC_API_KEY is not configured.' }),

@@ -6,7 +6,7 @@ import { setSessionCookie } from '@/lib/session';
 
 export const runtime = 'nodejs';
 
-const RP_ID = process.env.WEBAUTHN_RP_ID || 'health-app-blond-omega.vercel.app';
+const RP_ID = process.env.WEBAUTHN_RP_ID || 'healthwiz.vercel.app';
 const ORIGIN = process.env.WEBAUTHN_ORIGIN || `https://${RP_ID}`;
 
 export async function POST(req: NextRequest) {
