@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { list, put, del } from '@vercel/blob';
 import { getUserByEmail, hashPassword } from '@/lib/users';
+import Anthropic from '@anthropic-ai/sdk';
 
 export const runtime = 'nodejs';
 
@@ -82,7 +83,21 @@ export async function GET(req: Request) {
     results.userIndex = `FAILED: ${e.message}`;
   }
 
-  // 6. Test login lookup for a specific email (pass ?email=you@example.com)
+  // 6. Test Anthropic API key
+  results.hasAnthropicKey = !!process.env.ANTHROPIC_API_KEY;
+  results.anthropicKeyPrefix = process.env.ANTHROPIC_API_KEY?.slice(0, 10) ?? 'not set';
+  try {
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const msg = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 50,
+      messages: [{ role: 'user', content: 'Say "ok" only.' }],
+    });
+    results.anthropicTest = msg.content[0].type === 'text' ? msg.content[0].text : 'no text';
+  } catch (e: any) {
+    results.anthropicTest = `FAILED: ${e?.status ?? ''} ${e.message}`;
+  }
+
   return NextResponse.json(results);
 }
 
