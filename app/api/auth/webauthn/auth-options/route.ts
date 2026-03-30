@@ -9,7 +9,8 @@ export async function POST(_req: NextRequest) {
   const options = await generateAuthenticationOptions({
     rpID: RP_ID,
     userVerification: 'required',
-    // No allowCredentials — browser will find the resident key automatically
+    hints: ['client-device'],  // prefer Face ID / Touch ID, not security keys
+    // No allowCredentials — browser finds the resident key automatically
   });
 
   const res = NextResponse.json(options);
