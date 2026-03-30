@@ -23,33 +23,24 @@ export async function POST(req: NextRequest) {
       ).join('\n')
     : 'No events recorded.';
 
-  const prompt = `You are a medical research assistant helping a family prepare for doctor appointments. Analyze this patient's history and return ONLY valid JSON — no markdown, no explanation outside the JSON.
+  const prompt = `You are a medical research assistant helping a family prepare for doctor appointments. Return ONLY a valid, complete JSON object — no markdown fences, no text before or after the JSON.
 
 PATIENT: ${patientData?.name || 'Child'}, Age ${patientData?.age}
 CONCERN: ${patientData?.primaryConcern}
 MEDICATIONS: ${patientData?.medications?.map((m: any) => `${m.name} ${m.dosage} ${m.frequency}`).join(', ') || 'none'}
 CARE TEAM: ${patientData?.careTeam?.map((c: any) => `${c.name} (${c.role})`).join(', ') || 'none'}
-EVENTS (${events?.length || 0}):
-${eventsText}
+RECENT EVENTS (last 5): ${events?.slice(-5).map((e: any) => `${e.date} ${e.type} sev:${e.severity}`).join('; ') || 'none'}
 ${focusArea ? `FOCUS: ${focusArea}` : ''}
 
-Return this JSON structure (be concise — 2-3 items per array max):
-{
-  "topDiagnoses": [{"name":"","likelihood":"High/Medium/Low","reasoning":"","keyEvidence":[],"missedClues":[]}],
-  "whatDoctorsMayHaveMissed": [{"observation":"","significance":"","source":""}],
-  "recommendedTests": [{"test":"","reason":"","urgency":"Immediate/Soon/Routine","specialist":""}],
-  "similarCasesAndResearch": [{"title":"","relevance":"","source":""}],
-  "triggerPatterns": {"identified":[],"avoidanceRecommendations":[]},
-  "doctorBriefing": {"oneLineSummary":"","criticalHistory":[],"questionsToAsk":[],"redFlags":[],"medicationsToDiscuss":[]},
-  "parentGuidance": {"immediateActions":[],"monitoringTips":[],"emotionalSupport":""}
-}
+Return EXACTLY this JSON (max 2 items per array, strings under 80 chars):
+{"topDiagnoses":[{"name":"","likelihood":"High/Medium/Low","reasoning":"","keyEvidence":[""],"missedClues":[""]}],"whatDoctorsMayHaveMissed":[{"observation":"","significance":""}],"recommendedTests":[{"test":"","reason":"","urgency":"Immediate/Soon/Routine","specialist":""}],"triggerPatterns":{"identified":[""],"avoidanceRecommendations":[""]},"doctorBriefing":{"oneLineSummary":"","criticalHistory":[""],"questionsToAsk":[""],"redFlags":[""],"medicationsToDiscuss":[""]},"parentGuidance":{"immediateActions":[""],"monitoringTips":[""],"emotionalSupport":""}}
 
-IMPORTANT: This is for appointment preparation only, not medical diagnosis. All findings are topics to discuss with the care team.`;
+IMPORTANT: For appointment prep only — not medical diagnosis. All findings are topics to discuss with the care team.`;
 
   try {
     const message = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 2000,
+      max_tokens: 3000,
       messages: [{ role: 'user', content: prompt }],
     });
 
@@ -66,7 +57,8 @@ IMPORTANT: This is for appointment preparation only, not medical diagnosis. All 
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message || 'AI analysis failed.' }), {
+    const detail = err?.status ? `HTTP ${err.status}: ${err.message}` : (err.message || 'Unknown error');
+    return new Response(JSON.stringify({ error: detail }), {
       status: 500, headers: { 'Content-Type': 'application/json' },
     });
   }
