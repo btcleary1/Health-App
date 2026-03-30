@@ -72,29 +72,13 @@ export default function AIAnalysisPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ patientData: PATIENT_DATA, events: SAMPLE_EVENTS, focusArea }),
       });
-      if (!res.ok || !res.body) throw new Error('Analysis failed. Please try again.');
-
-      // Read the streamed text chunks
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let fullText = '';
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        fullText += decoder.decode(value, { stream: true });
-      }
-
-      // Extract JSON from the accumulated text
-      const start = fullText.indexOf('{');
-      const end = fullText.lastIndexOf('}');
-      if (start === -1 || end === -1) throw new Error('Analysis timed out or returned an invalid response. Please try again.');
       let data: any;
       try {
-        data = JSON.parse(fullText.slice(start, end + 1));
+        data = await res.json();
       } catch {
         throw new Error('Analysis timed out or returned an invalid response. Please try again.');
       }
-      if (data.error) throw new Error(data.error);
+      if (!res.ok || data.error) throw new Error(data.error || 'Analysis failed.');
       setAnalysis(data.analysis);
     } catch (e: any) {
       setError(e.message);
