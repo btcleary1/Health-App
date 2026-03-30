@@ -4,6 +4,7 @@ import { verifyResetCode } from '@/lib/reset-tokens';
 import { validatePassword } from '@/lib/password-rules';
 import { put } from '@vercel/blob';
 import { createHash } from 'crypto';
+import { logAudit, getClientIp } from '@/lib/audit';
 
 export const runtime = 'nodejs';
 
@@ -41,6 +42,7 @@ export async function POST(req: NextRequest) {
       contentType: 'application/json',
     });
 
+    logAudit({ timestamp: new Date().toISOString(), userId: user.userId, email: user.email, action: 'password_reset_completed', ip: getClientIp(req) });
     return NextResponse.json({ success: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

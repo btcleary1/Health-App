@@ -2,22 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUserByEmail, hashPassword } from '@/lib/users';
 import { setSessionCookie } from '@/lib/session';
 import { checkRateLimit, recordFailure, clearFailures } from '@/lib/rate-limit';
+import { logAudit, getClientIp } from '@/lib/audit';
 
 export const runtime = 'nodejs';
-
-function getClientIp(req: NextRequest): string {
-  return (
-    req.headers.get('x-forwarded-for')?.split(',')[0].trim() ??
-    req.headers.get('x-real-ip') ??
-    'unknown'
-  );
-}
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
 
   try {
-    // Check rate limit before doing anything
     await checkRateLimit(ip);
 
     const { email, password } = await req.json();
@@ -29,11 +21,12 @@ export async function POST(req: NextRequest) {
     const user = await getUserByEmail(email);
     if (!user || user.passwordHash !== hashPassword(password)) {
       await recordFailure(ip);
+      logAudit({ timestamp: new Date().toISOString(), userId: user?.userId ?? 'unknown', email: email ?? 'unknown', action: 'login_failure', ip });
       return NextResponse.json({ error: 'Incorrect email or password.' }, { status: 401 });
     }
 
-    // Successful login — clear failure count
     await clearFailures(ip);
+    logAudit({ timestamp: new Date().toISOString(), userId: user.userId, email: user.email, action: 'login_success', ip });
 
     const res = NextResponse.json({ success: true, name: user.name });
     setSessionCookie(res, {

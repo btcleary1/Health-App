@@ -3,16 +3,9 @@ import { createUser, userCount } from '@/lib/users';
 import { validatePassword } from '@/lib/password-rules';
 import { setSessionCookie } from '@/lib/session';
 import { checkRateLimit, recordFailure } from '@/lib/rate-limit';
+import { logAudit, getClientIp } from '@/lib/audit';
 
 export const runtime = 'nodejs';
-
-function getClientIp(req: NextRequest): string {
-  return (
-    req.headers.get('x-forwarded-for')?.split(',')[0].trim() ??
-    req.headers.get('x-real-ip') ??
-    'unknown'
-  );
-}
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
@@ -41,6 +34,7 @@ export async function POST(req: NextRequest) {
     const role = count === 0 ? 'admin' : 'user';
 
     const user = await createUser(email, name, password, role);
+    logAudit({ timestamp: new Date().toISOString(), userId: user.userId, email: user.email, action: 'register', ip });
 
     const res = NextResponse.json({ success: true, name: user.name });
     setSessionCookie(res, {

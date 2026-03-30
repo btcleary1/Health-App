@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Fingerprint, ShieldCheck, ShieldOff, Loader2, CheckCircle, XCircle, KeyRound, Eye, EyeOff, Users, Trash2, RefreshCw } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Fingerprint, ShieldCheck, ShieldOff, Loader2, CheckCircle, XCircle, KeyRound, Eye, EyeOff, Users, Trash2, RefreshCw, AlertTriangle } from 'lucide-react';
 import { startRegistration, browserSupportsWebAuthn } from '@simplewebauthn/browser';
 import HealthHeader from '@/components/HealthHeader';
 
 export default function SettingsPage() {
+  const router = useRouter();
   const [registered, setRegistered] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -19,6 +21,7 @@ export default function SettingsPage() {
   const [deleteMessage, setDeleteMessage] = useState('');
   const [resetResult, setResetResult] = useState<{ userId: string; tempPassword: string } | null>(null);
   const [resetLoading, setResetLoading] = useState<string | null>(null);
+  const [deleteAccountLoading, setDeleteAccountLoading] = useState(false);
 
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.json()).then(d => {
@@ -129,6 +132,20 @@ export default function SettingsPage() {
       setMessage({ type: 'error', text: 'Failed to disable. Try again.' });
     }
     setLoading(false);
+  };
+
+  const handleDeleteMyAccount = async () => {
+    if (!confirm('Permanently delete your account and ALL your health data? This cannot be undone.')) return;
+    if (!confirm('Are you absolutely sure? Every event, patient record, and uploaded file will be deleted forever.')) return;
+    setDeleteAccountLoading(true);
+    try {
+      const res = await fetch('/api/auth/account', { method: 'DELETE' });
+      if (res.ok) {
+        router.push('/login');
+      }
+    } finally {
+      setDeleteAccountLoading(false);
+    }
   };
 
   const handleChangePassphrase = async (e: React.FormEvent) => {
@@ -321,6 +338,34 @@ export default function SettingsPage() {
                     Update Passphrase
                   </button>
                 </form>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Delete My Account */}
+        <div className="bg-white rounded-2xl border border-red-100 shadow-sm overflow-hidden mt-4">
+          <div className="px-6 py-4 border-b border-red-50">
+            <h2 className="text-sm font-semibold text-red-500 uppercase tracking-wide">Danger Zone</h2>
+          </div>
+          <div className="px-6 py-5">
+            <div className="flex items-start gap-4">
+              <div className="mt-0.5 w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5 text-red-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-gray-900 mb-1">Delete My Account</p>
+                <p className="text-sm text-gray-500 mb-4">
+                  Permanently deletes your account and all your health data — events, patient info, doctor visits, and uploaded files. This cannot be undone.
+                </p>
+                <button
+                  onClick={handleDeleteMyAccount}
+                  disabled={deleteAccountLoading}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium disabled:opacity-40 transition-colors"
+                >
+                  {deleteAccountLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                  Delete My Account &amp; Data
+                </button>
               </div>
             </div>
           </div>
