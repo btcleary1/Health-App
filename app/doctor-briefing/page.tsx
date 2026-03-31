@@ -59,7 +59,7 @@ export default function DoctorBriefingPage() {
     ]).then(([pd, ev]) => {
       const hasPatient = pd.patient?.name;
       const hasEvents = Array.isArray(ev.events) && ev.events.length > 0;
-      if (hasPatient) setPatientData({ ...SAMPLE_PATIENT, ...pd.patient });
+      if (hasPatient) setPatientData({ ...SAMPLE_PATIENT, ...pd.patient, medications: pd.patient.medications ?? SAMPLE_PATIENT.medications, careTeam: pd.patient.careTeam ?? SAMPLE_PATIENT.careTeam });
       if (hasEvents) {
         setEventsSummary(eventsToSummary(ev.events));
         const allTriggers = [...new Set<string>(ev.events.flatMap((e: any) => e.triggers || []))];

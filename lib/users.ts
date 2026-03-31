@@ -132,6 +132,18 @@ export async function deleteUser(userId: string): Promise<void> {
   await writeIndex(index.filter(e => e.userId !== userId));
 }
 
+export async function updateUserRole(userId: string, role: 'admin' | 'user'): Promise<void> {
+  const user = await getUserById(userId);
+  if (!user) return;
+  const updated = { ...user, role };
+  await put(`${PREFIX}${userId}.json`, JSON.stringify(updated), {
+    access: 'private',
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    contentType: 'application/json',
+  });
+}
+
 export async function userCount(): Promise<number> {
   const index = await readIndex();
   return index.length;

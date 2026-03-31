@@ -184,7 +184,7 @@ export default function HealthDashboard() {
         }).catch(() => {}),
         fetch('/api/health-data/patient').then(r => r.json()).then(data => {
           if (data.patient && data.patient.name) {
-            setPatientInfo(data.patient as Patient);
+            setPatientInfo({ ...SAMPLE_PATIENT, ...data.patient } as Patient);
             setIsPatientSample(false);
           }
         }).catch(() => {}),

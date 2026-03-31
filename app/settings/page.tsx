@@ -30,6 +30,7 @@ export default function SettingsPage() {
   const [deleteMessage, setDeleteMessage] = useState('');
   const [resetResult, setResetResult] = useState<{ userId: string; tempPassword: string } | null>(null);
   const [resetLoading, setResetLoading] = useState<string | null>(null);
+  const [roleLoading, setRoleLoading] = useState<string | null>(null);
   const [deleteAccountLoading, setDeleteAccountLoading] = useState(false);
 
   // Patient profile state
@@ -71,6 +72,19 @@ export default function SettingsPage() {
     } finally {
       setResetLoading(null);
     }
+  };
+
+  const handleToggleRole = async (userId: string, currentRole: string, name: string) => {
+    const newRole = currentRole === 'admin' ? 'user' : 'admin';
+    if (!confirm(`Change ${name}'s role to ${newRole}?`)) return;
+    setRoleLoading(userId);
+    await fetch('/api/admin/users', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, role: newRole }),
+    });
+    setUsers(prev => prev.map(u => u.userId === userId ? { ...u, role: newRole } : u));
+    setRoleLoading(null);
   };
 
   const handleDeleteUser = async (userId: string, name: string) => {
@@ -481,7 +495,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Admin: User Management */}
+        {/* Admin: User Management — only visible to admin role */}
         {currentUser?.role === 'admin' && (
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mt-4">
             <div className="px-6 py-4 border-b border-gray-100">
@@ -531,6 +545,14 @@ export default function SettingsPage() {
                           </div>
                           {u.userId !== currentUser.userId && (
                             <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                onClick={() => handleToggleRole(u.userId, u.role, u.name)}
+                                disabled={roleLoading === u.userId}
+                                className={`px-2 py-1 rounded-lg text-xs font-medium transition-colors ${u.role === 'admin' ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                                title={u.role === 'admin' ? 'Click to make User' : 'Click to make Admin'}
+                              >
+                                {roleLoading === u.userId ? <Loader2 className="w-3 h-3 animate-spin" /> : u.role === 'admin' ? 'Admin' : 'User'}
+                              </button>
                               <button
                                 onClick={() => handleResetPassword(u.userId, u.name)}
                                 disabled={resetLoading === u.userId}
