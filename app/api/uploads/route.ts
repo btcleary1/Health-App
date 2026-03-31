@@ -1,6 +1,7 @@
 import { put } from '@vercel/blob';
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest } from '@/lib/session';
+import { redactPiiFromText, detectPiiInText } from '@/lib/pii-validator';
 
 export const runtime = 'nodejs';
 
@@ -25,14 +26,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'File too large. Maximum size is 10MB.' }, { status: 400 });
     }
 
+    // Reject PII in the note/metadata field
+    const noteWarnings = detectPiiInText(note);
+    if (noteWarnings.length > 0) {
+      return NextResponse.json({ error: 'Note contains personal information (phone number or address). Please remove it before uploading.' }, { status: 400 });
+    }
+
     const timestamp = Date.now();
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
     const filename = `health-uploads/${session.userId}/${timestamp}_${category}_${safeName}`;
 
-    const blob = await put(filename, file, { access: 'private' });
+    let uploadBody: File | Blob = file;
+    let redactedCount = 0;
+
+    // For plain-text files: redact PII from the content before storing
+    if (file.type === 'text/plain') {
+      const rawText = await file.text();
+      const { redacted, changes } = redactPiiFromText(rawText);
+      redactedCount = changes;
+      uploadBody = new Blob([redacted], { type: 'text/plain' });
+    }
+
+    const blob = await put(filename, uploadBody, { access: 'private' });
 
     return NextResponse.json({
       success: true,
+      redactedCount,
       file: {
         id: timestamp.toString(),
         originalName: file.name,

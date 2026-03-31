@@ -8,7 +8,11 @@
  */
 
 const PHONE_REGEX = /(\+?1[\s\-.]?)?\(?\d{3}\)?[\s\-.]?\d{3}[\s\-.]?\d{4}/;
+const PHONE_REGEX_GLOBAL = /(\+?1[\s\-.]?)?\(?\d{3}\)?[\s\-.]?\d{3}[\s\-.]?\d{4}/g;
 const ADDRESS_REGEX = /\b\d{1,5}\s+[A-Za-z]{2,}\s+(St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard|Dr|Drive|Ln|Lane|Way|Ct|Court|Pl|Place|Pkwy|Parkway|Hwy|Highway|Cir|Circle)\b/i;
+const ADDRESS_REGEX_GLOBAL = /\b\d{1,5}\s+[A-Za-z]{2,}\s+(St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard|Dr|Drive|Ln|Lane|Way|Ct|Court|Pl|Place|Pkwy|Parkway|Hwy|Highway|Cir|Circle)\b/gi;
+const EMAIL_REGEX_GLOBAL = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g;
+const SSN_REGEX_GLOBAL = /\b\d{3}[-\s]?\d{2}[-\s]?\d{4}\b/g;
 const LAST_NAME_REGEX = /\s+\S+/; // any space followed by more chars = likely last name
 
 /**
@@ -68,4 +72,24 @@ export function detectPiiInText(text: string): string[] {
  */
 export function sanitiseFirstName(value: string): string {
   return value.trim().replace(/[^A-Za-zÀ-ÿ'\-]/g, '').slice(0, 50);
+}
+
+/**
+ * Redact detectable PII patterns from free text.
+ * Replaces phone numbers, email addresses, street addresses, and SSNs with [REDACTED] labels.
+ * Returns the sanitised text and a count of how many replacements were made.
+ *
+ * Note: last-name detection without an NLP model is unreliable — use name field
+ * validation (validateFirstName / validateDoctorName) to prevent full names from being entered.
+ */
+export function redactPiiFromText(text: string): { redacted: string; changes: number } {
+  let redacted = text;
+  let changes = 0;
+
+  redacted = redacted.replace(SSN_REGEX_GLOBAL, () => { changes++; return '[SSN REDACTED]'; });
+  redacted = redacted.replace(PHONE_REGEX_GLOBAL, () => { changes++; return '[PHONE REDACTED]'; });
+  redacted = redacted.replace(EMAIL_REGEX_GLOBAL, () => { changes++; return '[EMAIL REDACTED]'; });
+  redacted = redacted.replace(ADDRESS_REGEX_GLOBAL, () => { changes++; return '[ADDRESS REDACTED]'; });
+
+  return { redacted, changes };
 }

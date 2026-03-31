@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import HealthHeader from '@/components/HealthHeader';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, ReferenceLine, Legend } from 'recharts';
-import { detectPiiInText } from '@/lib/pii-validator';
+import { detectPiiInText, validateDoctorName } from '@/lib/pii-validator';
 
 interface CareTeamMember {
   name: string;
@@ -203,6 +203,17 @@ export default function HealthDashboard() {
 
   const [toastMessage, setToastMessage] = useState('');
   const [piiWarning, setPiiWarning] = useState('');
+  const [visitFormError, setVisitFormError] = useState('');
+  const [newVisit, setNewVisit] = useState<Partial<DoctorVisit>>({
+    date: new Date().toISOString().split('T')[0],
+    doctor: '',
+    visitType: 'routine',
+    personalNotes: '',
+    doctorNotes: '',
+    treatment: [],
+    medicationsChanged: false,
+    cardiacEventsDuringVisit: 0,
+  });
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -327,6 +338,59 @@ export default function HealthDashboard() {
   const handleCancelEvent = () => {
     setShowNewEventForm(false);
     setPiiWarning('');
+  };
+
+  const blankVisitForm: Partial<DoctorVisit> = {
+    date: new Date().toISOString().split('T')[0],
+    doctor: '',
+    visitType: 'routine',
+    personalNotes: '',
+    doctorNotes: '',
+    treatment: [],
+    medicationsChanged: false,
+    cardiacEventsDuringVisit: 0,
+  };
+
+  const handleSaveVisit = () => {
+    setVisitFormError('');
+    // Validate doctor name (first name only)
+    const doctorError = validateDoctorName(newVisit.doctor || '');
+    if (doctorError) { setVisitFormError(doctorError); return; }
+    // PII scan on notes
+    const allText = [newVisit.personalNotes, newVisit.doctorNotes].filter(Boolean).join(' ');
+    const piiWarnings = detectPiiInText(allText);
+    if (piiWarnings.length > 0) { setVisitFormError(piiWarnings[0]); return; }
+
+    const visitToSave: DoctorVisit = {
+      id: Date.now().toString(),
+      date: newVisit.date || blankVisitForm.date!,
+      doctor: newVisit.doctor?.trim() || '',
+      visitType: newVisit.visitType || 'routine',
+      personalNotes: newVisit.personalNotes || '',
+      doctorNotes: newVisit.doctorNotes || '',
+      treatment: newVisit.treatment || [],
+      medicationsChanged: !!newVisit.medicationsChanged,
+      cardiacEventsDuringVisit: newVisit.cardiacEventsDuringVisit || 0,
+    };
+
+    setDoctorVisitsData(prev => {
+      const updated = [visitToSave, ...prev];
+      fetch('/api/health-data/visits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ visits: updated }),
+      }).catch(() => {});
+      return updated;
+    });
+    setIsVisitsSample(false);
+    setShowVisitForm(false);
+    setNewVisit(blankVisitForm);
+  };
+
+  const handleCancelVisit = () => {
+    setShowVisitForm(false);
+    setVisitFormError('');
+    setNewVisit(blankVisitForm);
   };
 
   const updateNewEvent = (field: string, value: any) => {
@@ -883,6 +947,116 @@ export default function HealthDashboard() {
           </div>
         )}
 
+        {/* Add Doctor Visit Modal */}
+        {showVisitForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-screen overflow-y-auto">
+              <div className="p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-1">Add Doctor Visit</h2>
+                <p className="text-sm text-gray-500 mb-4">Record details of a clinic or hospital visit.</p>
+
+                <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-800 mb-4">
+                  <strong>Privacy:</strong> Doctor&apos;s first name only — no last names, phone numbers, or addresses in any field.
+                </div>
+
+                {visitFormError && (
+                  <div className="bg-red-50 border border-red-300 rounded-lg px-3 py-2 text-xs text-red-800 font-medium mb-4">
+                    ⚠ {visitFormError}
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Date</label>
+                      <input
+                        type="date"
+                        value={newVisit.date}
+                        onChange={e => setNewVisit(v => ({ ...v, date: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Visit Type</label>
+                      <select
+                        value={newVisit.visitType}
+                        onChange={e => setNewVisit(v => ({ ...v, visitType: e.target.value as DoctorVisit['visitType'] }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                      >
+                        <option value="routine">Routine</option>
+                        <option value="follow_up">Follow-up</option>
+                        <option value="emergency">Emergency</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Doctor&apos;s First Name</label>
+                    <input
+                      type="text"
+                      value={newVisit.doctor}
+                      onChange={e => { setNewVisit(v => ({ ...v, doctor: e.target.value })); setVisitFormError(''); }}
+                      onBlur={e => { const err = validateDoctorName(e.target.value); if (err) setVisitFormError(err); }}
+                      placeholder="e.g. Sarah  or  Dr. Sarah"
+                      style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <p className="text-xs text-gray-400 mt-0.5">First name only — e.g. &quot;Sarah&quot; or &quot;Dr. Sarah&quot;</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Your Notes <span className="font-normal text-gray-400">(what you want to remember)</span></label>
+                    <textarea
+                      value={newVisit.personalNotes}
+                      onChange={e => setNewVisit(v => ({ ...v, personalNotes: e.target.value }))}
+                      rows={3}
+                      placeholder="e.g. Discussed QTc results, new medication dosage explained, follow-up in 3 months..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Doctor&apos;s Notes / Instructions <span className="font-normal text-gray-400">(optional)</span></label>
+                    <textarea
+                      value={newVisit.doctorNotes}
+                      onChange={e => setNewVisit(v => ({ ...v, doctorNotes: e.target.value }))}
+                      rows={2}
+                      placeholder="e.g. ICD programming reviewed, propranolol dose maintained, restrict PE..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="meds-changed"
+                      checked={!!newVisit.medicationsChanged}
+                      onChange={e => setNewVisit(v => ({ ...v, medicationsChanged: e.target.checked }))}
+                      className="rounded text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <label htmlFor="meds-changed" className="text-sm text-gray-700">Medications were changed at this visit</label>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
+                  <button
+                    onClick={handleCancelVisit}
+                    className="px-5 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveVisit}
+                    className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium text-sm"
+                  >
+                    Save Visit
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-3 space-y-6">
             <div className="bg-white rounded-xl shadow-sm p-6">
@@ -995,9 +1169,18 @@ export default function HealthDashboard() {
               </ResponsiveContainer>
 
               {/* Doctor visit summary below chart */}
+              <div className="mt-4 border-t border-gray-100 pt-4 flex items-center justify-between">
+                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Doctor Visits</div>
+                <button
+                  onClick={handleAddVisitNotes}
+                  className="text-xs px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium"
+                >
+                  + Add Visit
+                </button>
+              </div>
               {doctorVisitLabels.length > 0 && (
-                <div className="mt-4 border-t border-gray-100 pt-4">
-                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Doctor Visits in Period</div>
+                <div className="mt-3">
+                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Visits in Period</div>
                   <div className="flex flex-wrap gap-2">
                     {doctorVisitLabels.map(visit => (
                       <div key={visit.id} className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-2 text-xs">

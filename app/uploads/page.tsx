@@ -4,7 +4,8 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import HealthHeader from '@/components/HealthHeader';
 import HIPAAFooter from '@/components/HIPAAFooter';
 import UploadConsent from '@/components/UploadConsent';
-import { Upload, FileImage, FileText, File, X, Check, AlertCircle, Brain, Loader2 } from 'lucide-react';
+import { Upload, FileImage, FileText, File, X, Check, AlertCircle, Brain, Loader2, ShieldAlert } from 'lucide-react';
+import { detectPiiInText } from '@/lib/pii-validator';
 
 const CATEGORIES = [
   { value: 'lab-results', label: 'Lab Results' },
@@ -59,6 +60,8 @@ export default function UploadsPage() {
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [showConsent, setShowConsent] = useState(false);
   const [consentAccepted, setConsentAccepted] = useState(false);
+  const [noteError, setNoteError] = useState('');
+  const [redactedCount, setRedactedCount] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -87,8 +90,16 @@ export default function UploadsPage() {
 
   const handleUpload = async () => {
     if (!pendingFile) return;
+    // Client-side note PII check before submitting
+    const noteWarnings = detectPiiInText(note);
+    if (noteWarnings.length > 0) {
+      setNoteError(noteWarnings[0]);
+      return;
+    }
     setUploading(true);
     setError('');
+    setNoteError('');
+    setRedactedCount(null);
     try {
       const formData = new FormData();
       formData.append('file', pendingFile);
@@ -99,6 +110,7 @@ export default function UploadsPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
+      if (data.redactedCount > 0) setRedactedCount(data.redactedCount);
       setUploads(prev => [data.file, ...prev]);
       setPendingFile(null);
       setNote('');
@@ -148,10 +160,30 @@ export default function UploadsPage() {
       <HealthHeader />
       <div className="max-w-3xl mx-auto px-4 py-8">
 
-        <div className="mb-8">
+        <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Doctor Visit Uploads</h1>
           <p className="text-gray-600 text-sm">Upload screenshots, photos, lab results, ECGs, and doctor letters. AI can help contextualize what they mean for {patientInfo?.name ?? 'your patient'}&apos;s case.</p>
         </div>
+
+        {/* PII notice */}
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-5 flex gap-3 items-start">
+          <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-amber-800">Privacy reminder before uploading</p>
+            <p className="text-xs text-amber-700 mt-0.5">
+              Only use <strong>first names</strong> — no last names, phone numbers, home addresses, or Social Security numbers.
+              For PDFs and images, black out or blur sensitive information before uploading.
+              Text files (.txt) are automatically scanned and PII is redacted on upload.
+            </p>
+          </div>
+        </div>
+
+        {redactedCount !== null && redactedCount > 0 && (
+          <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 mb-4 flex gap-2 items-center text-green-800 text-sm">
+            <Check className="w-4 h-4 text-green-600 shrink-0" />
+            {redactedCount} piece{redactedCount !== 1 ? 's' : ''} of personal information were automatically redacted from the uploaded text file.
+          </div>
+        )}
 
         <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
           <input
@@ -218,10 +250,14 @@ export default function UploadsPage() {
                 <input
                   type="text"
                   value={note}
-                  onChange={e => setNote(e.target.value)}
-                  placeholder="e.g. From Dr. Patel visit Nov 20, QTc result was 520ms"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm text-gray-900 bg-white"
+                  onChange={e => { setNote(e.target.value); setNoteError(''); }}
+                  onBlur={e => { const w = detectPiiInText(e.target.value); if (w.length > 0) setNoteError(w[0]); }}
+                  placeholder="e.g. Dr. Sarah visit Nov 20, QTc result was 520ms"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm text-gray-900 bg-white ${noteError ? 'border-red-400' : 'border-gray-300'}`}
                 />
+                {noteError
+                  ? <p className="text-xs text-red-600 mt-1">⚠ {noteError}</p>
+                  : <p className="text-xs text-gray-400 mt-1">First names only — no last names, phone numbers, or addresses</p>}
               </div>
               <button
                 onClick={handleUpload}
