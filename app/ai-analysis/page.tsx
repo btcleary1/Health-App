@@ -62,16 +62,17 @@ export default function AIAnalysisPage() {
   const [patientData, setPatientData] = useState<any>(SAMPLE_PATIENT_DATA);
   const [events, setEvents] = useState<any[]>(SAMPLE_EVENTS);
   const [isSample, setIsSample] = useState(true);
+  const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
 
   useEffect(() => {
     Promise.all([
       fetch('/api/health-data/patient').then(r => r.json()).catch(() => ({})),
       fetch('/api/health-data/events').then(r => r.json()).catch(() => ({})),
-    ]).then(([pd, ev]) => {
+      fetch('/api/uploads').then(r => r.json()).catch(() => ({ files: [] })),
+    ]).then(([pd, ev, up]) => {
       const hasPatient = pd.patient?.name;
       const hasEvents = Array.isArray(ev.events) && ev.events.length > 0;
       if (hasPatient) {
-        // Profile set — clear all sample data
         setPatientData({ ...SAMPLE_PATIENT_DATA, ...pd.patient });
         setEvents(hasEvents ? ev.events : []);
         setIsSample(false);
@@ -79,6 +80,7 @@ export default function AIAnalysisPage() {
         setEvents(ev.events);
         setIsSample(false);
       }
+      if (Array.isArray(up.files) && up.files.length > 0) setUploadedFiles(up.files);
     });
   }, []);
 
@@ -90,7 +92,7 @@ export default function AIAnalysisPage() {
       const res = await fetch('/api/ai-analysis', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ patientData, events, focusArea }),
+        body: JSON.stringify({ patientData, events, focusArea, uploadedFiles }),
       });
       let data: any;
       try {
@@ -150,6 +152,12 @@ export default function AIAnalysisPage() {
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm text-gray-900 bg-white"
             />
           </div>
+          {uploadedFiles.length > 0 && (
+            <div className="mb-4 flex items-center gap-2 text-xs text-purple-700 bg-purple-50 border border-purple-200 rounded-lg px-3 py-2">
+              <Brain className="w-3.5 h-3.5 shrink-0" />
+              {uploadedFiles.length} uploaded file{uploadedFiles.length !== 1 ? 's' : ''} will be read and included in the analysis
+            </div>
+          )}
           <button
             onClick={runAnalysis}
             disabled={loading}
@@ -163,7 +171,7 @@ export default function AIAnalysisPage() {
           </button>
           {loading && (
             <p className="text-center text-sm text-gray-500 mt-3">
-              Claude is reading all events, parent notes, triggers, and medications — this takes 15–30 seconds
+              Claude is reading all events, notes, triggers, medications{uploadedFiles.length > 0 ? `, and ${uploadedFiles.length} uploaded file${uploadedFiles.length !== 1 ? 's' : ''}` : ''} — this takes 15–30 seconds
             </p>
           )}
         </div>
