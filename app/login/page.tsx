@@ -36,6 +36,20 @@ export default function LoginPage() {
     }
   }, []);
 
+  const goAfterLogin = async () => {
+    try {
+      const r = await fetch('/api/health-data/patient');
+      const d = await r.json();
+      if (d.patient?.name && d.patient?.ageGroup) {
+        router.push('/dashboard');
+      } else {
+        router.push('/setup');
+      }
+    } catch {
+      router.push('/setup');
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!agreed) { setError('You must confirm you are an authorized user.'); return; }
@@ -48,11 +62,10 @@ export default function LoginPage() {
     });
     const data = await res.json();
     if (res.ok) {
-      // Check if they already have a passkey — if so, skip the setup prompt
       const statusRes = await fetch('/api/auth/webauthn/status');
       const statusData = await statusRes.json();
       if (statusData.registered) {
-        router.push('/dashboard');
+        await goAfterLogin();
       } else {
         setStage('register-passkey');
       }
@@ -77,7 +90,7 @@ export default function LoginPage() {
       });
       const result = await verRes.json();
       if (verRes.ok) {
-        router.push('/dashboard');
+        await goAfterLogin();
       } else {
         setBiometricError(result.error || 'Biometric sign-in failed.');
       }
@@ -109,7 +122,7 @@ export default function LoginPage() {
       });
       const verData = await verRes.json();
       if (verRes.ok) {
-        router.push('/dashboard');
+        await goAfterLogin();
       } else {
         setError(verData.error || 'Setup failed.');
       }
@@ -145,7 +158,7 @@ export default function LoginPage() {
             Set Up Face ID / Touch ID
           </button>
           <button
-            onClick={() => { router.push('/dashboard'); }}
+            onClick={goAfterLogin}
             className="w-full py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
           >
             Skip for now
