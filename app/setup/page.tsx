@@ -84,7 +84,7 @@ export default function SetupPage() {
         {/* First Name */}
         <div className="mb-5">
           <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-            Patient First Name
+            First Name
           </label>
           <input
             type="text"
@@ -93,8 +93,9 @@ export default function SetupPage() {
             onKeyDown={e => e.key === 'Enter' && handleSave()}
             placeholder="e.g. Emma"
             autoFocus
-            autoComplete="off"
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+            autoComplete="given-name"
+            style={{ color: '#111827', backgroundColor: '#ffffff' }}
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
           />
         </div>
 

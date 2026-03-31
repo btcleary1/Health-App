@@ -246,12 +246,14 @@ export default function SettingsPage() {
                 <p className="text-sm text-gray-500 mb-4">This replaces the sample data shown throughout the app.</p>
                 <form onSubmit={handleSavePatient} className="space-y-4">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Patient First Name</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">First Name</label>
                     <input
                       type="text"
                       value={patientName}
                       onChange={e => setPatientName(e.target.value)}
                       placeholder="e.g. Emma"
+                      autoComplete="given-name"
+                      style={{ color: '#111827', backgroundColor: '#ffffff' }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                     />
                   </div>
