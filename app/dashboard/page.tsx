@@ -186,16 +186,19 @@ export default function HealthDashboard() {
       const hasProfile = !!pdData.patient?.name;
 
       if (hasProfile) {
-        // Profile is set — clear ALL sample data, show only real data (even if some fields are empty)
+        // Profile is set — start from a BLANK base so NO sample data bleeds through
         setPatientInfo({
-          ...SAMPLE_PATIENT,
-          ...pdData.patient,
+          name: pdData.patient.name || '',
+          age: 0,
+          ageGroup: pdData.patient.ageGroup || '',
+          primaryConcern: pdData.patient.primaryConcern || '',
+          lastVisit: '',
+          nextAppointment: '',
           careTeam: pdData.patient.careTeam || [],
           medications: pdData.patient.medications || [],
-          primaryConcern: pdData.patient.primaryConcern || '',
-          recentActivity: pdData.patient.recentActivity || [],
-          incidentReports: pdData.patient.incidentReports || [],
-        } as Patient);
+          recentActivity: [],
+          incidentReports: [],
+        } as unknown as Patient);
         setIsPatientSample(false);
         setAllCardiacEvents(Array.isArray(evData.events) ? evData.events as CardiacEvent[] : []);
         setDoctorVisitsData(Array.isArray(visData.visits) ? visData.visits as DoctorVisit[] : []);
@@ -654,9 +657,9 @@ export default function HealthDashboard() {
 
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Pediatric Cardiac Emergency Dashboard</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Health Monitoring Dashboard</h1>
             <p className="text-sm text-gray-500 mt-1">
-              {patient.name}{patient.age ? ` (Age ${patient.age})` : ''}{patient.primaryConcern ? ` — ${patient.primaryConcern.split(' - ')[0]}` : ''}
+              {patient.name}{(patient as any).ageGroup ? ` — ${(patient as any).ageGroup.charAt(0).toUpperCase() + (patient as any).ageGroup.slice(1)}` : ''}{patient.primaryConcern ? ` · ${patient.primaryConcern.split(' - ')[0]}` : ''}
             </p>
           </div>
           <div className="flex items-center space-x-4">

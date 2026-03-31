@@ -73,7 +73,7 @@ export default function AIAnalysisPage() {
       const hasPatient = pd.patient?.name;
       const hasEvents = Array.isArray(ev.events) && ev.events.length > 0;
       if (hasPatient) {
-        setPatientData({ ...SAMPLE_PATIENT_DATA, ...pd.patient });
+        setPatientData(pd.patient);
         setEvents(hasEvents ? ev.events : []);
         setIsSample(false);
       } else if (hasEvents) {

@@ -62,11 +62,13 @@ export default function DoctorBriefingPage() {
       if (hasPatient) {
         // Profile set — clear sample data entirely
         setPatientData({
-          ...SAMPLE_PATIENT,
-          ...pd.patient,
+          name: pd.patient.name || '',
+          age: null,
+          ageGroup: pd.patient.ageGroup || '',
+          dob: pd.patient.dob || '',
+          primaryConcern: pd.patient.primaryConcern || '',
           medications: pd.patient.medications || [],
           careTeam: pd.patient.careTeam || [],
-          primaryConcern: pd.patient.primaryConcern || '',
           emergencyContact: pd.patient.emergencyContact || '',
           allergies: pd.patient.allergies || 'None known',
         });
@@ -146,9 +148,9 @@ export default function DoctorBriefingPage() {
 
           <div className="flex items-start justify-between border-b-2 border-red-600 pb-4 mb-6">
             <div>
-              <div className="text-xs font-bold text-red-600 uppercase tracking-widest mb-1">Patient Briefing Document</div>
+              <div className="text-xs font-bold text-red-600 uppercase tracking-widest mb-1">Health Briefing Document</div>
               <h2 className="text-3xl font-bold text-gray-900">{patientData.name}</h2>
-              <div className="text-gray-600 mt-1">Age {patientData.age} &nbsp;•&nbsp; DOB {patientData.dob} &nbsp;•&nbsp; {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>
+              <div className="text-gray-600 mt-1">{patientData.ageGroup ? patientData.ageGroup.charAt(0).toUpperCase() + patientData.ageGroup.slice(1) : (patientData.age ? `Age ${patientData.age}` : '')}{patientData.dob ? ` \u00a0•\u00a0 DOB ${patientData.dob}` : ''} &nbsp;•&nbsp; {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>
             </div>
             <div className="text-right">
               <div className="bg-red-100 border border-red-300 rounded-lg px-4 py-3 text-center">
