@@ -51,3 +51,12 @@ export async function getDoctorVisits(userId: string): Promise<unknown[]> {
 export async function saveDoctorVisits(userId: string, visits: unknown[]): Promise<void> {
   await writeBlob(`${PREFIX}/${userId}/visits.json`, visits);
 }
+
+// --- Upload manifest (metadata about uploaded files) ---
+export async function getUploadManifest(userId: string): Promise<unknown[]> {
+  return (await readBlob<unknown[]>(`${PREFIX}/${userId}/uploads-manifest.json`)) ?? [];
+}
+
+export async function saveUploadManifest(userId: string, files: unknown[]): Promise<void> {
+  await writeBlob(`${PREFIX}/${userId}/uploads-manifest.json`, files);
+}

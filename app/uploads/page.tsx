@@ -44,25 +44,35 @@ function FileIcon({ type }: { type: string }) {
 
 export default function UploadsPage() {
   const [uploads, setUploads] = useState<UploadedFile[]>([]);
-  const [patientInfo, setPatientInfo] = useState<{ name: string; age: number; primaryConcern: string } | null>(null);
+  const [uploadsLoading, setUploadsLoading] = useState(true);
+  // Full patient + events context for AI analysis
+  const [patientData, setPatientData] = useState<any>(null);
+  const [eventsData, setEventsData] = useState<any[]>([]);
   const [dragging, setDragging] = useState(false);
-
-  useEffect(() => {
-    fetch('/api/health-data/patient').then(r => r.json()).then(d => {
-      if (d.patient?.name) setPatientInfo(d.patient);
-    }).catch(() => {});
-  }, []);
   const [uploading, setUploading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('general');
   const [note, setNote] = useState('');
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [error, setError] = useState('');
+  const [noteError, setNoteError] = useState('');
+  const [redactedCount, setRedactedCount] = useState<number | null>(null);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [showConsent, setShowConsent] = useState(false);
   const [consentAccepted, setConsentAccepted] = useState(false);
-  const [noteError, setNoteError] = useState('');
-  const [redactedCount, setRedactedCount] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load existing uploads + patient/events context on mount
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/uploads').then(r => r.json()).catch(() => ({ files: [] })),
+      fetch('/api/health-data/patient').then(r => r.json()).catch(() => ({})),
+      fetch('/api/health-data/events').then(r => r.json()).catch(() => ({ events: [] })),
+    ]).then(([uploadData, pd, ev]) => {
+      if (Array.isArray(uploadData.files)) setUploads(uploadData.files);
+      if (pd.patient) setPatientData(pd.patient);
+      if (Array.isArray(ev.events)) setEventsData(ev.events);
+    }).finally(() => setUploadsLoading(false));
+  }, []);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -90,7 +100,6 @@ export default function UploadsPage() {
 
   const handleUpload = async () => {
     if (!pendingFile) return;
-    // Client-side note PII check before submitting
     const noteWarnings = detectPiiInText(note);
     if (noteWarnings.length > 0) {
       setNoteError(noteWarnings[0]);
@@ -126,19 +135,28 @@ export default function UploadsPage() {
   const analyzeWithAI = async (upload: UploadedFile) => {
     setAnalyzingId(upload.id);
     try {
+      // Build patient context — use real data if available, minimal fallback otherwise
+      const patient = patientData ?? { name: 'your patient', age: null, primaryConcern: 'See uploaded document' };
+      const recentEvents = eventsData.slice(-5);
+
       const res = await fetch('/api/ai-analysis', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          patientData: patientInfo ?? { name: 'Patient', age: 0, primaryConcern: 'See uploaded document' },
-          events: [],
-          focusArea: `A document was uploaded: category="${upload.category}", filename="${upload.originalName}", note="${upload.note}". Based on the category and context of this pediatric cardiac patient, what key questions should the family ask about this type of document? What should they look for? What would be red flags? Keep the response to 2-3 sentences.`,
+          patientData: patient,
+          events: recentEvents,
+          focusArea: `The family just uploaded a "${CATEGORIES.find(c => c.value === upload.category)?.label || upload.category}" document (file: "${upload.originalName}"${upload.note ? `, note: "${upload.note}"` : ''}). Based on ${patient.name}'s medical history and recent events, provide a 2-3 sentence clinical summary of what this type of document likely shows, what key values or findings the family should ask the doctor about, and any red flags to watch for in this document type.`,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      const summary = data.analysis?.doctorBriefing?.oneLineSummary || 'Analysis complete.';
+      // Use the full doctorBriefing summary — criticalHistory gives more detail than oneLineSummary alone
+      const briefing = data.analysis?.doctorBriefing;
+      const summary = briefing
+        ? [briefing.oneLineSummary, ...(briefing.criticalHistory || [])].filter(Boolean).join(' ')
+        : 'Analysis complete — see full AI Analysis page for details.';
+
       setUploads(prev => prev.map(u => u.id === upload.id ? { ...u, aiSummary: summary } : u));
     } catch (e: any) {
       setError('AI analysis failed: ' + e.message);
@@ -147,7 +165,16 @@ export default function UploadsPage() {
     }
   };
 
-  const removeUpload = (id: string) => setUploads(prev => prev.filter(u => u.id !== id));
+  const removeUpload = async (id: string) => {
+    // Optimistic removal from UI
+    setUploads(prev => prev.filter(u => u.id !== id));
+    // Delete from server
+    await fetch('/api/uploads', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fileId: id }),
+    }).catch(() => {});
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -162,7 +189,9 @@ export default function UploadsPage() {
 
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Doctor Visit Uploads</h1>
-          <p className="text-gray-600 text-sm">Upload screenshots, photos, lab results, ECGs, and doctor letters. AI can help contextualize what they mean for {patientInfo?.name ?? 'your patient'}&apos;s case.</p>
+          <p className="text-gray-600 text-sm">
+            Upload screenshots, photos, lab results, ECGs, and doctor letters. AI can help contextualize what they mean for {patientData?.name ?? 'your patient'}&apos;s case.
+          </p>
         </div>
 
         {/* PII notice */}
@@ -276,7 +305,12 @@ export default function UploadsPage() {
           </div>
         )}
 
-        {uploads.length > 0 && (
+        {uploadsLoading ? (
+          <div className="flex items-center justify-center py-12 gap-2 text-gray-400">
+            <Loader2 className="w-5 h-5 animate-spin" />
+            <span className="text-sm">Loading your uploads…</span>
+          </div>
+        ) : uploads.length > 0 ? (
           <div>
             <h2 className="text-lg font-semibold text-gray-800 mb-3">Uploaded Documents ({uploads.length})</h2>
             <div className="space-y-3">
@@ -326,9 +360,7 @@ export default function UploadsPage() {
               ))}
             </div>
           </div>
-        )}
-
-        {uploads.length === 0 && (
+        ) : (
           <div className="text-center py-12 text-gray-400">
             <FileImage className="w-12 h-12 mx-auto mb-3 opacity-40" />
             <div className="font-medium">No documents uploaded yet</div>
