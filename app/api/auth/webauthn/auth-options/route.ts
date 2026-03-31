@@ -6,11 +6,11 @@ export const runtime = 'nodejs';
 const RP_ID = process.env.WEBAUTHN_RP_ID || 'healthwiz.vercel.app';
 
 export async function POST(_req: NextRequest) {
-  const options = await generateAuthenticationOptions({
+  const options = await (generateAuthenticationOptions as any)({
     rpID: RP_ID,
     userVerification: 'required',
-    // No allowCredentials — browser finds the resident key automatically
-  } as any);
+    hints: ['client-device'],  // tell iOS to use Face ID / Touch ID, not security key
+  });
 
   const res = NextResponse.json(options);
   res.cookies.set('webauthn_challenge', options.challenge, {
