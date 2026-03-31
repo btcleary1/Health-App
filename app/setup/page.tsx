@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Activity, Loader2, ArrowRight } from 'lucide-react';
+import { validateFirstName } from '@/lib/pii-validator';
 
 const AGE_GROUPS = [
   { value: 'infant',   label: 'Infant',       sub: '0–12 months' },
@@ -35,7 +36,8 @@ export default function SetupPage() {
   }, [router]);
 
   const handleSave = async () => {
-    if (!name.trim()) { setError('Please enter a first name.'); return; }
+    const nameError = validateFirstName(name);
+    if (nameError) { setError(nameError); return; }
     if (!ageGroup) { setError('Please select an age group.'); return; }
     setSaving(true);
     setError('');
@@ -89,7 +91,8 @@ export default function SetupPage() {
           <input
             type="text"
             value={name}
-            onChange={e => setName(e.target.value)}
+            onChange={e => { setName(e.target.value); setError(''); }}
+            onBlur={e => { const err = validateFirstName(e.target.value); if (err) setError(err); }}
             onKeyDown={e => e.key === 'Enter' && handleSave()}
             placeholder="e.g. Emma"
             autoFocus

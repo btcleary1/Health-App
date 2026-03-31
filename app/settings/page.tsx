@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Fingerprint, ShieldCheck, ShieldOff, Loader2, CheckCircle, XCircle, KeyRound, Eye, EyeOff, Users, Trash2, RefreshCw, AlertTriangle, UserCircle } from 'lucide-react';
 import { startRegistration, browserSupportsWebAuthn } from '@simplewebauthn/browser';
 import HealthHeader from '@/components/HealthHeader';
+import { validateFirstName } from '@/lib/pii-validator';
 
 const AGE_GROUPS = [
   { value: 'infant',    label: 'Infant',        sub: '0–12 months' },
@@ -169,7 +170,8 @@ export default function SettingsPage() {
 
   const handleSavePatient = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!patientName.trim()) { setPatientMessage({ type: 'error', text: 'First name is required.' }); return; }
+    const nameError = validateFirstName(patientName);
+    if (nameError) { setPatientMessage({ type: 'error', text: nameError }); return; }
     if (!patientAgeGroup) { setPatientMessage({ type: 'error', text: 'Please select an age group.' }); return; }
     setPatientSaving(true);
     setPatientMessage(null);
@@ -264,12 +266,14 @@ export default function SettingsPage() {
                     <input
                       type="text"
                       value={patientName}
-                      onChange={e => setPatientName(e.target.value)}
+                      onChange={e => { setPatientName(e.target.value); setPatientMessage(null); }}
+                      onBlur={e => { const err = validateFirstName(e.target.value); if (err) setPatientMessage({ type: 'error', text: err }); }}
                       placeholder="e.g. Emma"
                       autoComplete="given-name"
                       style={{ color: '#111827', backgroundColor: '#ffffff' }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                     />
+                    <p className="text-xs text-gray-400 mt-1">First name only — no last names or personal information</p>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-2">Age Group</label>

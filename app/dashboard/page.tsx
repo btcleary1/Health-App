@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import HealthHeader from '@/components/HealthHeader';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, ReferenceLine, Legend } from 'recharts';
+import { detectPiiInText } from '@/lib/pii-validator';
 
 interface CareTeamMember {
   name: string;
@@ -201,6 +202,7 @@ export default function HealthDashboard() {
   }, []);
 
   const [toastMessage, setToastMessage] = useState('');
+  const [piiWarning, setPiiWarning] = useState('');
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -242,6 +244,25 @@ export default function HealthDashboard() {
   };
 
   const handleSaveEvent = () => {
+    // Scan all notes fields for PII patterns
+    const allNoteText = [
+      newEvent.notes,
+      newEvent.parentNotes?.activitiesPrior,
+      newEvent.parentNotes?.emotionalState,
+      newEvent.parentNotes?.beforeEvent,
+      newEvent.parentNotes?.duringEvent,
+      newEvent.parentNotes?.medicationsGiven,
+      newEvent.parentNotes?.afterEvent,
+      newEvent.parentNotes?.observations,
+      newEvent.parentNotes?.followUpActions,
+    ].filter(Boolean).join(' ');
+    const piiWarnings = detectPiiInText(allNoteText);
+    if (piiWarnings.length > 0) {
+      setPiiWarning(piiWarnings[0]);
+      return; // block save until user removes PII
+    }
+    setPiiWarning('');
+
     const eventToSave: CardiacEvent = {
       id: Date.now().toString(),
       date: newEvent.date || blankEventForm.date!,
@@ -282,6 +303,15 @@ export default function HealthDashboard() {
   };
 
   const handleSaveEditedNotes = () => {
+    // PII scan
+    const allText = Object.values(editingNotes || {}).filter(Boolean).join(' ');
+    const warnings = detectPiiInText(allText);
+    if (warnings.length > 0) {
+      setPiiWarning(warnings[0]);
+      return;
+    }
+    setPiiWarning('');
+
     setAllCardiacEvents(prev => {
       const updated = prev.map(e => e.id === editingEventId ? { ...e, parentNotes: editingNotes } : e);
       fetch('/api/health-data/events', {
@@ -296,6 +326,7 @@ export default function HealthDashboard() {
 
   const handleCancelEvent = () => {
     setShowNewEventForm(false);
+    setPiiWarning('');
   };
 
   const updateNewEvent = (field: string, value: any) => {
@@ -714,6 +745,16 @@ export default function HealthDashboard() {
 
                 <div className="space-y-5">
                   <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Parent Comments</h3>
+
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-800">
+                    <strong>Privacy reminder:</strong> Use first names only for people. Do not include phone numbers, home addresses, or full names.
+                  </div>
+
+                  {piiWarning && (
+                    <div className="bg-red-50 border border-red-300 rounded-lg px-3 py-2 text-xs text-red-800 font-medium">
+                      ⚠ {piiWarning}
+                    </div>
+                  )}
 
                   {/* Phase 1 - Before */}
                   <div className="border border-yellow-200 rounded-lg overflow-hidden">
@@ -1307,7 +1348,15 @@ export default function HealthDashboard() {
           <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-screen overflow-y-auto">
             <div className="p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-1">Event Comments</h2>
-              <p className="text-sm text-gray-500 mb-6">Document what happened before, during, and after this event to help your care team.</p>
+              <p className="text-sm text-gray-500 mb-3">Document what happened before, during, and after this event to help your care team.</p>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-800 mb-4">
+                <strong>Privacy reminder:</strong> Use first names only for people. Do not include phone numbers, home addresses, or full names.
+              </div>
+              {piiWarning && (
+                <div className="bg-red-50 border border-red-300 rounded-lg px-3 py-2 text-xs text-red-800 font-medium mb-4">
+                  ⚠ {piiWarning}
+                </div>
+              )}
 
               {/* Phase 1 - Before */}
               <div className="border border-yellow-200 rounded-lg overflow-hidden mb-4">
