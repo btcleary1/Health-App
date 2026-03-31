@@ -2,9 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Fingerprint, ShieldCheck, ShieldOff, Loader2, CheckCircle, XCircle, KeyRound, Eye, EyeOff, Users, Trash2, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Fingerprint, ShieldCheck, ShieldOff, Loader2, CheckCircle, XCircle, KeyRound, Eye, EyeOff, Users, Trash2, RefreshCw, AlertTriangle, UserCircle } from 'lucide-react';
 import { startRegistration, browserSupportsWebAuthn } from '@simplewebauthn/browser';
 import HealthHeader from '@/components/HealthHeader';
+
+const AGE_GROUPS = [
+  { value: 'infant',    label: 'Infant',        sub: '0–12 months' },
+  { value: 'toddler',   label: 'Toddler',       sub: '1–3 years' },
+  { value: 'child',     label: 'Child',         sub: '4–12 years' },
+  { value: 'teenager',  label: 'Teenager',      sub: '13–17 years' },
+  { value: 'adult',     label: 'Adult',         sub: '18–64 years' },
+  { value: 'senior',    label: 'Senior Adult',  sub: '65+ years' },
+];
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -23,6 +32,12 @@ export default function SettingsPage() {
   const [resetLoading, setResetLoading] = useState<string | null>(null);
   const [deleteAccountLoading, setDeleteAccountLoading] = useState(false);
 
+  // Patient profile state
+  const [patientName, setPatientName] = useState('');
+  const [patientAgeGroup, setPatientAgeGroup] = useState('');
+  const [patientSaving, setPatientSaving] = useState(false);
+  const [patientMessage, setPatientMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.json()).then(d => {
       setCurrentUser(d);
@@ -32,6 +47,10 @@ export default function SettingsPage() {
           setUsers(u.users || []);
         }).finally(() => setUsersLoading(false));
       }
+    }).catch(() => {});
+    fetch('/api/health-data/patient').then(r => r.json()).then(d => {
+      if (d.patient?.name) setPatientName(d.patient.name);
+      if (d.patient?.ageGroup) setPatientAgeGroup(d.patient.ageGroup);
     }).catch(() => {});
   }, []);
 
@@ -134,6 +153,31 @@ export default function SettingsPage() {
     setLoading(false);
   };
 
+  const handleSavePatient = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!patientName.trim()) { setPatientMessage({ type: 'error', text: 'First name is required.' }); return; }
+    if (!patientAgeGroup) { setPatientMessage({ type: 'error', text: 'Please select an age group.' }); return; }
+    setPatientSaving(true);
+    setPatientMessage(null);
+    try {
+      const existing = await fetch('/api/health-data/patient').then(r => r.json()).catch(() => ({}));
+      const merged = { ...(existing.patient || {}), name: patientName.trim(), ageGroup: patientAgeGroup };
+      const res = await fetch('/api/health-data/patient', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patient: merged }),
+      });
+      if (res.ok) {
+        setPatientMessage({ type: 'success', text: 'Patient profile saved.' });
+      } else {
+        setPatientMessage({ type: 'error', text: 'Failed to save. Try again.' });
+      }
+    } catch {
+      setPatientMessage({ type: 'error', text: 'Something went wrong.' });
+    }
+    setPatientSaving(false);
+  };
+
   const handleDeleteMyAccount = async () => {
     if (!confirm('Permanently delete your account and ALL your health data? This cannot be undone.')) return;
     if (!confirm('Are you absolutely sure? Every event, patient record, and uploaded file will be deleted forever.')) return;
@@ -186,6 +230,70 @@ export default function SettingsPage() {
       <HealthHeader />
       <div className="max-w-lg mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">Settings</h1>
+
+        {/* Patient Profile */}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-4">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Patient Profile</h2>
+          </div>
+          <div className="px-6 py-5">
+            <div className="flex items-start gap-4">
+              <div className="mt-0.5 w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+                <UserCircle className="w-5 h-5 text-blue-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-gray-900 mb-1">Who are you tracking?</p>
+                <p className="text-sm text-gray-500 mb-4">This replaces the sample data shown throughout the app.</p>
+                <form onSubmit={handleSavePatient} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Patient First Name</label>
+                    <input
+                      type="text"
+                      value={patientName}
+                      onChange={e => setPatientName(e.target.value)}
+                      placeholder="e.g. Emma"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-2">Age Group</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {AGE_GROUPS.map(g => (
+                        <button
+                          key={g.value}
+                          type="button"
+                          onClick={() => setPatientAgeGroup(g.value)}
+                          className={`px-3 py-2.5 rounded-xl border text-left transition-colors ${
+                            patientAgeGroup === g.value
+                              ? 'border-blue-500 bg-blue-50 text-blue-800'
+                              : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                          }`}
+                        >
+                          <div className="text-sm font-semibold">{g.label}</div>
+                          <div className="text-xs text-gray-400">{g.sub}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {patientMessage && (
+                    <div className={`flex items-center gap-1.5 text-xs font-medium ${patientMessage.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                      {patientMessage.type === 'success' ? <CheckCircle className="w-3.5 h-3.5 shrink-0" /> : <XCircle className="w-3.5 h-3.5 shrink-0" />}
+                      {patientMessage.text}
+                    </div>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={patientSaving}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium disabled:opacity-40 transition-colors"
+                  >
+                    {patientSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserCircle className="w-3.5 h-3.5" />}
+                    Save Patient Profile
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100">

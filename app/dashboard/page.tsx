@@ -526,16 +526,19 @@ export default function HealthDashboard() {
       )}
       <div className="max-w-7xl mx-auto">
         {(isPatientSample || isVisitsSample) && (
-          <div className="mb-4 bg-amber-50 border border-amber-300 rounded-xl px-5 py-3 flex items-start gap-3">
-            <span className="text-amber-500 font-bold text-lg shrink-0">⚠</span>
-            <div>
-              <p className="text-sm font-semibold text-amber-800">Sample Data Shown</p>
-              <p className="text-xs text-amber-700 mt-0.5">
-                {isPatientSample && 'Patient profile, care team, and medications are sample data. '}
-                {isVisitsSample && 'Doctor visits are sample data. '}
-                Add your own data and it will replace this automatically.
-              </p>
+          <div className="mb-4 bg-amber-50 border border-amber-300 rounded-xl px-5 py-3 flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <span className="text-amber-500 font-bold text-lg shrink-0">⚠</span>
+              <div>
+                <p className="text-sm font-semibold text-amber-800">Sample Data Shown</p>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  {isPatientSample && 'Patient profile, care team, and medications are sample data. '}
+                  {isVisitsSample && 'Doctor visits are sample data. '}
+                  Add your own data and it will replace this automatically.
+                </p>
+              </div>
             </div>
+            <a href="/settings" className="shrink-0 text-xs font-semibold text-amber-800 underline whitespace-nowrap mt-0.5">Set Up Profile →</a>
           </div>
         )}
 
