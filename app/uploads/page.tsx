@@ -190,7 +190,7 @@ export default function UploadsPage() {
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Doctor Visit Uploads</h1>
           <p className="text-gray-600 text-sm">
-            Upload screenshots, photos, lab results, ECGs, and doctor letters. AI can help contextualize what they mean for {patientData?.name ?? 'your patient'}&apos;s case.
+            Upload screenshots, photos, lab results, ECGs, and doctor letters. AI can help contextualize what they mean for {patientData?.name ?? 'the person you\'re tracking'}&apos;s case.
           </p>
         </div>
 

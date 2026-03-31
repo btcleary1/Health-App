@@ -177,25 +177,40 @@ export default function HealthDashboard() {
   useEffect(() => {
     setMounted(true);
     const loadAll = async () => {
-      await Promise.all([
-        fetch('/api/health-data/events').then(r => r.json()).then(data => {
-          if (Array.isArray(data.events) && data.events.length > 0) {
-            setAllCardiacEvents(data.events as CardiacEvent[]);
-          }
-        }).catch(() => {}),
-        fetch('/api/health-data/patient').then(r => r.json()).then(data => {
-          if (data.patient && data.patient.name) {
-            setPatientInfo({ ...SAMPLE_PATIENT, ...data.patient } as Patient);
-            setIsPatientSample(false);
-          }
-        }).catch(() => {}),
-        fetch('/api/health-data/visits').then(r => r.json()).then(data => {
-          if (Array.isArray(data.visits) && data.visits.length > 0) {
-            setDoctorVisitsData(data.visits as DoctorVisit[]);
-            setIsVisitsSample(false);
-          }
-        }).catch(() => {}),
+      const [evData, pdData, visData] = await Promise.all([
+        fetch('/api/health-data/events').then(r => r.json()).catch(() => ({ events: [] })),
+        fetch('/api/health-data/patient').then(r => r.json()).catch(() => ({})),
+        fetch('/api/health-data/visits').then(r => r.json()).catch(() => ({ visits: [] })),
       ]);
+
+      const hasProfile = !!pdData.patient?.name;
+
+      if (hasProfile) {
+        // Profile is set — clear ALL sample data, show only real data (even if some fields are empty)
+        setPatientInfo({
+          ...SAMPLE_PATIENT,
+          ...pdData.patient,
+          careTeam: pdData.patient.careTeam || [],
+          medications: pdData.patient.medications || [],
+          primaryConcern: pdData.patient.primaryConcern || '',
+          recentActivity: pdData.patient.recentActivity || [],
+          incidentReports: pdData.patient.incidentReports || [],
+        } as Patient);
+        setIsPatientSample(false);
+        setAllCardiacEvents(Array.isArray(evData.events) ? evData.events as CardiacEvent[] : []);
+        setDoctorVisitsData(Array.isArray(visData.visits) ? visData.visits as DoctorVisit[] : []);
+        setIsVisitsSample(false);
+      } else {
+        // No profile — show sample data with banner
+        if (Array.isArray(evData.events) && evData.events.length > 0) {
+          setAllCardiacEvents(evData.events as CardiacEvent[]);
+        }
+        if (Array.isArray(visData.visits) && visData.visits.length > 0) {
+          setDoctorVisitsData(visData.visits as DoctorVisit[]);
+          setIsVisitsSample(false);
+        }
+      }
+
       setDataLoading(false);
     };
     loadAll();
@@ -627,8 +642,8 @@ export default function HealthDashboard() {
               <div>
                 <p className="text-sm font-semibold text-amber-800">Sample Data Shown</p>
                 <p className="text-xs text-amber-700 mt-0.5">
-                  {isPatientSample && 'Patient profile, care team, and medications are sample data. '}
-                  {isVisitsSample && 'Doctor visits are sample data. '}
+                  {isPatientSample && 'Profile, care team, and medications are sample data. '}
+                  {isVisitsSample && 'Doctor visit records are sample data. '}
                   Add your own data and it will replace this automatically.
                 </p>
               </div>
@@ -640,7 +655,9 @@ export default function HealthDashboard() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Pediatric Cardiac Emergency Dashboard</h1>
-            <p className="text-sm text-gray-500 mt-1">{patient.name} (Age {patient.age}) - {patient.primaryConcern.split(' - ')[0]}</p>
+            <p className="text-sm text-gray-500 mt-1">
+              {patient.name}{patient.age ? ` (Age ${patient.age})` : ''}{patient.primaryConcern ? ` — ${patient.primaryConcern.split(' - ')[0]}` : ''}
+            </p>
           </div>
           <div className="flex items-center space-x-4">
             {cprCount > 0 && (
@@ -1238,7 +1255,7 @@ export default function HealthDashboard() {
 
           <div className="space-y-6 lg:col-span-2">
             <div className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-xl font-semibold mb-4 text-gray-800">Patient Overview</h2>
+              <h2 className="text-xl font-semibold mb-4 text-gray-800">Overview</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div>

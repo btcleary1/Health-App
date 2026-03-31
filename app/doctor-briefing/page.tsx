@@ -59,13 +59,33 @@ export default function DoctorBriefingPage() {
     ]).then(([pd, ev]) => {
       const hasPatient = pd.patient?.name;
       const hasEvents = Array.isArray(ev.events) && ev.events.length > 0;
-      if (hasPatient) setPatientData({ ...SAMPLE_PATIENT, ...pd.patient, medications: pd.patient.medications ?? SAMPLE_PATIENT.medications, careTeam: pd.patient.careTeam ?? SAMPLE_PATIENT.careTeam });
-      if (hasEvents) {
+      if (hasPatient) {
+        // Profile set — clear sample data entirely
+        setPatientData({
+          ...SAMPLE_PATIENT,
+          ...pd.patient,
+          medications: pd.patient.medications || [],
+          careTeam: pd.patient.careTeam || [],
+          primaryConcern: pd.patient.primaryConcern || '',
+          emergencyContact: pd.patient.emergencyContact || '',
+          allergies: pd.patient.allergies || 'None known',
+        });
+        if (hasEvents) {
+          setEventsSummary(eventsToSummary(ev.events));
+          const allTriggers = [...new Set<string>(ev.events.flatMap((e: any) => e.triggers || []))];
+          if (allTriggers.length > 0) setTriggerPatterns(allTriggers);
+          else setTriggerPatterns([]);
+        } else {
+          setEventsSummary([]);
+          setTriggerPatterns([]);
+        }
+        setIsSample(false);
+      } else if (hasEvents) {
         setEventsSummary(eventsToSummary(ev.events));
         const allTriggers = [...new Set<string>(ev.events.flatMap((e: any) => e.triggers || []))];
         if (allTriggers.length > 0) setTriggerPatterns(allTriggers);
+        setIsSample(false);
       }
-      if (hasPatient || hasEvents) setIsSample(false);
     });
   }, []);
 
@@ -116,7 +136,7 @@ export default function DoctorBriefingPage() {
             <span className="text-amber-500 font-bold text-lg shrink-0">⚠</span>
             <div>
               <p className="text-sm font-semibold text-amber-800">Sample Data Shown</p>
-              <p className="text-xs text-amber-700 mt-0.5">Add your patient profile and events on the dashboard and this briefing will automatically use your real data.</p>
+              <p className="text-xs text-amber-700 mt-0.5">Add a profile and events on the dashboard and this briefing will use your real data.</p>
             </div>
           </div>
         )}

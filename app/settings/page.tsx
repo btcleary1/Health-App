@@ -184,7 +184,7 @@ export default function SettingsPage() {
         body: JSON.stringify({ patient: merged }),
       });
       if (res.ok) {
-        setPatientMessage({ type: 'success', text: 'Patient profile saved.' });
+        setPatientMessage({ type: 'success', text: 'Profile saved.' });
       } else {
         setPatientMessage({ type: 'error', text: 'Failed to save. Try again.' });
       }
@@ -250,7 +250,7 @@ export default function SettingsPage() {
         {/* Patient Profile */}
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-4">
           <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Patient Profile</h2>
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Profile</h2>
           </div>
           <div className="px-6 py-5">
             <div className="flex items-start gap-4">
@@ -259,7 +259,7 @@ export default function SettingsPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-gray-900 mb-1">Who are you tracking?</p>
-                <p className="text-sm text-gray-500 mb-4">This replaces the sample data shown throughout the app.</p>
+                <p className="text-sm text-gray-500 mb-4">Once a name is saved, sample data disappears from all screens.</p>
                 <form onSubmit={handleSavePatient} className="space-y-4">
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">First Name</label>
@@ -307,7 +307,7 @@ export default function SettingsPage() {
                     className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium disabled:opacity-40 transition-colors"
                   >
                     {patientSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserCircle className="w-3.5 h-3.5" />}
-                    Save Patient Profile
+                    Save Profile
                   </button>
                 </form>
               </div>

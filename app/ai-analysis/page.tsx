@@ -70,9 +70,15 @@ export default function AIAnalysisPage() {
     ]).then(([pd, ev]) => {
       const hasPatient = pd.patient?.name;
       const hasEvents = Array.isArray(ev.events) && ev.events.length > 0;
-      if (hasPatient) setPatientData({ ...SAMPLE_PATIENT_DATA, ...pd.patient });
-      if (hasEvents) setEvents(ev.events);
-      if (hasPatient || hasEvents) setIsSample(false);
+      if (hasPatient) {
+        // Profile set — clear all sample data
+        setPatientData({ ...SAMPLE_PATIENT_DATA, ...pd.patient });
+        setEvents(hasEvents ? ev.events : []);
+        setIsSample(false);
+      } else if (hasEvents) {
+        setEvents(ev.events);
+        setIsSample(false);
+      }
     });
   }, []);
 
@@ -111,7 +117,7 @@ export default function AIAnalysisPage() {
             <span className="text-amber-500 font-bold text-lg shrink-0">⚠</span>
             <div>
               <p className="text-sm font-semibold text-amber-800">Sample Data — Analysis is running on demo data</p>
-              <p className="text-xs text-amber-700 mt-0.5">Add your patient profile and events on the dashboard and this analysis will automatically use your real data.</p>
+              <p className="text-xs text-amber-700 mt-0.5">Add a profile and events on the dashboard and this analysis will automatically use your real data.</p>
             </div>
           </div>
         )}
@@ -122,7 +128,7 @@ export default function AIAnalysisPage() {
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900">AI Medical Research Analysis</h1>
           </div>
           <p className="text-gray-600">
-            Claude reviews the patient's complete history and generates research questions, conditions to explore, and talking points to help you prepare for doctor appointments.
+            Claude reviews the complete health history and generates research questions, conditions to explore, and talking points to help you prepare for doctor appointments.
           </p>
           <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
             <p className="text-xs text-amber-800 leading-relaxed">
@@ -150,7 +156,7 @@ export default function AIAnalysisPage() {
             className="w-full flex items-center justify-center gap-2 px-4 py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold text-sm sm:text-base transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {loading ? (
-              <><Loader2 className="w-5 h-5 animate-spin" /> Analyzing {patientData.name}&apos;s complete history with Claude AI...</>
+              <><Loader2 className="w-5 h-5 animate-spin" /> Analyzing {patientData.name}&apos;s full history with Claude AI...</>
             ) : (
               <><Brain className="w-5 h-5" /> Run Deep Medical Analysis</>
             )}
