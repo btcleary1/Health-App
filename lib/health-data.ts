@@ -6,8 +6,13 @@ async function readBlob<T>(path: string): Promise<T | null> {
   try {
     const { blobs } = await list({ prefix: path });
     if (blobs.length === 0) return null;
-    const res = await fetch(blobs[0].url, {
+    // Sort newest-first so overwrites are always read correctly
+    const sorted = [...blobs].sort((a, b) =>
+      new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+    );
+    const res = await fetch(sorted[0].url, {
       headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
+      cache: 'no-store',
     });
     if (!res.ok) return null;
     return await res.json() as T;
