@@ -41,7 +41,7 @@ function eventsToSummary(events: any[]) {
 }
 
 export default function DoctorBriefingPage() {
-  const { activeId, personQuery } = usePersonContext();
+  const { activeId, personQuery, persons } = usePersonContext();
   const [aiSummary, setAiSummary] = useState('');
   const [loadingAI, setLoadingAI] = useState(false);
   const [error, setError] = useState('');
@@ -61,30 +61,28 @@ export default function DoctorBriefingPage() {
       fetch(`/api/health-data/patient${personQuery}`).then(r => r.json()).catch(() => ({})),
       fetch(`/api/health-data/events${personQuery}`).then(r => r.json()).catch(() => ({})),
     ]).then(([pd, ev]) => {
+      const hasPersons = persons.length > 0;
       const hasPatient = pd.patient?.name;
       const hasEvents = Array.isArray(ev.events) && ev.events.length > 0;
-      if (hasPatient) {
-        // Profile set — clear sample data entirely
+
+      // If any person exists in the account, never show sample data
+      if (hasPersons || hasPatient) {
         setPatientData({
-          name: pd.patient.name || '',
+          name: pd.patient?.name || '',
           age: null,
-          ageGroup: pd.patient.ageGroup || '',
-          dob: pd.patient.dob || '',
-          primaryConcern: pd.patient.primaryConcern || '',
-          medications: pd.patient.medications || [],
-          careTeam: pd.patient.careTeam || [],
-          emergencyContact: pd.patient.emergencyContact || '',
-          allergies: pd.patient.allergies || 'None known',
+          ageGroup: pd.patient?.ageGroup || '',
+          dob: pd.patient?.dob || '',
+          primaryConcern: pd.patient?.primaryConcern || '',
+          medications: pd.patient?.medications || [],
+          careTeam: pd.patient?.careTeam || [],
+          emergencyContact: pd.patient?.emergencyContact || '',
+          allergies: pd.patient?.allergies || 'None known',
         });
-        if (hasEvents) {
-          setEventsSummary(eventsToSummary(ev.events));
-          const allTriggers = [...new Set<string>(ev.events.flatMap((e: any) => e.triggers || []))];
-          if (allTriggers.length > 0) setTriggerPatterns(allTriggers);
-          else setTriggerPatterns([]);
-        } else {
-          setEventsSummary([]);
-          setTriggerPatterns([]);
-        }
+        setEventsSummary(hasEvents ? eventsToSummary(ev.events) : []);
+        const allTriggers = hasEvents
+          ? [...new Set<string>(ev.events.flatMap((e: any) => e.triggers || []))]
+          : [];
+        setTriggerPatterns(allTriggers);
         setIsSample(false);
       } else if (hasEvents) {
         setEventsSummary(eventsToSummary(ev.events));
@@ -93,7 +91,7 @@ export default function DoctorBriefingPage() {
         setIsSample(false);
       }
     });
-  }, [activeId, personQuery]);
+  }, [activeId, personQuery, persons.length]);
 
   const generateAISummary = async () => {
     setLoadingAI(true);

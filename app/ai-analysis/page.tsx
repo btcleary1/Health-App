@@ -56,7 +56,7 @@ const likelihoodColor = (l: string) => l === 'High' ? 'bg-red-100 text-red-700' 
 const urgencyColor = (u: string) => u === 'Immediate' ? 'bg-red-100 text-red-700' : u === 'Soon' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700';
 
 export default function AIAnalysisPage() {
-  const { activeId, personQuery } = usePersonContext();
+  const { activeId, personQuery, persons } = usePersonContext();
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [error, setError] = useState('');
@@ -74,10 +74,11 @@ export default function AIAnalysisPage() {
       fetch(`/api/health-data/events${personQuery}`).then(r => r.json()).catch(() => ({})),
       fetch('/api/uploads').then(r => r.json()).catch(() => ({ files: [] })),
     ]).then(([pd, ev, up]) => {
+      const hasPersons = persons.length > 0;
       const hasPatient = pd.patient?.name;
       const hasEvents = Array.isArray(ev.events) && ev.events.length > 0;
-      if (hasPatient) {
-        setPatientData(pd.patient);
+      if (hasPatient || hasPersons) {
+        setPatientData(hasPatient ? pd.patient : {});
         setEvents(hasEvents ? ev.events : []);
         setIsSample(false);
       } else if (hasEvents) {
@@ -86,7 +87,7 @@ export default function AIAnalysisPage() {
       }
       if (Array.isArray(up.files) && up.files.length > 0) setUploadedFiles(up.files);
     });
-  }, [activeId, personQuery]);
+  }, [activeId, personQuery, persons.length]);
 
   const runAnalysis = async () => {
     setLoading(true);

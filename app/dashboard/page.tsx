@@ -186,18 +186,19 @@ export default function HealthDashboard() {
       ]);
 
       const hasProfile = !!pdData.patient?.name;
+      const hasPersons = persons.length > 0;
 
-      if (hasProfile) {
-        // Profile is set — start from a BLANK base so NO sample data bleeds through
+      if (hasProfile || hasPersons) {
+        // Real account — never show sample data
         setPatientInfo({
-          name: pdData.patient.name || '',
+          name: pdData.patient?.name || '',
           age: 0,
-          ageGroup: pdData.patient.ageGroup || '',
-          primaryConcern: pdData.patient.primaryConcern || '',
+          ageGroup: pdData.patient?.ageGroup || '',
+          primaryConcern: pdData.patient?.primaryConcern || '',
           lastVisit: '',
           nextAppointment: '',
-          careTeam: pdData.patient.careTeam || [],
-          medications: pdData.patient.medications || [],
+          careTeam: pdData.patient?.careTeam || [],
+          medications: pdData.patient?.medications || [],
           recentActivity: [],
           incidentReports: [],
         } as unknown as Patient);
@@ -206,7 +207,7 @@ export default function HealthDashboard() {
         setDoctorVisitsData(Array.isArray(visData.visits) ? visData.visits as DoctorVisit[] : []);
         setIsVisitsSample(false);
       } else {
-        // No profile — show sample data with banner
+        // No persons and no profile — show sample data with banner
         if (Array.isArray(evData.events) && evData.events.length > 0) {
           setAllCardiacEvents(evData.events as CardiacEvent[]);
         }
@@ -219,7 +220,7 @@ export default function HealthDashboard() {
       setDataLoading(false);
     };
     loadAll();
-  }, [activeId, personQuery]);
+  }, [activeId, personQuery, persons.length]);
 
   const [toastMessage, setToastMessage] = useState('');
   const [piiWarning, setPiiWarning] = useState('');
