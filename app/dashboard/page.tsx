@@ -623,9 +623,9 @@ export default function HealthDashboard() {
   const cprCount = cprEvents.length;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ background: '#F8FAFC' }}>
       <HealthHeader />
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
       {/* Toast notification */}
       {toastMessage && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-800 text-white text-sm px-5 py-3 rounded-xl shadow-lg">
@@ -650,43 +650,78 @@ export default function HealthDashboard() {
           </div>
         )}
 
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Health Monitoring Dashboard</h1>
-            <p className="text-sm text-gray-500 mt-1">
-              {patient.name}{(patient as any).ageGroup ? ` — ${(patient as any).ageGroup.charAt(0).toUpperCase() + (patient as any).ageGroup.slice(1)}` : ''}{patient.primaryConcern ? ` · ${patient.primaryConcern.split(' - ')[0]}` : ''}
-            </p>
+        {/* ── Hero card ── */}
+        <div
+          className="rounded-2xl p-5 mb-5 flex items-center justify-between gap-4"
+          style={{
+            background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
+            border: '1px solid rgba(255,255,255,0.07)',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
+          }}
+        >
+          <div className="flex items-center gap-4 min-w-0">
+            {/* Avatar initial */}
+            {patient.name && (
+              <div
+                className="flex-shrink-0 flex items-center justify-center w-12 h-12 rounded-2xl text-lg font-bold text-white"
+                style={{
+                  background: 'linear-gradient(135deg, #3B82F6, #6366F1)',
+                  boxShadow: '0 4px 12px rgba(99,102,241,0.4)',
+                }}
+              >
+                {patient.name.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold text-white leading-tight truncate">
+                {patient.name || 'Health Dashboard'}
+              </h1>
+              <div className="flex items-center flex-wrap gap-2 mt-1">
+                {(patient as any).ageGroup && (
+                  <span
+                    className="text-[11px] font-medium px-2 py-0.5 rounded-full"
+                    style={{ background: 'rgba(99,102,241,0.25)', color: '#A5B4FC' }}
+                  >
+                    {((patient as any).ageGroup as string).charAt(0).toUpperCase() + ((patient as any).ageGroup as string).slice(1)}
+                  </span>
+                )}
+                {patient.primaryConcern && (
+                  <span className="text-xs text-gray-400 truncate">{patient.primaryConcern.split(' - ')[0]}</span>
+                )}
+              </div>
+            </div>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-2 shrink-0">
             {cprCount > 0 && (
-              <div className="bg-red-600 border border-red-800 text-white px-4 py-2 rounded-lg">
-                <span className="font-bold">CPR EVENTS: {cprCount}</span>
-                <span className="block text-xs">In {selectedTimeRange.replace('1', '1 ')}</span>
+              <div className="bg-red-500/20 border border-red-500/40 text-red-300 px-3 py-1.5 rounded-xl text-center">
+                <div className="text-xs font-bold leading-tight">{cprCount} CPR</div>
+                <div className="text-[10px] opacity-75">events</div>
               </div>
             )}
             {trendAnalysis.eventFrequency > 0 && (
-              <div className="bg-gray-100 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg">
-                <span className="font-semibold">Events</span>
-                <span className="block text-xs">{trendAnalysis.eventFrequency}/week</span>
+              <div className="bg-blue-500/15 border border-blue-500/30 text-blue-300 px-3 py-1.5 rounded-xl text-center">
+                <div className="text-xs font-bold leading-tight">{trendAnalysis.eventFrequency}</div>
+                <div className="text-[10px] opacity-75">/week</div>
               </div>
             )}
           </div>
         </div>
 
-        <div className="flex space-x-2 mb-6">
-          {(['1week', '1month', '3months', '6months'] as const).map((range) => (
-            <button
-              key={range}
-              onClick={() => setSelectedTimeRange(range)}
-              className={`px-4 py-2 rounded-lg capitalize ${
-                selectedTimeRange === range
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-700 border border-gray-300'
-              }`}
-            >
-              {range.replace('1', '1 ')}
-            </button>
-          ))}
+        {/* ── Time range pill selector ── */}
+        <div className="chip-row mb-5">
+          {(['1week', '1month', '3months', '6months'] as const).map((range) => {
+            const labels: Record<string, string> = { '1week': '1 Week', '1month': '1 Month', '3months': '3 Months', '6months': '6 Months' };
+            const isActive = selectedTimeRange === range;
+            return (
+              <button
+                key={range}
+                onClick={() => setSelectedTimeRange(range)}
+                className={`time-pill ${isActive ? 'time-pill-active' : 'time-pill-inactive'}`}
+              >
+                {labels[range]}
+              </button>
+            );
+          })}
         </div>
 
         {filteredCardiacEvents.length > 0 ? (
@@ -854,7 +889,8 @@ export default function HealthDashboard() {
                           onChange={(e) => updateParentNotes('activitiesPrior', e.target.value)}
                           rows={2}
                           placeholder="e.g. Running in PE class, sitting quietly, eating lunch..."
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                          style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm resize-none"
                         />
                       </div>
                       <div>
@@ -864,7 +900,8 @@ export default function HealthDashboard() {
                           onChange={(e) => updateParentNotes('emotionalState', e.target.value)}
                           rows={2}
                           placeholder="e.g. Anxious about test, calm and happy, seemed tired..."
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                          style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm resize-none"
                         />
                       </div>
                       <div>
@@ -874,7 +911,8 @@ export default function HealthDashboard() {
                           onChange={(e) => updateParentNotes('beforeEvent', e.target.value)}
                           rows={2}
                           placeholder="e.g. Skipped medication this morning, had a large meal, hadn't slept well..."
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                          style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm resize-none"
                         />
                       </div>
                     </div>
@@ -893,7 +931,8 @@ export default function HealthDashboard() {
                           onChange={(e) => updateParentNotes('duringEvent', e.target.value)}
                           rows={3}
                           placeholder="e.g. Child collapsed, turned pale/blue, was conscious but distressed, had difficulty breathing..."
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                          style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm resize-none"
                         />
                       </div>
                       <div>
@@ -903,7 +942,8 @@ export default function HealthDashboard() {
                           onChange={(e) => updateParentNotes('medicationsGiven', e.target.value)}
                           rows={2}
                           placeholder="e.g. Used emergency epinephrine, performed CPR, called 911, gave rescue inhaler..."
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                          style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm resize-none"
                         />
                       </div>
                     </div>
@@ -922,7 +962,8 @@ export default function HealthDashboard() {
                           onChange={(e) => updateParentNotes('afterEvent', e.target.value)}
                           rows={3}
                           placeholder="e.g. Regained consciousness after 2 min, confused but responsive, transported to hospital, rested at home..."
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                          style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm resize-none"
                         />
                       </div>
                       <div>
@@ -932,7 +973,8 @@ export default function HealthDashboard() {
                           onChange={(e) => updateParentNotes('observations', e.target.value)}
                           rows={2}
                           placeholder="e.g. Called Dr. Patel, scheduled follow-up appointment, notified school nurse..."
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                          style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm resize-none"
                         />
                       </div>
                       <div>
@@ -942,7 +984,8 @@ export default function HealthDashboard() {
                           onChange={(e) => updateParentNotes('followUpActions', e.target.value)}
                           rows={2}
                           placeholder="e.g. Cardiology appointment booked, adjusted medication schedule, updated emergency plan..."
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                          style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm resize-none"
                         />
                       </div>
                     </div>
@@ -987,13 +1030,15 @@ export default function HealthDashboard() {
                 )}
 
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
+                  {/* Date + Visit Type — stacked on mobile, side-by-side on sm+ */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Date</label>
                       <input
                         type="date"
                         value={newVisit.date}
                         onChange={e => setNewVisit(v => ({ ...v, date: e.target.value }))}
+                        style={{ color: '#111827', backgroundColor: '#ffffff' }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
                       />
                     </div>
@@ -1002,6 +1047,7 @@ export default function HealthDashboard() {
                       <select
                         value={newVisit.visitType}
                         onChange={e => setNewVisit(v => ({ ...v, visitType: e.target.value as DoctorVisit['visitType'] }))}
+                        style={{ color: '#111827', backgroundColor: '#ffffff' }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
                       >
                         <option value="routine">Routine</option>
@@ -1031,8 +1077,9 @@ export default function HealthDashboard() {
                       value={newVisit.personalNotes}
                       onChange={e => setNewVisit(v => ({ ...v, personalNotes: e.target.value }))}
                       rows={3}
-                      placeholder="e.g. Discussed QTc results, new medication dosage explained, follow-up in 3 months..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                      placeholder="e.g. Discussed results, new dosage explained, follow-up in 3 months..."
+                      style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 resize-none"
                     />
                   </div>
 
@@ -1042,8 +1089,9 @@ export default function HealthDashboard() {
                       value={newVisit.doctorNotes}
                       onChange={e => setNewVisit(v => ({ ...v, doctorNotes: e.target.value }))}
                       rows={2}
-                      placeholder="e.g. ICD programming reviewed, propranolol dose maintained, restrict PE..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
+                      placeholder="e.g. Dose maintained, restrict activity, return in 6 weeks..."
+                      style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 resize-none"
                     />
                   </div>
 
@@ -1576,7 +1624,7 @@ export default function HealthDashboard() {
                       onChange={(e) => setEditingNotes(n => ({ ...n!, activitiesPrior: e.target.value }))}
                       rows={2}
                       placeholder="e.g. Running in PE class, sitting quietly, eating lunch..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 text-sm"
+                      style={{ color: '#111827', backgroundColor: '#ffffff' }} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 text-sm resize-none"
                     />
                   </div>
                   <div>
@@ -1586,7 +1634,7 @@ export default function HealthDashboard() {
                       onChange={(e) => setEditingNotes(n => ({ ...n!, emotionalState: e.target.value }))}
                       rows={2}
                       placeholder="e.g. Anxious about test, calm and happy, seemed tired..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 text-sm"
+                      style={{ color: '#111827', backgroundColor: '#ffffff' }} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 text-sm resize-none"
                     />
                   </div>
                   <div>
@@ -1596,7 +1644,7 @@ export default function HealthDashboard() {
                       onChange={(e) => setEditingNotes(n => ({ ...n!, beforeEvent: e.target.value }))}
                       rows={2}
                       placeholder="e.g. Skipped medication, had a large meal, hadn't slept well..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 text-sm"
+                      style={{ color: '#111827', backgroundColor: '#ffffff' }} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 text-sm resize-none"
                     />
                   </div>
                 </div>
@@ -1616,7 +1664,7 @@ export default function HealthDashboard() {
                       onChange={(e) => setEditingNotes(n => ({ ...n!, duringEvent: e.target.value }))}
                       rows={3}
                       placeholder="e.g. Child collapsed, turned pale/blue, was conscious but distressed, had difficulty breathing..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400 focus:border-red-400 text-sm"
+                      style={{ color: '#111827', backgroundColor: '#ffffff' }} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400 focus:border-red-400 text-sm resize-none"
                     />
                   </div>
                   <div>
@@ -1626,7 +1674,7 @@ export default function HealthDashboard() {
                       onChange={(e) => setEditingNotes(n => ({ ...n!, medicationsGiven: e.target.value }))}
                       rows={2}
                       placeholder="e.g. Used emergency epinephrine, performed CPR, called 911..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400 focus:border-red-400 text-sm"
+                      style={{ color: '#111827', backgroundColor: '#ffffff' }} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400 focus:border-red-400 text-sm resize-none"
                     />
                   </div>
                 </div>
@@ -1646,7 +1694,7 @@ export default function HealthDashboard() {
                       onChange={(e) => setEditingNotes(n => ({ ...n!, afterEvent: e.target.value }))}
                       rows={3}
                       placeholder="e.g. Regained consciousness after 2 min, confused but responsive, transported to hospital..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-400 focus:border-green-400 text-sm"
+                      style={{ color: '#111827', backgroundColor: '#ffffff' }} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-400 focus:border-green-400 text-sm resize-none"
                     />
                   </div>
                   <div>
@@ -1656,7 +1704,7 @@ export default function HealthDashboard() {
                       onChange={(e) => setEditingNotes(n => ({ ...n!, observations: e.target.value }))}
                       rows={2}
                       placeholder="e.g. Classmates reported no warning signs, child seems traumatized..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-400 focus:border-green-400 text-sm"
+                      style={{ color: '#111827', backgroundColor: '#ffffff' }} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-400 focus:border-green-400 text-sm resize-none"
                     />
                   </div>
                   <div>
@@ -1666,7 +1714,7 @@ export default function HealthDashboard() {
                       onChange={(e) => setEditingNotes(n => ({ ...n!, followUpActions: e.target.value }))}
                       rows={2}
                       placeholder="e.g. Called Dr. Patel, scheduled follow-up, updated emergency plan..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-400 focus:border-green-400 text-sm"
+                      style={{ color: '#111827', backgroundColor: '#ffffff' }} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-400 focus:border-green-400 text-sm resize-none"
                     />
                   </div>
                 </div>
