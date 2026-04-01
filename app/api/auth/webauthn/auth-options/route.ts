@@ -9,7 +9,8 @@ export async function POST(_req: NextRequest) {
   const options = await (generateAuthenticationOptions as any)({
     rpID: RP_ID,
     userVerification: 'required',
-    hints: ['client-device'],  // tell iOS to use Face ID / Touch ID, not security key
+    hints: ['client-device'],           // iOS/macOS: prefer platform authenticator
+    allowCredentials: [],               // empty = discoverable credentials only
   });
 
   const res = NextResponse.json(options);

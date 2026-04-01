@@ -82,7 +82,7 @@ export default function LoginPage() {
       const optRes = await fetch('/api/auth/webauthn/auth-options', { method: 'POST' });
       const options = await optRes.json();
       if (!optRes.ok) { setBiometricError(options.error); setBiometricLoading(false); return; }
-      const assertion = await startAuthentication({ optionsJSON: options });
+      const assertion = await startAuthentication({ optionsJSON: options, useBrowserAutofill: false });
       const verRes = await fetch('/api/auth/webauthn/auth-verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

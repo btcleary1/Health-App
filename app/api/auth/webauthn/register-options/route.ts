@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
     authenticatorSelection: {
       residentKey: 'required',
       userVerification: 'required',
+      authenticatorAttachment: 'platform', // forces Face ID / Touch ID — no QR code
     },
   });
 
