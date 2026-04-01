@@ -1,51 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createUser, userCount } from '@/lib/users';
-import { validatePassword } from '@/lib/password-rules';
-import { setSessionCookie } from '@/lib/session';
-import { checkRateLimit, recordFailure } from '@/lib/rate-limit';
-import { logAudit, getClientIp } from '@/lib/audit';
+import { getSessionFromRequest } from '@/lib/session';
+import { getUserByEmail } from '@/lib/users';
 import { Resend } from 'resend';
 
 export const runtime = 'nodejs';
 
+// Admin-only endpoint to retroactively send the welcome email to a given address.
+// POST /api/admin/send-welcome  { email: "..." }
 export async function POST(req: NextRequest) {
-  const ip = getClientIp(req);
+  const session = await getSessionFromRequest(req);
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (session.role !== 'admin') return NextResponse.json({ error: 'Admin only.' }, { status: 403 });
 
-  try {
-    await checkRateLimit(ip);
+  const { email } = await req.json();
+  if (!email) return NextResponse.json({ error: 'Email is required.' }, { status: 400 });
 
-    const { email, name, password } = await req.json();
+  const user = await getUserByEmail(email);
+  if (!user) return NextResponse.json({ error: 'No account found for that email.' }, { status: 404 });
 
-    if (!email || !name || !password) {
-      return NextResponse.json({ error: 'Email, name, and password are required.' }, { status: 400 });
-    }
+  const firstName = user.name.trim().split(/\s+/)[0];
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return NextResponse.json({ error: 'Please enter a valid email address.' }, { status: 400 });
-    }
-
-    const { valid, errors } = validatePassword(password);
-    if (!valid) {
-      return NextResponse.json({ error: `Password requirements not met: ${errors.join(', ')}.` }, { status: 400 });
-    }
-
-    // First registered user becomes admin automatically
-    const count = await userCount();
-    const role = count === 0 ? 'admin' : 'user';
-
-    const user = await createUser(email, name, password, role);
-    logAudit({ timestamp: new Date().toISOString(), userId: user.userId, email: user.email, action: 'register', ip });
-
-    // Send welcome email — fire and forget, don't block registration
-    try {
-      const resend = new Resend(process.env.RESEND_API_KEY);
-      const firstName = name.trim().split(/\s+/)[0];
-      await resend.emails.send({
-        from: 'Health Wiz <onboarding@resend.dev>',
-        to: email,
-        subject: 'Welcome to Health Wiz — You\'re all set',
-        html: `
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  await resend.emails.send({
+    from: 'Health Wiz <onboarding@resend.dev>',
+    to: email,
+    subject: 'Welcome to Health Wiz — You\'re all set',
+    html: `
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
@@ -58,9 +38,7 @@ export async function POST(req: NextRequest) {
         <tr><td align="center" style="padding-bottom:32px;">
           <table cellpadding="0" cellspacing="0">
             <tr><td align="center" style="background:linear-gradient(135deg,#3B82F6,#6366F1);border-radius:20px;width:64px;height:64px;padding:0;">
-              <div style="width:64px;height:64px;display:flex;align-items:center;justify-content:center;">
-                <img src="https://em-content.zobj.net/source/apple/354/heart-with-pulse_1f493.png" width="36" height="36" alt="❤️" style="display:block;margin:14px auto;" />
-              </div>
+              <img src="https://em-content.zobj.net/source/apple/354/heart-with-pulse_1f493.png" width="36" height="36" alt="❤️" style="display:block;margin:14px auto;" />
             </td></tr>
           </table>
           <h1 style="margin:20px 0 4px;font-size:24px;font-weight:700;color:#0F172A;letter-spacing:-0.5px;">Health Wiz</h1>
@@ -78,7 +56,7 @@ export async function POST(req: NextRequest) {
           <!-- Steps -->
           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
             <tr>
-              <td style="padding:12px 16px;background:#F8FAFC;border-radius:12px;border:1px solid #E2E8F0;margin-bottom:10px;display:block;">
+              <td style="padding:12px 16px;background:#F8FAFC;border-radius:12px;border:1px solid #E2E8F0;">
                 <p style="margin:0;font-size:13px;color:#0F172A;"><strong style="color:#3B82F6;">① Set up your profile</strong><br>
                 <span style="color:#64748B;">Head to Settings → add who you're tracking and your own first name.</span></p>
               </td>
@@ -127,25 +105,7 @@ export async function POST(req: NextRequest) {
   </table>
 </body>
 </html>`,
-      });
-    } catch {
-      // Email failure doesn't block account creation
-    }
+  });
 
-    const res = NextResponse.json({ success: true, name: user.name });
-    setSessionCookie(res, {
-      userId: user.userId,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-    });
-    return res;
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    if (msg.startsWith('Too many')) {
-      return NextResponse.json({ error: msg }, { status: 429 });
-    }
-    await recordFailure(ip);
-    return NextResponse.json({ error: msg }, { status: 400 });
-  }
+  return NextResponse.json({ success: true, sentTo: email });
 }
