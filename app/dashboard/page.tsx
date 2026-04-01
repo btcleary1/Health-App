@@ -468,58 +468,53 @@ export default function HealthDashboard() {
   const calculateTrendAnalysis = (): TrendAnalysis => {
     const eventCount = filteredCardiacEvents.length;
     const daysInPeriod = selectedTimeRange === '1week' ? 7 : selectedTimeRange === '1month' ? 30 : selectedTimeRange === '3months' ? 90 : 180;
-    const eventsPerWeek = (eventCount / daysInPeriod) * 7;
-    
-    const cprEvents = filteredCardiacEvents.filter(event => event.cprRequired);
-    const cprCount = cprEvents.length;
-    const cprPerWeek = (cprCount / daysInPeriod) * 7;
-    const avgCprDuration = cprEvents.length > 0 
-      ? cprEvents.reduce((sum, event) => {
-          const minutes = parseInt(event.cprDuration?.split(' ')[0] || '0');
-          return sum + minutes;
-        }, 0) / cprEvents.length
-      : 0;
-    
+    const eventsPerWeek = eventCount > 0 ? Math.round((eventCount / daysInPeriod) * 7 * 10) / 10 : 0;
+
     const severityCounts = filteredCardiacEvents.reduce((acc, event) => {
       acc[event.severity] = (acc[event.severity] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
-    
+
     const severeEvents = (severityCounts.severe || 0) + (severityCounts.critical || 0);
-    const totalEvents = eventCount;
-    const severityRatio = totalEvents > 0 ? severeEvents / totalEvents : 0;
-    
-    const overallTrend = cprPerWeek > 1 ? 'declining' : eventsPerWeek > 3 ? 'declining' : eventsPerWeek > 1 ? 'stable' : 'improving';
-    const severityTrend = severityRatio > 0.4 || cprPerWeek > 0.5 ? 'increasing' : severityRatio > 0.2 ? 'stable' : 'decreasing';
-    
+    const severityRatio = eventCount > 0 ? severeEvents / eventCount : 0;
+
+    const overallTrend: 'improving' | 'stable' | 'declining' = eventsPerWeek > 3 ? 'declining' : eventsPerWeek > 1 ? 'stable' : 'improving';
+    const severityTrend: 'decreasing' | 'stable' | 'increasing' = severityRatio > 0.4 ? 'increasing' : severityRatio > 0.2 ? 'stable' : 'decreasing';
+
     const allTriggers = filteredCardiacEvents.flatMap(event => event.triggers || []);
     const triggerCounts = allTriggers.reduce((acc, trigger) => {
       acc[trigger] = (acc[trigger] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
     const primaryTriggers = Object.entries(triggerCounts)
-      .sort(([,a], [,b]) => b - a)
+      .sort(([, a], [, b]) => b - a)
       .slice(0, 3)
       .map(([trigger]) => trigger);
-    
-    const recommendations = [
-      cprCount > 0 ? `URGENT: ${cprCount} CPR events in ${selectedTimeRange.replace('1', '1 ')} - immediate device therapy evaluation needed` : 'Continue current treatment plan',
-      'Implantable Cardioverter-Defibrillator (ICD) consultation recommended',
-      'Family and school CPR training completed',
-      'Emergency action plan distributed to all caregivers',
-      'Consider beta-blocker dosage adjustment',
-      'Restrict high-intensity physical activities',
-      '24/7 cardiac monitoring consideration'
-    ];
-    
+
+    // Build summary only from real recorded data — no hardcoded clinical language
+    let aiAnalysis = '';
+    if (eventCount === 0) {
+      aiAnalysis = '';
+    } else {
+      const parts: string[] = [];
+      parts.push(`${eventCount} event${eventCount !== 1 ? 's' : ''} recorded in this period (${eventsPerWeek}/week).`);
+      if (severeEvents > 0) parts.push(`${severeEvents} severe or critical event${severeEvents !== 1 ? 's' : ''} logged.`);
+      if (primaryTriggers.length > 0) parts.push(`Most common triggers: ${primaryTriggers.join(', ')}.`);
+      const typeCounts: Record<string, number> = {};
+      filteredCardiacEvents.forEach(e => { typeCounts[e.type] = (typeCounts[e.type] || 0) + 1; });
+      const topType = Object.entries(typeCounts).sort(([, a], [, b]) => b - a)[0];
+      if (topType) parts.push(`Most frequent event type: ${topType[0].replace(/_/g, ' ')}.`);
+      aiAnalysis = parts.join(' ');
+    }
+
     return {
       overallTrend,
-      eventFrequency: Math.round(eventsPerWeek * 10) / 10,
+      eventFrequency: eventsPerWeek,
       severityTrend,
       primaryTriggers,
-      recommendations,
-      aiAnalysis: `CRITICAL ASSESSMENT: ${cprCount} cardiac arrests requiring CPR in ${selectedTimeRange.replace('1', '1 ')} (${cprPerWeek.toFixed(1)} per week). Average CPR duration: ${avgCprDuration.toFixed(1)} minutes. ${cprCount > 0 ? 'This pattern indicates high-risk condition requiring immediate intervention. ICD implantation strongly recommended to prevent sudden cardiac death.' : 'No CPR events in selected period - continue current management.'} Overall event frequency: ${eventsPerWeek.toFixed(1)} per week with ${severityRatio > 0.4 ? 'critically high' : severityRatio > 0.2 ? 'elevated' : 'manageable'} severity ratio. Primary triggers: ${primaryTriggers.join(', ')}.`,
-      lastUpdated: new Date().toLocaleDateString()
+      recommendations: [],
+      aiAnalysis,
+      lastUpdated: new Date().toLocaleDateString(),
     };
   };
 
@@ -669,10 +664,12 @@ export default function HealthDashboard() {
                 <span className="block text-xs">In {selectedTimeRange.replace('1', '1 ')}</span>
               </div>
             )}
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-lg">
-              <span className="font-semibold">CRITICAL ALERT</span>
-              <span className="block text-xs">{trendAnalysis.eventFrequency}/week</span>
-            </div>
+            {trendAnalysis.eventFrequency > 0 && (
+              <div className="bg-gray-100 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg">
+                <span className="font-semibold">Events</span>
+                <span className="block text-xs">{trendAnalysis.eventFrequency}/week</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -692,30 +689,34 @@ export default function HealthDashboard() {
           ))}
         </div>
 
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6 mb-6">
-          <div className="flex justify-between items-center mb-3">
-            <h2 className="text-xl font-bold text-red-800">AI Trend Analysis Summary</h2>
+        {filteredCardiacEvents.length > 0 ? (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
+            <h2 className="text-xl font-bold text-blue-800 mb-3">Event Trend Summary</h2>
+            {trendAnalysis.aiAnalysis && <p className="text-blue-700 mb-4">{trendAnalysis.aiAnalysis}</p>}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-white rounded-lg p-3">
+                <div className="text-sm text-gray-500">Overall Trend</div>
+                <div className={`text-lg font-bold ${trendAnalysis.overallTrend === 'improving' ? 'text-green-600' : trendAnalysis.overallTrend === 'stable' ? 'text-yellow-600' : 'text-red-600'}`}>{trendAnalysis.overallTrend.toUpperCase()}</div>
+              </div>
+              <div className="bg-white rounded-lg p-3">
+                <div className="text-sm text-gray-500">Event Frequency</div>
+                <div className="text-lg font-bold text-gray-800">{trendAnalysis.eventFrequency}/week</div>
+              </div>
+              <div className="bg-white rounded-lg p-3">
+                <div className="text-sm text-gray-500">Severity Trend</div>
+                <div className={`text-lg font-bold ${trendAnalysis.severityTrend === 'decreasing' ? 'text-green-600' : trendAnalysis.severityTrend === 'stable' ? 'text-yellow-600' : 'text-red-600'}`}>{trendAnalysis.severityTrend.toUpperCase()}</div>
+              </div>
+              <div className="bg-white rounded-lg p-3">
+                <div className="text-sm text-gray-500">Top Triggers</div>
+                <div className="text-sm font-bold text-gray-800">{trendAnalysis.primaryTriggers.length > 0 ? trendAnalysis.primaryTriggers.join(', ') : '—'}</div>
+              </div>
+            </div>
           </div>
-          <p className="text-red-700 mb-4">{trendAnalysis.aiAnalysis}</p>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-white rounded-lg p-3">
-              <div className="text-sm text-gray-500">Overall Trend</div>
-              <div className="text-lg font-bold text-red-600">{trendAnalysis.overallTrend.toUpperCase()}</div>
-            </div>
-            <div className="bg-white rounded-lg p-3">
-              <div className="text-sm text-gray-500">Event Frequency</div>
-              <div className="text-lg font-bold text-red-600">{trendAnalysis.eventFrequency}/week</div>
-            </div>
-            <div className="bg-white rounded-lg p-3">
-              <div className="text-sm text-gray-500">Severity Trend</div>
-              <div className="text-lg font-bold text-red-600">{trendAnalysis.severityTrend.toUpperCase()}</div>
-            </div>
-            <div className="bg-white rounded-lg p-3">
-              <div className="text-sm text-gray-500">Primary Triggers</div>
-              <div className="text-sm font-bold text-red-600">{trendAnalysis.primaryTriggers.join(', ')}</div>
-            </div>
+        ) : !isPatientSample && (
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 mb-6 text-center">
+            <p className="text-gray-500 text-sm">No events recorded yet. Use <strong>Add Event</strong> to log health events and trend analysis will appear here.</p>
           </div>
-        </div>
+        )}
 
         {showNewEventForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
