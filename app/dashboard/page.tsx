@@ -222,6 +222,7 @@ export default function HealthDashboard() {
   const [toastMessage, setToastMessage] = useState('');
   const [piiWarning, setPiiWarning] = useState('');
   const [visitFormError, setVisitFormError] = useState('');
+  const [newVisitMeds, setNewVisitMeds] = useState('');
   const [newVisit, setNewVisit] = useState<Partial<DoctorVisit>>({
     date: new Date().toISOString().split('T')[0],
     doctor: '',
@@ -379,6 +380,10 @@ export default function HealthDashboard() {
     const piiWarnings = detectPiiInText(allText);
     if (piiWarnings.length > 0) { setVisitFormError(piiWarnings[0]); return; }
 
+    const medsArray = newVisitMeds.trim()
+      ? newVisitMeds.split(',').map(m => m.trim()).filter(Boolean)
+      : (newVisit.treatment || []);
+
     const visitToSave: DoctorVisit = {
       id: Date.now().toString(),
       date: newVisit.date || blankVisitForm.date!,
@@ -386,8 +391,8 @@ export default function HealthDashboard() {
       visitType: newVisit.visitType || 'routine',
       personalNotes: newVisit.personalNotes || '',
       doctorNotes: newVisit.doctorNotes || '',
-      treatment: newVisit.treatment || [],
-      medicationsChanged: !!newVisit.medicationsChanged,
+      treatment: medsArray,
+      medicationsChanged: !!newVisit.medicationsChanged || medsArray.length > 0,
       cardiacEventsDuringVisit: newVisit.cardiacEventsDuringVisit || 0,
     };
 
@@ -403,12 +408,14 @@ export default function HealthDashboard() {
     setIsVisitsSample(false);
     setShowVisitForm(false);
     setNewVisit(blankVisitForm);
+    setNewVisitMeds('');
   };
 
   const handleCancelVisit = () => {
     setShowVisitForm(false);
     setVisitFormError('');
     setNewVisit(blankVisitForm);
+    setNewVisitMeds('');
   };
 
   const updateNewEvent = (field: string, value: any) => {
@@ -625,7 +632,7 @@ export default function HealthDashboard() {
   return (
     <div className="min-h-screen" style={{ background: '#F8FAFC' }}>
       <HealthHeader />
-      <div className="p-4 sm:p-6">
+      <div className="p-4 sm:p-6 pb-24 sm:pb-8">
       {/* Toast notification */}
       {toastMessage && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-800 text-white text-sm px-5 py-3 rounded-xl shadow-lg">
@@ -1095,15 +1102,16 @@ export default function HealthDashboard() {
                     />
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Medications Discussed <span className="font-normal text-gray-400">(comma-separated, optional)</span></label>
                     <input
-                      type="checkbox"
-                      id="meds-changed"
-                      checked={!!newVisit.medicationsChanged}
-                      onChange={e => setNewVisit(v => ({ ...v, medicationsChanged: e.target.checked }))}
-                      className="rounded text-indigo-600 focus:ring-indigo-500"
+                      type="text"
+                      value={newVisitMeds}
+                      onChange={e => setNewVisitMeds(e.target.value)}
+                      placeholder="e.g. Propranolol, Metoprolol, Aspirin"
+                      style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
                     />
-                    <label htmlFor="meds-changed" className="text-sm text-gray-700">Medications were changed at this visit</label>
                   </div>
                 </div>
 
@@ -1308,39 +1316,39 @@ export default function HealthDashboard() {
           <div className="space-y-6 lg:col-span-2">
             <div className="bg-white rounded-xl shadow-sm p-6">
               <h2 className="text-xl font-semibold mb-4 text-gray-800">Overview</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {patient.name && (
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500">Full Name</h3>
+                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Name</h3>
                     <p className="mt-1 text-gray-900">{patient.name}</p>
                   </div>
+                )}
+                {(patient as any).ageGroup && (
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500">Age</h3>
-                    <p className="mt-1 text-gray-900">{patient.age} years</p>
+                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Age Group</h3>
+                    <p className="mt-1 text-gray-900 capitalize">{(patient as any).ageGroup}</p>
                   </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">Primary Concern</h3>
+                )}
+                {patient.primaryConcern && (
+                  <div className="md:col-span-2">
+                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Primary Concern</h3>
                     <p className="mt-1 text-gray-900">{patient.primaryConcern}</p>
                   </div>
-                </div>
-                <div className="space-y-4">
+                )}
+                {doctorVisitsData.length > 0 && (
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500">Last Visit</h3>
-                    <p className="mt-1 text-gray-900">{patient.lastVisit}</p>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">Next Appointment</h3>
-                    <p className="mt-1 text-gray-900 font-medium text-blue-600">
-                      {patient.nextAppointment}
+                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Last Visit</h3>
+                    <p className="mt-1 text-gray-900">
+                      {new Date([...doctorVisitsData].sort((a,b) => b.date.localeCompare(a.date))[0].date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </p>
                   </div>
-                </div>
+                )}
               </div>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm p-6">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-gray-800">Cardiac Events Timeline ({filteredCardiacEvents.length} events)</h2>
+                <h2 className="text-xl font-semibold text-gray-800">Events Timeline ({filteredCardiacEvents.length} events)</h2>
                 <button 
                   onClick={handleAddCardiacEvent}
                   className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
@@ -1446,92 +1454,175 @@ export default function HealthDashboard() {
               </div>
             </div>
 
+            {/* Doctor Visits — full detail cards */}
             <div className="bg-white rounded-xl shadow-sm p-6">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-gray-800">Recent Activity</h2>
-                <Link href="/activity" className="text-sm font-medium text-blue-600 hover:text-blue-800">
-                  View all
-                </Link>
+                <h2 className="text-xl font-semibold text-gray-800">Doctor Visits</h2>
+                <button
+                  onClick={handleAddVisitNotes}
+                  className="text-xs px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium"
+                >
+                  + Add Visit
+                </button>
               </div>
-              <div className="space-y-4">
-                {patient.recentActivity.map((activity, index) => (
-                  <div key={index} className="border-b border-gray-100 pb-4 last:border-0 last:pb-0">
-                    <div className="flex items-start">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900">{activity.type}</p>
-                        <p className="text-sm text-gray-500">{activity.details}</p>
+              {doctorVisitsData.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-4">No visits logged yet. Use <strong>+ Add Visit</strong> to record a clinic or hospital visit.</p>
+              ) : (
+                <div className="space-y-3 max-h-[480px] overflow-y-auto pr-1">
+                  {[...doctorVisitsData].sort((a, b) => b.date.localeCompare(a.date)).map(visit => (
+                    <div key={visit.id} className="border border-gray-200 rounded-xl p-4">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div>
+                          <div className="flex items-center flex-wrap gap-2">
+                            <span className="font-semibold text-gray-900 text-sm">
+                              {new Date(visit.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </span>
+                            {visit.doctor && (
+                              <span className="text-sm text-indigo-600 font-medium">· {visit.doctor}</span>
+                            )}
+                            <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
+                              visit.visitType === 'emergency' ? 'bg-red-100 text-red-700' :
+                              visit.visitType === 'follow_up' ? 'bg-blue-100 text-blue-700' :
+                              'bg-gray-100 text-gray-600'
+                            }`}>
+                              {visit.visitType.replace('_', ' ')}
+                            </span>
+                            {visit.medicationsChanged && (
+                              <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">Rx discussed</span>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div className="ml-4 flex-shrink-0">
-                        <p className="text-sm text-gray-500">
-                          {new Date(activity.date).toLocaleDateString()}
-                        </p>
-                      </div>
+                      {visit.personalNotes && (
+                        <div className="mb-1.5">
+                          <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">My Notes</span>
+                          <p className="text-sm text-gray-700 mt-0.5 leading-snug">{visit.personalNotes}</p>
+                        </div>
+                      )}
+                      {visit.doctorNotes && (
+                        <div className="mb-1.5">
+                          <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Doctor&apos;s Notes</span>
+                          <p className="text-sm text-gray-700 mt-0.5 leading-snug">{visit.doctorNotes}</p>
+                        </div>
+                      )}
+                      {visit.treatment && visit.treatment.length > 0 && (
+                        <div>
+                          <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Medications</span>
+                          <p className="text-sm text-gray-700 mt-0.5">{visit.treatment.join(', ')}</p>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
           <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-xl font-semibold mb-4 text-gray-800">Care Team</h2>
-              <div className="space-y-4">
-                {patient.careTeam.map((member, index) => (
-                  <div key={index} className="flex items-start space-x-3">
-                    <div className="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                      <span className="text-blue-600 font-medium">
-                        {member.name.split(' ').map(n => n[0]).join('')}
-                      </span>
+            {/* Care Team — built from profile + visit doctors */}
+            {(() => {
+              const visitDoctors = [...new Set(
+                doctorVisitsData.map(v => v.doctor?.trim()).filter(Boolean)
+              )];
+              const profileTeam = patient.careTeam || [];
+              const profileNames = profileTeam.map(m => m.name.toLowerCase());
+              const visitOnlyDoctors = visitDoctors.filter(d => !profileNames.some(n => n.includes(d.toLowerCase())));
+              const hasAnyone = profileTeam.length > 0 || visitOnlyDoctors.length > 0;
+              return (
+                <div className="bg-white rounded-xl shadow-sm p-6">
+                  <h2 className="text-xl font-semibold mb-4 text-gray-800">Care Team</h2>
+                  {!hasAnyone ? (
+                    <p className="text-sm text-gray-400">Care team members will appear here once you add visits or update your profile.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {profileTeam.map((member, index) => (
+                        <div key={index} className="flex items-center gap-3">
+                          <div className="flex-shrink-0 h-9 w-9 rounded-full bg-blue-100 flex items-center justify-center">
+                            <span className="text-blue-600 text-sm font-semibold">{member.name.charAt(0).toUpperCase()}</span>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-gray-900">{member.name}</p>
+                            {member.role && <p className="text-xs text-gray-500">{member.role}</p>}
+                          </div>
+                        </div>
+                      ))}
+                      {visitOnlyDoctors.map((name, index) => (
+                        <div key={`visit-doc-${index}`} className="flex items-center gap-3">
+                          <div className="flex-shrink-0 h-9 w-9 rounded-full bg-indigo-100 flex items-center justify-center">
+                            <span className="text-indigo-600 text-sm font-semibold">{name.replace('Dr. ', '').charAt(0).toUpperCase()}</span>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-gray-900">{name}</p>
+                            <p className="text-xs text-gray-400">From visit records</p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-gray-900">{member.name}</p>
-                      <p className="text-sm text-gray-500">{member.role}</p>
-                      {member.specialty && (
-                        <p className="text-xs text-gray-400">{member.specialty}</p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+                  )}
+                </div>
+              );
+            })()}
 
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold mb-4 text-gray-800">Medications</h2>
-                <Link href="/medications" className="text-sm font-medium text-blue-600 hover:text-blue-800">
-                  View all
-                </Link>
-              </div>
-              <div className="space-y-4">
-                {patient.medications.map((med, index) => (
-                  <div key={index} className="border-b border-gray-100 pb-4 last:border-0 last:pb-0">
-                    <div className="flex justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{med.name}</p>
-                        <p className="text-sm text-gray-500">{med.dosage}</p>
+            {/* Medications — derived from visits */}
+            {(() => {
+              const allMeds = [...new Set(
+                doctorVisitsData.flatMap(v => v.treatment || []).filter(Boolean)
+              )];
+              const profileMeds = patient.medications || [];
+              return (
+                <div className="bg-white rounded-xl shadow-sm p-6">
+                  <h2 className="text-xl font-semibold mb-4 text-gray-800">Medications</h2>
+                  {allMeds.length === 0 && profileMeds.length === 0 ? (
+                    <p className="text-sm text-gray-400">Medications discussed during visits will appear here. Add them in the <strong>Medications Discussed</strong> field when logging a visit.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {profileMeds.map((med, i) => (
+                        <div key={i} className="flex items-center justify-between border-b border-gray-100 pb-2 last:border-0">
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{med.name}</p>
+                            {med.dosage && <p className="text-xs text-gray-500">{med.dosage}</p>}
+                          </div>
+                          {med.frequency && <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">{med.frequency}</span>}
+                        </div>
+                      ))}
+                      {allMeds.map((med, i) => (
+                        <div key={`vm-${i}`} className="flex items-center justify-between border-b border-gray-100 pb-2 last:border-0">
+                          <p className="text-sm text-gray-800">{med}</p>
+                          <span className="text-xs text-gray-400">from visit</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Incidents — derived from logged events */}
+            {(() => {
+              const severeEvents = allCardiacEvents.filter(e => e.severity === 'severe' || e.severity === 'critical');
+              return severeEvents.length > 0 ? (
+                <div className="bg-white rounded-xl shadow-sm p-6">
+                  <h2 className="text-xl font-semibold mb-4 text-gray-800">Severe Events</h2>
+                  <div className="space-y-3">
+                    {severeEvents.slice(0, 5).map((event, index) => (
+                      <div key={index} className="border border-gray-200 rounded-lg p-3">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${event.severity === 'critical' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>
+                            {event.severity}
+                          </span>
+                          <span className="text-xs text-gray-500">{event.date}</span>
+                        </div>
+                        <p className="text-sm text-gray-800 capitalize">{event.type.replace(/_/g, ' ')}</p>
+                        {event.notes && <p className="text-xs text-gray-500 mt-0.5">{event.notes}</p>}
                       </div>
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {med.frequency}
-                      </span>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
+                </div>
+              ) : null;
+            })()}
 
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-gray-800">Incident Reports</h2>
-                <Link 
-                  href="/incidents" 
-                  className="text-sm font-medium text-blue-600 hover:text-blue-800"
-                >
-                  View all
-                </Link>
-              </div>
-              <div className="space-y-4">
-                {patient.incidentReports.map((incident, index) => {
+            {/* Dead code placeholder — kept to not break closing braces */}
+            {false && patient.incidentReports.map((incident, index) => {
                   const severityColors = {
                     low: 'bg-green-100 text-green-800',
                     medium: 'bg-yellow-100 text-yellow-800',
@@ -1542,7 +1633,7 @@ export default function HealthDashboard() {
                     investigating: 'bg-blue-100 text-blue-800',
                     monitoring: 'bg-yellow-100 text-yellow-800'
                   };
-                  
+
                   return (
                     <div key={index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
                       <div className="flex justify-between items-start">
@@ -1571,25 +1662,6 @@ export default function HealthDashboard() {
                         </button>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-              <h2 className="text-xl font-semibold text-blue-800 mb-4">AI Recommendations</h2>
-              <ul className="space-y-2">
-                {trendAnalysis.recommendations.map((rec, index) => (
-                  <li key={index} className="flex items-start">
-                    <span className="text-blue-600 mr-2">•</span>
-                    <span className="text-sm text-blue-700">{rec}</span>
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-4 text-xs text-blue-600">
-                Last analyzed: {trendAnalysis.lastUpdated}
-              </div>
-            </div>
           </div>
         </div>
       </div>
