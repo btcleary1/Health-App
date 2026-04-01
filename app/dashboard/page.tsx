@@ -1636,47 +1636,7 @@ export default function HealthDashboard() {
               ) : null;
             })()}
 
-            {/* Dead code placeholder — kept to not break closing braces */}
-            {false && patient.incidentReports.map((incident, index) => {
-                  const severityColors = {
-                    low: 'bg-green-100 text-green-800',
-                    medium: 'bg-yellow-100 text-yellow-800',
-                    high: 'bg-red-100 text-red-800'
-                  };
-                  const statusColors = {
-                    resolved: 'bg-green-100 text-green-800',
-                    investigating: 'bg-blue-100 text-blue-800',
-                    monitoring: 'bg-yellow-100 text-yellow-800'
-                  };
-
-                  return (
-                    <div key={index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <div className="flex items-center space-x-2 mb-1">
-                            <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${severityColors[incident.severity]}`}>
-                              {incident.severity.charAt(0).toUpperCase() + incident.severity.slice(1)}
-                            </span>
-                            <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${statusColors[incident.status]}`}>
-                              {incident.status.charAt(0).toUpperCase() + incident.status.slice(1)}
-                            </span>
-                          </div>
-                          <h3 className="font-medium text-gray-900">{incident.type}</h3>
-                          <p className="text-sm text-gray-600 mt-1">{incident.description}</p>
-                        </div>
-                        <span className="text-xs text-gray-500 whitespace-nowrap ml-2">
-                          {new Date(incident.date).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <div className="mt-3 pt-3 border-t border-gray-100 flex justify-end">
-                        <button 
-                          onClick={() => handleViewDetails(incident.type, incident.date)}
-                          className="text-sm font-medium text-blue-600 hover:text-blue-800 cursor-pointer"
-                        >
-                          View Details
-                        </button>
-                      </div>
-                    </div>
+            {/* incident reports section removed */}
           </div>
         </div>
       </div>
