@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import HealthHeader from '@/components/HealthHeader';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, ReferenceLine, Legend } from 'recharts';
 import { detectPiiInText, validateDoctorName } from '@/lib/pii-validator';
+import { useActivePerson } from '@/lib/useActivePerson';
+import PersonSelector from '@/components/PersonSelector';
 
 interface CareTeamMember {
   name: string;
@@ -135,6 +137,7 @@ const SAMPLE_DOCTOR_VISITS: DoctorVisit[] = [
 
 export default function HealthDashboard() {
   const router = useRouter();
+  const { persons, activeId, setActiveId, personQuery } = useActivePerson();
   const [mounted, setMounted] = useState(false);
   const [showNewEventForm, setShowNewEventForm] = useState(false);
   const [showVisitForm, setShowVisitForm] = useState(false);
@@ -178,9 +181,9 @@ export default function HealthDashboard() {
     setMounted(true);
     const loadAll = async () => {
       const [evData, pdData, visData] = await Promise.all([
-        fetch('/api/health-data/events').then(r => r.json()).catch(() => ({ events: [] })),
-        fetch('/api/health-data/patient').then(r => r.json()).catch(() => ({})),
-        fetch('/api/health-data/visits').then(r => r.json()).catch(() => ({ visits: [] })),
+        fetch(`/api/health-data/events${personQuery}`).then(r => r.json()).catch(() => ({ events: [] })),
+        fetch(`/api/health-data/patient${personQuery}`).then(r => r.json()).catch(() => ({})),
+        fetch(`/api/health-data/visits${personQuery}`).then(r => r.json()).catch(() => ({ visits: [] })),
       ]);
 
       const hasProfile = !!pdData.patient?.name;
@@ -217,7 +220,7 @@ export default function HealthDashboard() {
       setDataLoading(false);
     };
     loadAll();
-  }, []);
+  }, [activeId, personQuery]);
 
   const [toastMessage, setToastMessage] = useState('');
   const [piiWarning, setPiiWarning] = useState('');
@@ -312,7 +315,7 @@ export default function HealthDashboard() {
     };
     setAllCardiacEvents(prev => {
       const updated = [eventToSave, ...prev];
-      fetch('/api/health-data/events', {
+      fetch(`/api/health-data/events${personQuery}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ events: updated }),
@@ -344,7 +347,7 @@ export default function HealthDashboard() {
 
     setAllCardiacEvents(prev => {
       const updated = prev.map(e => e.id === editingEventId ? { ...e, parentNotes: editingNotes } : e);
-      fetch('/api/health-data/events', {
+      fetch(`/api/health-data/events${personQuery}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ events: updated }),
@@ -398,7 +401,7 @@ export default function HealthDashboard() {
 
     setDoctorVisitsData(prev => {
       const updated = [visitToSave, ...prev];
-      fetch('/api/health-data/visits', {
+      fetch(`/api/health-data/visits${personQuery}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ visits: updated }),
@@ -654,6 +657,14 @@ export default function HealthDashboard() {
               </div>
             </div>
             <a href="/settings" className="shrink-0 text-xs font-semibold text-amber-800 underline whitespace-nowrap mt-0.5">Set Up Profile →</a>
+          </div>
+        )}
+
+        {/* ── Person selector (multi-person) ── */}
+        {persons.length > 0 && (
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">Viewing</span>
+            <PersonSelector persons={persons} activeId={activeId} onChange={setActiveId} />
           </div>
         )}
 

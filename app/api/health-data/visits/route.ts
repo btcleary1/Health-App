@@ -7,14 +7,16 @@ export const runtime = 'nodejs';
 export async function GET(req: NextRequest) {
   const session = await getSessionFromRequest(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  const visits = await getDoctorVisits(session.userId);
+  const personId = req.nextUrl.searchParams.get('personId') ?? undefined;
+  const visits = await getDoctorVisits(session.userId, personId);
   return NextResponse.json({ visits });
 }
 
 export async function POST(req: NextRequest) {
   const session = await getSessionFromRequest(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const personId = req.nextUrl.searchParams.get('personId') ?? undefined;
   const { visits } = await req.json();
-  await saveDoctorVisits(session.userId, visits);
+  await saveDoctorVisits(session.userId, visits, personId);
   return NextResponse.json({ success: true });
 }

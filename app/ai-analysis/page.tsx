@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import HealthHeader from '@/components/HealthHeader';
 import HIPAAFooter from '@/components/HIPAAFooter';
 import { Brain, Loader2, ChevronDown, ChevronUp, AlertTriangle, Search, ClipboardList, Lightbulb, HeartPulse, Shield } from 'lucide-react';
+import { useActivePerson } from '@/lib/useActivePerson';
+import PersonSelector from '@/components/PersonSelector';
 
 const SAMPLE_PATIENT_DATA = {
   name: 'Ethan Alvarez',
@@ -55,6 +57,7 @@ const likelihoodColor = (l: string) => l === 'High' ? 'bg-red-100 text-red-700' 
 const urgencyColor = (u: string) => u === 'Immediate' ? 'bg-red-100 text-red-700' : u === 'Soon' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700';
 
 export default function AIAnalysisPage() {
+  const { persons, activeId, setActiveId, personQuery } = useActivePerson();
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [error, setError] = useState('');
@@ -65,9 +68,11 @@ export default function AIAnalysisPage() {
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
 
   useEffect(() => {
+    setAnalysis(null);
+    setIsSample(true);
     Promise.all([
-      fetch('/api/health-data/patient').then(r => r.json()).catch(() => ({})),
-      fetch('/api/health-data/events').then(r => r.json()).catch(() => ({})),
+      fetch(`/api/health-data/patient${personQuery}`).then(r => r.json()).catch(() => ({})),
+      fetch(`/api/health-data/events${personQuery}`).then(r => r.json()).catch(() => ({})),
       fetch('/api/uploads').then(r => r.json()).catch(() => ({ files: [] })),
     ]).then(([pd, ev, up]) => {
       const hasPatient = pd.patient?.name;
@@ -82,7 +87,7 @@ export default function AIAnalysisPage() {
       }
       if (Array.isArray(up.files) && up.files.length > 0) setUploadedFiles(up.files);
     });
-  }, []);
+  }, [activeId, personQuery]);
 
   const runAnalysis = async () => {
     setLoading(true);
@@ -110,9 +115,9 @@ export default function AIAnalysisPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ background: '#F8FAFC' }}>
       <HealthHeader />
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto px-4 py-6 pb-24 sm:pb-10">
 
         {isSample && (
           <div className="mb-4 bg-amber-50 border border-amber-300 rounded-xl px-5 py-3 flex items-start gap-3">
@@ -125,9 +130,14 @@ export default function AIAnalysisPage() {
         )}
 
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <Brain className="w-7 h-7 text-purple-600 shrink-0" />
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">AI Medical Research Analysis</h1>
+          <div className="flex items-start justify-between gap-3 mb-2">
+            <div className="flex items-center gap-3">
+              <Brain className="w-7 h-7 text-purple-600 shrink-0" />
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">AI Medical Research Analysis</h1>
+            </div>
+            {persons.length > 0 && (
+              <PersonSelector persons={persons} activeId={activeId} onChange={(id) => { setActiveId(id); }} />
+            )}
           </div>
           <p className="text-gray-600">
             Claude reviews the complete health history and generates research questions, conditions to explore, and talking points to help you prepare for doctor appointments.
@@ -206,7 +216,7 @@ export default function AIAnalysisPage() {
                     )}
                     {d.missedClues?.length > 0 && (
                       <div className="bg-yellow-50 rounded p-2">
-                        <div className="text-xs font-semibold text-yellow-700 mb-1">Details from parent notes supporting this:</div>
+                        <div className="text-xs font-semibold text-yellow-700 mb-1">Supporting details from your notes:</div>
                         <ul className="text-sm text-yellow-800 space-y-0.5">{d.missedClues.map((c, j) => <li key={j} className="flex gap-2"><span>→</span>{c}</li>)}</ul>
                       </div>
                     )}
@@ -295,7 +305,7 @@ export default function AIAnalysisPage() {
             </Section>
 
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 mt-4">
-              <div className="text-sm font-semibold text-blue-800 mb-3">For You, As {patientData.name}&apos;s Parent</div>
+              <div className="text-sm font-semibold text-blue-800 mb-3">For You — {patientData.name}&apos;s Health</div>
               {analysis.parentGuidance?.immediateActions?.length > 0 && (
                 <div className="mb-3">
                   <div className="text-xs font-bold text-blue-700 mb-1">RIGHT NOW:</div>

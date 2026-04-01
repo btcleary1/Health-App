@@ -177,7 +177,7 @@ export default function UploadsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ background: '#F8FAFC' }}>
       {showConsent && (
         <UploadConsent
           onAccept={handleConsentAccept}
@@ -185,7 +185,7 @@ export default function UploadsPage() {
         />
       )}
       <HealthHeader />
-      <div className="max-w-3xl mx-auto px-4 py-8">
+      <div className="max-w-3xl mx-auto px-4 py-8 pb-24 sm:pb-10">
 
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Doctor Visit Uploads</h1>
