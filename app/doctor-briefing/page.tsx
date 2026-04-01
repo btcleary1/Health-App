@@ -65,7 +65,6 @@ export default function DoctorBriefingPage() {
       const hasPatient = pd.patient?.name;
       const hasEvents = Array.isArray(ev.events) && ev.events.length > 0;
 
-      // If any person exists in the account, never show sample data
       if (hasPersons || hasPatient) {
         setPatientData({
           name: pd.patient?.name || '',
@@ -117,168 +116,211 @@ export default function DoctorBriefingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ background: 'linear-gradient(160deg,#050814 0%,#0B1120 60%,#0f172a 100%)' }}>
       <HealthHeader />
 
-      <div className="max-w-3xl mx-auto px-4 py-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 print:hidden">
+      <div className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-10">
+
+        {/* Toolbar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 print:hidden">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Doctor Briefing</h1>
-            <p className="text-sm text-gray-500 mt-1">Hand this to any new doctor at the start of the appointment</p>
+            <h1 className="text-2xl font-bold text-white">Doctor Briefing</h1>
+            <p className="text-sm mt-0.5" style={{ color: '#6B7280' }}>Hand this to any new doctor at the start of the appointment</p>
           </div>
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium"
-          >
-            <Printer className="w-4 h-4" />
-            Print / Save PDF
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={generateAISummary}
+              disabled={loadingAI}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all disabled:opacity-60"
+              style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.3)', color: '#C4B5FD' }}
+            >
+              {loadingAI ? <Loader2 className="w-4 h-4 animate-spin" /> : <Brain className="w-4 h-4" />}
+              AI Summary
+            </button>
+            <button
+              onClick={() => window.print()}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all"
+              style={{ background: 'linear-gradient(135deg,#3B82F6,#6366F1)', boxShadow: '0 2px 12px rgba(99,102,241,0.3)', color: 'white' }}
+            >
+              <Printer className="w-4 h-4" />
+              Print / PDF
+            </button>
+          </div>
         </div>
 
         {isSample && (
-          <div className="mb-4 bg-amber-50 border border-amber-300 rounded-xl px-5 py-3 flex items-start gap-3 print:hidden">
-            <span className="text-amber-500 font-bold text-lg shrink-0">⚠</span>
+          <div className="mb-4 rounded-2xl px-5 py-3 flex items-start gap-3 print:hidden" style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)' }}>
+            <span className="text-yellow-400 font-bold text-lg shrink-0">⚠</span>
             <div>
-              <p className="text-sm font-semibold text-amber-800">Sample Data Shown</p>
-              <p className="text-xs text-amber-700 mt-0.5">Add a profile and events on the dashboard and this briefing will use your real data.</p>
+              <p className="text-sm font-semibold text-yellow-300">Sample Data Shown</p>
+              <p className="text-xs mt-0.5" style={{ color: '#9CA3AF' }}>Add a profile and events on the dashboard and this briefing will use your real data.</p>
             </div>
           </div>
         )}
-        {error && <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4 text-red-700 text-sm print:hidden">{error}</div>}
+        {error && (
+          <div className="rounded-xl p-3 mb-4 text-sm print:hidden" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#FCA5A5' }}>{error}</div>
+        )}
 
-        <div className="bg-white rounded-xl border border-gray-200 p-8 print:shadow-none print:border-0 print:rounded-none print:p-0">
+        {/* Briefing document */}
+        <div className="rounded-2xl overflow-hidden print:rounded-none print:border-0 print:shadow-none" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <div className="p-6 sm:p-8">
 
-          <div className="flex items-start justify-between border-b-2 border-red-600 pb-4 mb-6">
-            <div>
-              <div className="text-xs font-bold text-red-600 uppercase tracking-widest mb-1">Health Briefing Document</div>
-              <h2 className="text-3xl font-bold text-gray-900">{patientData.name}</h2>
-              <div className="text-gray-600 mt-1">{patientData.ageGroup ? patientData.ageGroup.charAt(0).toUpperCase() + patientData.ageGroup.slice(1) : (patientData.age ? `Age ${patientData.age}` : '')}{patientData.dob ? ` \u00a0•\u00a0 DOB ${patientData.dob}` : ''} &nbsp;•&nbsp; {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>
-            </div>
-            <div className="text-right">
-              <div className="bg-red-100 border border-red-300 rounded-lg px-4 py-3 text-center">
-                <div className="text-xs font-bold text-red-700 uppercase">Emergency Contact</div>
-                <div className="text-sm text-red-900 font-medium mt-1">{patientData.emergencyContact}</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-red-50 border-l-4 border-red-600 rounded-r-lg p-4 mb-6">
-            <div className="flex gap-2 items-start">
-              <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+            {/* Header row */}
+            <div className="flex items-start justify-between pb-4 mb-5" style={{ borderBottom: '2px solid #EF4444' }}>
               <div>
-                <div className="font-bold text-red-800 text-sm uppercase mb-1">Primary Concern</div>
-                <div className="text-red-900">{patientData.primaryConcern}</div>
+                <div className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#F87171' }}>Health Briefing Document</div>
+                <h2 className="text-3xl font-bold text-white">{patientData.name}</h2>
+                <div className="mt-1 text-sm" style={{ color: '#9CA3AF' }}>
+                  {patientData.ageGroup ? patientData.ageGroup.charAt(0).toUpperCase() + patientData.ageGroup.slice(1) : (patientData.age ? `Age ${patientData.age}` : '')}
+                  {patientData.dob ? ` \u00a0•\u00a0 DOB ${patientData.dob}` : ''}
+                  {' \u00a0•\u00a0 '}
+                  {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                </div>
               </div>
+              {patientData.emergencyContact && (
+                <div className="text-right shrink-0 ml-4">
+                  <div className="rounded-xl px-4 py-3 text-center" style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)' }}>
+                    <div className="text-xs font-bold uppercase" style={{ color: '#F87171' }}>Emergency Contact</div>
+                    <div className="text-sm font-medium mt-1 text-white">{patientData.emergencyContact}</div>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
 
-          {aiSummary && (
-            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
+            {/* Primary concern */}
+            <div className="rounded-xl p-4 mb-5" style={{ background: 'rgba(239,68,68,0.1)', borderLeft: '4px solid #EF4444' }}>
               <div className="flex gap-2 items-start">
-                <Brain className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
+                <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: '#EF4444' }} />
                 <div>
-                  <div className="text-xs font-bold text-purple-700 uppercase mb-1">AI Clinical Summary</div>
-                  <div className="text-purple-900 text-sm">{aiSummary}</div>
+                  <div className="font-bold text-sm uppercase mb-1" style={{ color: '#F87171' }}>Primary Concern</div>
+                  <div className="text-white">{patientData.primaryConcern}</div>
                 </div>
               </div>
             </div>
-          )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
-            <div>
-              <div className="flex items-center gap-2 font-bold text-gray-800 mb-3 text-sm uppercase tracking-wide border-b border-gray-200 pb-1">
-                <ClipboardList className="w-4 h-4" />Current Medications
-              </div>
-              <div className="space-y-2">
-                {patientData.medications.map((m: any, i: number) => (
-                  <div key={i} className="text-sm">
-                    <span className="font-semibold text-gray-900">{m.name}</span>{' '}
-                    <span className="text-gray-600">{m.dosage} — {m.frequency}</span>
-                    <div className="text-xs text-gray-400">{m.reason}</div>
+            {/* AI summary */}
+            {aiSummary && (
+              <div className="rounded-xl p-4 mb-5" style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)' }}>
+                <div className="flex gap-2 items-start">
+                  <Brain className="w-4 h-4 shrink-0 mt-0.5" style={{ color: '#A78BFA' }} />
+                  <div>
+                    <div className="text-xs font-bold uppercase mb-1" style={{ color: '#A78BFA' }}>AI Clinical Summary</div>
+                    <div className="text-sm" style={{ color: '#DDD6FE' }}>{aiSummary}</div>
                   </div>
-                ))}
+                </div>
               </div>
-              <div className="mt-3 text-sm">
-                <span className="font-semibold text-gray-700">Allergies:</span>{' '}
-                <span className="text-gray-600">{patientData.allergies}</span>
+            )}
+
+            {/* Medications + Care Team */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
+              <div>
+                <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-wide mb-3 pb-1" style={{ color: '#9CA3AF', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                  <ClipboardList className="w-4 h-4" />Current Medications
+                </div>
+                <div className="space-y-2.5">
+                  {patientData.medications.map((m: any, i: number) => (
+                    <div key={i} className="text-sm">
+                      <span className="font-semibold text-white">{m.name}</span>{' '}
+                      <span style={{ color: '#9CA3AF' }}>{m.dosage} — {m.frequency}</span>
+                      {m.reason && <div className="text-xs mt-0.5" style={{ color: '#6B7280' }}>{m.reason}</div>}
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 text-sm">
+                  <span className="font-semibold" style={{ color: '#D1D5DB' }}>Allergies:</span>{' '}
+                  <span style={{ color: '#9CA3AF' }}>{patientData.allergies}</span>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-wide mb-3 pb-1" style={{ color: '#9CA3AF', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                  <User className="w-4 h-4" />Care Team
+                </div>
+                <div className="space-y-2.5">
+                  {patientData.careTeam.map((c: any, i: number) => (
+                    <div key={i} className="text-sm">
+                      <span className="font-semibold text-white">{c.name}</span>
+                      <div style={{ color: '#9CA3AF' }}>{c.role}{c.phone ? ` \u00a0•\u00a0 ${c.phone}` : ''}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
+            {/* Event history table */}
+            {eventsSummary.length > 0 && (
+              <div className="mb-5">
+                <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-wide mb-3 pb-1" style={{ color: '#9CA3AF', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                  <HeartPulse className="w-4 h-4" />Event History (Recent)
+                </div>
+                <div className="overflow-x-auto rounded-xl" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr style={{ background: 'rgba(255,255,255,0.04)' }}>
+                        <th className="text-left px-3 py-2 text-xs font-semibold uppercase" style={{ color: '#6B7280' }}>Date</th>
+                        <th className="text-left px-3 py-2 text-xs font-semibold uppercase" style={{ color: '#6B7280' }}>Type</th>
+                        <th className="text-left px-3 py-2 text-xs font-semibold uppercase" style={{ color: '#6B7280' }}>Severity</th>
+                        <th className="text-left px-3 py-2 text-xs font-semibold uppercase" style={{ color: '#6B7280' }}>Notes</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {eventsSummary.map((e, i) => (
+                        <tr key={i} style={{ borderTop: '1px solid rgba(255,255,255,0.05)', background: e.cpr ? 'rgba(239,68,68,0.08)' : 'transparent' }}>
+                          <td className="px-3 py-2 whitespace-nowrap" style={{ color: '#D1D5DB' }}>{e.date}</td>
+                          <td className="px-3 py-2">
+                            <span className="font-medium text-white">{e.type}</span>
+                            {e.cpr && <span className="ml-2 text-xs px-1.5 py-0.5 rounded font-bold" style={{ background: '#EF4444', color: 'white' }}>CPR</span>}
+                          </td>
+                          <td className="px-3 py-2">
+                            <span className={`text-xs font-bold ${e.severity === 'CRITICAL' ? 'text-red-400' : e.severity === 'Moderate' ? 'text-orange-400' : 'text-green-400'}`}>{e.severity}</span>
+                          </td>
+                          <td className="px-3 py-2 text-xs" style={{ color: '#9CA3AF' }}>{e.notes}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Triggers */}
+            {triggerPatterns.length > 0 && (
+              <div className="mb-5">
+                <div className="font-bold text-xs uppercase tracking-wide mb-2 pb-1" style={{ color: '#9CA3AF', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>Known Triggers</div>
+                <ul className="space-y-1">
+                  {triggerPatterns.map((t, i) => (
+                    <li key={i} className="flex gap-2 text-sm" style={{ color: '#D1D5DB' }}>
+                      <span className="font-bold text-red-400">!</span>{t}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Questions */}
             <div>
-              <div className="flex items-center gap-2 font-bold text-gray-800 mb-3 text-sm uppercase tracking-wide border-b border-gray-200 pb-1">
-                <User className="w-4 h-4" />Care Team
+              <div className="font-bold text-xs uppercase tracking-wide mb-2 pb-1" style={{ color: '#9CA3AF', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                Questions We Need Answered
+                {isSample && <span className="ml-2 font-normal normal-case" style={{ color: '#D97706' }}>(sample — replace with your own)</span>}
               </div>
-              <div className="space-y-2">
-                {patientData.careTeam.map((c: any, i: number) => (
-                  <div key={i} className="text-sm">
-                    <span className="font-semibold text-gray-900">{c.name}</span>
-                    <div className="text-gray-500">{c.role} &nbsp;•&nbsp; {c.phone}</div>
-                  </div>
+              <ol className="space-y-1.5">
+                {[
+                  'Has genetic testing been done for relevant mutations?',
+                  'Are there any medications we should absolutely avoid?',
+                  'What did the most recent ECG or monitor show?',
+                  'Should activity or sports restrictions change?',
+                  'What warning signs should bring us to the ER immediately?',
+                ].map((q, i) => (
+                  <li key={i} className="flex gap-2 text-sm" style={{ color: '#D1D5DB' }}>
+                    <span className="font-bold shrink-0" style={{ color: '#60A5FA' }}>{i + 1}.</span>{q}
+                  </li>
                 ))}
-              </div>
+              </ol>
             </div>
-          </div>
 
-          <div className="mb-6">
-            <div className="flex items-center gap-2 font-bold text-gray-800 mb-3 text-sm uppercase tracking-wide border-b border-gray-200 pb-1">
-              <HeartPulse className="w-4 h-4" />Event History (Recent)
+            <div className="mt-8 pt-4 text-xs text-center" style={{ borderTop: '1px solid rgba(255,255,255,0.06)', color: '#4B5563' }}>
+              Generated {new Date().toLocaleDateString()} &nbsp;•&nbsp; This document was prepared by the family and AI analysis. It does not replace clinical judgment.
             </div>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Date</th>
-                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Type</th>
-                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Severity</th>
-                  <th className="text-left px-3 py-2 text-xs font-semibold text-gray-500 uppercase">Notes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {eventsSummary.map((e, i) => (
-                  <tr key={i} className={`border-t border-gray-100 ${e.cpr ? 'bg-red-50' : ''}`}>
-                    <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{e.date}</td>
-                    <td className="px-3 py-2">
-                      <span className="font-medium text-gray-900">{e.type}</span>
-                      {e.cpr && <span className="ml-2 text-xs bg-red-600 text-white px-1.5 py-0.5 rounded font-bold">CPR</span>}
-                    </td>
-                    <td className="px-3 py-2">
-                      <span className={`text-xs font-bold ${e.severity === 'CRITICAL' ? 'text-red-700' : e.severity === 'Moderate' ? 'text-orange-600' : 'text-green-700'}`}>{e.severity}</span>
-                    </td>
-                    <td className="px-3 py-2 text-gray-600 text-xs">{e.notes}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="mb-6">
-            <div className="font-bold text-gray-800 mb-2 text-sm uppercase tracking-wide border-b border-gray-200 pb-1">Known Triggers</div>
-            <ul className="space-y-1">
-              {triggerPatterns.map((t, i) => <li key={i} className="text-sm text-gray-700 flex gap-2"><span className="text-red-500 font-bold">!</span>{t}</li>)}
-            </ul>
-          </div>
-
-          <div>
-            <div className="font-bold text-gray-800 mb-2 text-sm uppercase tracking-wide border-b border-gray-200 pb-1">
-              Questions We Need Answered
-              {isSample && <span className="ml-2 text-xs font-normal text-amber-600 normal-case">(sample — replace with your own)</span>}
-            </div>
-            <ol className="space-y-1.5">
-              {[
-                'Has genetic testing been done for relevant mutations?',
-                'Are there any medications we should absolutely avoid?',
-                'What did the most recent ECG or monitor show?',
-                'Should activity or sports restrictions change?',
-                'What warning signs should bring us to the ER immediately?',
-              ].map((q, i) => (
-                <li key={i} className="text-sm text-gray-800 flex gap-2">
-                  <span className="text-blue-600 font-bold shrink-0">{i + 1}.</span>{q}
-                </li>
-              ))}
-            </ol>
-          </div>
-
-          <div className="border-t border-gray-200 mt-8 pt-4 text-xs text-gray-400 text-center">
-            Generated {new Date().toLocaleDateString()} &nbsp;•&nbsp; This document was prepared by the family and AI analysis. It does not replace clinical judgment.
           </div>
         </div>
       </div>

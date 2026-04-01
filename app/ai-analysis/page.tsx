@@ -42,18 +42,38 @@ interface Analysis {
 function Section({ title, icon, children, defaultOpen = true }: { title: string; icon: React.ReactNode; children: React.ReactNode; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-4">
-      <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50">
-        <div className="flex items-center gap-3 font-semibold text-gray-900">{icon}{title}</div>
-        {open ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+    <div className="rounded-2xl overflow-hidden mb-3" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-5 py-4 text-left transition-colors hover:bg-white/5"
+      >
+        <div className="flex items-center gap-3 font-semibold text-white text-[15px]">{icon}{title}</div>
+        {open
+          ? <ChevronUp className="w-4 h-4 shrink-0" style={{ color: '#6B7280' }} />
+          : <ChevronDown className="w-4 h-4 shrink-0" style={{ color: '#6B7280' }} />}
       </button>
-      {open && <div className="px-5 pb-5 border-t border-gray-100">{children}</div>}
+      {open && (
+        <div className="px-5 pb-5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          {children}
+        </div>
+      )}
     </div>
   );
 }
 
-const likelihoodColor = (l: string) => l === 'High' ? 'bg-red-100 text-red-700' : l === 'Medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700';
-const urgencyColor = (u: string) => u === 'Immediate' ? 'bg-red-100 text-red-700' : u === 'Soon' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700';
+const likelihoodColor = (l: string) =>
+  l === 'High'
+    ? 'bg-red-500/20 text-red-300 border border-red-500/30'
+    : l === 'Medium'
+    ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
+    : 'bg-green-500/20 text-green-300 border border-green-500/30';
+
+const urgencyColor = (u: string) =>
+  u === 'Immediate'
+    ? 'bg-red-500/20 text-red-300 border border-red-500/30'
+    : u === 'Soon'
+    ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30'
+    : 'bg-blue-500/20 text-blue-300 border border-blue-500/30';
 
 export default function AIAnalysisPage() {
   const { activeId, personQuery, persons } = usePersonContext();
@@ -115,50 +135,58 @@ export default function AIAnalysisPage() {
   };
 
   return (
-    <div className="min-h-screen" style={{ background: '#F8FAFC' }}>
+    <div className="min-h-screen" style={{ background: 'linear-gradient(160deg,#050814 0%,#0B1120 60%,#0f172a 100%)' }}>
       <HealthHeader />
       <div className="max-w-4xl mx-auto px-4 py-6 pb-24 sm:pb-10">
 
         {isSample && (
-          <div className="mb-4 bg-amber-50 border border-amber-300 rounded-xl px-5 py-3 flex items-start gap-3">
-            <span className="text-amber-500 font-bold text-lg shrink-0">⚠</span>
+          <div className="mb-4 rounded-2xl px-5 py-3 flex items-start gap-3" style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)' }}>
+            <span className="text-yellow-400 font-bold text-lg shrink-0">⚠</span>
             <div>
-              <p className="text-sm font-semibold text-amber-800">Sample Data — Analysis is running on demo data</p>
-              <p className="text-xs text-amber-700 mt-0.5">Add a profile and events on the dashboard and this analysis will automatically use your real data.</p>
+              <p className="text-sm font-semibold text-yellow-300">Sample Data — Analysis is running on demo data</p>
+              <p className="text-xs mt-0.5" style={{ color: '#9CA3AF' }}>Add a profile and events on the dashboard and this analysis will automatically use your real data.</p>
             </div>
           </div>
         )}
 
-        <div className="mb-8">
+        {/* Header */}
+        <div className="mb-6">
           <div className="flex items-center gap-3 mb-2">
-            <Brain className="w-7 h-7 text-purple-600 shrink-0" />
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">AI Medical Research Analysis</h1>
+            <div className="flex items-center justify-center w-10 h-10 rounded-2xl shrink-0" style={{ background: 'linear-gradient(135deg,#8B5CF6,#6366F1)', boxShadow: '0 2px 12px rgba(139,92,246,0.4)' }}>
+              <Brain className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-white leading-tight">AI Medical Research</h1>
+              <p className="text-xs" style={{ color: '#6B7280' }}>Powered by Claude AI</p>
+            </div>
           </div>
-          <p className="text-gray-600">
+          <p className="text-sm mt-3" style={{ color: '#9CA3AF' }}>
             Claude reviews the complete health history and generates research questions, conditions to explore, and talking points to help you prepare for doctor appointments.
           </p>
-          <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
-            <p className="text-xs text-amber-800 leading-relaxed">
-              <strong>Research preparation tool only.</strong> This is not a medical device and does not provide diagnoses, clinical recommendations, or medical advice. All output is for appointment preparation — review everything with your licensed healthcare provider before acting on it. In an emergency, call <strong>911</strong>.
+          <div className="mt-3 rounded-xl px-4 py-3" style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.15)' }}>
+            <p className="text-xs leading-relaxed" style={{ color: '#D97706' }}>
+              <strong>Research preparation tool only.</strong> Not a medical device. Does not provide diagnoses or medical advice. All output is for appointment preparation — review with your licensed healthcare provider. In an emergency, call <strong>911</strong>.
             </p>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+        {/* Run analysis card */}
+        <div className="rounded-2xl p-5 mb-5" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Focus area for this analysis <span className="text-gray-400 font-normal">(optional)</span>
+            <label className="block text-sm font-medium mb-2" style={{ color: '#D1D5DB' }}>
+              Focus area <span className="font-normal" style={{ color: '#6B7280' }}>(optional)</span>
             </label>
             <input
               type="text"
               value={focusArea}
               onChange={e => setFocusArea(e.target.value)}
-              placeholder="e.g. Why do events happen during emotional stress? What genetic conditions fit? Is the current medication right?"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm text-gray-900 bg-white"
+              placeholder="e.g. Why do events happen during emotional stress? What genetic conditions fit?"
+              className="w-full px-4 py-3 rounded-xl text-sm text-white placeholder-gray-600 outline-none focus:ring-2 focus:ring-purple-500/50 transition-all"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
             />
           </div>
           {uploadedFiles.length > 0 && (
-            <div className="mb-4 flex items-center gap-2 text-xs text-purple-700 bg-purple-50 border border-purple-200 rounded-lg px-3 py-2">
+            <div className="mb-4 flex items-center gap-2 text-xs rounded-xl px-3 py-2" style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)', color: '#C4B5FD' }}>
               <Brain className="w-3.5 h-3.5 shrink-0" />
               {uploadedFiles.length} uploaded file{uploadedFiles.length !== 1 ? 's' : ''} will be read and included in the analysis
             </div>
@@ -166,7 +194,8 @@ export default function AIAnalysisPage() {
           <button
             onClick={runAnalysis}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 px-4 py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold text-sm sm:text-base transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-2 px-4 py-4 text-white rounded-xl font-semibold text-sm sm:text-base transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            style={{ background: 'linear-gradient(135deg,#8B5CF6,#6366F1)', boxShadow: loading ? 'none' : '0 4px 20px rgba(139,92,246,0.35)' }}
           >
             {loading ? (
               <><Loader2 className="w-5 h-5 animate-spin" /> Analyzing {patientData.name}&apos;s full history with Claude AI...</>
@@ -175,44 +204,45 @@ export default function AIAnalysisPage() {
             )}
           </button>
           {loading && (
-            <p className="text-center text-sm text-gray-500 mt-3">
+            <p className="text-center text-xs mt-3" style={{ color: '#6B7280' }}>
               Claude is reading all events, notes, triggers, medications{uploadedFiles.length > 0 ? `, and ${uploadedFiles.length} uploaded file${uploadedFiles.length !== 1 ? 's' : ''}` : ''} — this takes 15–30 seconds
             </p>
           )}
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 text-red-700">
+          <div className="rounded-xl p-4 mb-5 text-sm" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#FCA5A5' }}>
             <strong>Error:</strong> {error}
           </div>
         )}
 
         {analysis && (
           <div>
-            <div className="bg-red-50 border-l-4 border-red-500 rounded-r-xl p-4 mb-6">
-              <div className="text-xs font-bold text-red-500 uppercase mb-1">Clinical Summary</div>
-              <div className="text-red-900 font-semibold">{analysis.doctorBriefing?.oneLineSummary}</div>
+            {/* Clinical summary banner */}
+            <div className="rounded-2xl p-4 mb-5" style={{ background: 'rgba(239,68,68,0.12)', borderLeft: '3px solid #EF4444', borderRight: '1px solid rgba(239,68,68,0.2)', borderTop: '1px solid rgba(239,68,68,0.2)', borderBottom: '1px solid rgba(239,68,68,0.2)' }}>
+              <div className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: '#F87171' }}>Clinical Summary</div>
+              <div className="font-semibold text-white">{analysis.doctorBriefing?.oneLineSummary}</div>
             </div>
 
-            <Section title="Conditions to Research & Discuss with Your Doctor" icon={<Search className="w-5 h-5 text-purple-600" />}>
-              <div className="space-y-4 pt-4">
+            <Section title="Conditions to Research & Discuss with Your Doctor" icon={<Search className="w-5 h-5" style={{ color: '#A78BFA' }} />}>
+              <div className="space-y-3 pt-4">
                 {analysis.topDiagnoses?.map((d, i) => (
-                  <div key={i} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="font-semibold text-gray-900">{d.name}</div>
-                      <span className={`text-xs font-bold px-2 py-1 rounded ${likelihoodColor(d.likelihood)}`}>{d.likelihood}</span>
+                  <div key={i} className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <div className="flex items-start justify-between mb-2 gap-2">
+                      <div className="font-semibold text-white">{d.name}</div>
+                      <span className={`text-xs font-bold px-2 py-1 rounded-lg shrink-0 ${likelihoodColor(d.likelihood)}`}>{d.likelihood}</span>
                     </div>
-                    <p className="text-sm text-gray-700 mb-3">{d.reasoning}</p>
+                    <p className="text-sm mb-3" style={{ color: '#9CA3AF' }}>{d.reasoning}</p>
                     {d.keyEvidence?.length > 0 && (
                       <div className="mb-2">
-                        <div className="text-xs font-semibold text-gray-500 mb-1">Key Evidence:</div>
-                        <ul className="text-sm text-gray-600 space-y-0.5">{d.keyEvidence.map((e, j) => <li key={j} className="flex gap-2"><span className="text-purple-500">•</span>{e}</li>)}</ul>
+                        <div className="text-xs font-semibold mb-1" style={{ color: '#6B7280' }}>Key Evidence:</div>
+                        <ul className="space-y-0.5">{d.keyEvidence.map((e, j) => <li key={j} className="flex gap-2 text-sm" style={{ color: '#D1D5DB' }}><span style={{ color: '#A78BFA' }}>•</span>{e}</li>)}</ul>
                       </div>
                     )}
                     {d.missedClues?.length > 0 && (
-                      <div className="bg-yellow-50 rounded p-2">
-                        <div className="text-xs font-semibold text-yellow-700 mb-1">Supporting details from your notes:</div>
-                        <ul className="text-sm text-yellow-800 space-y-0.5">{d.missedClues.map((c, j) => <li key={j} className="flex gap-2"><span>→</span>{c}</li>)}</ul>
+                      <div className="rounded-lg p-3" style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.15)' }}>
+                        <div className="text-xs font-semibold mb-1" style={{ color: '#FCD34D' }}>Supporting details from your notes:</div>
+                        <ul className="space-y-0.5">{d.missedClues.map((c, j) => <li key={j} className="flex gap-2 text-sm" style={{ color: '#FDE68A' }}><span>→</span>{c}</li>)}</ul>
                       </div>
                     )}
                   </div>
@@ -220,101 +250,104 @@ export default function AIAnalysisPage() {
               </div>
             </Section>
 
-            <Section title="Observations to Raise with Your Care Team" icon={<AlertTriangle className="w-5 h-5 text-orange-500" />}>
+            <Section title="Observations to Raise with Your Care Team" icon={<AlertTriangle className="w-5 h-5 text-orange-400" />}>
               <div className="space-y-3 pt-4">
                 {analysis.whatDoctorsMayHaveMissed?.map((item, i) => (
-                  <div key={i} className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                    <div className="font-semibold text-orange-900 mb-1">{item.observation}</div>
-                    <div className="text-sm text-orange-800 mb-1">{item.significance}</div>
-                    <div className="text-xs text-orange-600">From: {item.source}</div>
+                  <div key={i} className="rounded-xl p-4" style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.2)' }}>
+                    <div className="font-semibold mb-1" style={{ color: '#FED7AA' }}>{item.observation}</div>
+                    <div className="text-sm mb-1" style={{ color: '#FDBA74' }}>{item.significance}</div>
+                    <div className="text-xs" style={{ color: '#9CA3AF' }}>From: {item.source}</div>
                   </div>
                 ))}
               </div>
             </Section>
 
-            <Section title="Tests to Ask Your Doctor About" icon={<ClipboardList className="w-5 h-5 text-blue-600" />}>
+            <Section title="Tests to Ask Your Doctor About" icon={<ClipboardList className="w-5 h-5 text-blue-400" />}>
               <div className="space-y-3 pt-4">
                 {analysis.recommendedTests?.map((t, i) => (
-                  <div key={i} className="flex gap-4 items-start border-b border-gray-100 pb-3 last:border-0 last:pb-0">
-                    <span className={`text-xs font-bold px-2 py-1 rounded shrink-0 mt-0.5 ${urgencyColor(t.urgency)}`}>{t.urgency}</span>
+                  <div key={i} className="flex gap-4 items-start pb-3 last:pb-0" style={{ borderBottom: i < (analysis.recommendedTests?.length ?? 1) - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
+                    <span className={`text-xs font-bold px-2 py-1 rounded-lg shrink-0 mt-0.5 ${urgencyColor(t.urgency)}`}>{t.urgency}</span>
                     <div>
-                      <div className="font-semibold text-gray-900">{t.test}</div>
-                      <div className="text-sm text-gray-600">{t.reason}</div>
-                      <div className="text-xs text-gray-400 mt-0.5">Order via: {t.specialist}</div>
+                      <div className="font-semibold text-white">{t.test}</div>
+                      <div className="text-sm" style={{ color: '#9CA3AF' }}>{t.reason}</div>
+                      <div className="text-xs mt-0.5" style={{ color: '#6B7280' }}>Order via: {t.specialist}</div>
                     </div>
                   </div>
                 ))}
               </div>
             </Section>
 
-            <Section title="Similar Cases & Research" icon={<Lightbulb className="w-5 h-5 text-yellow-500" />} defaultOpen={false}>
+            <Section title="Similar Cases & Research" icon={<Lightbulb className="w-5 h-5 text-yellow-400" />} defaultOpen={false}>
               <div className="space-y-3 pt-4">
                 {analysis.similarCasesAndResearch?.map((r, i) => (
-                  <div key={i} className="border border-gray-200 rounded-lg p-4">
-                    <div className="font-semibold text-gray-900 mb-1">{r.title}</div>
-                    <div className="text-sm text-gray-700 mb-1">{r.relevance}</div>
-                    <div className="text-xs text-gray-500 italic">{r.source}</div>
+                  <div key={i} className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <div className="font-semibold text-white mb-1">{r.title}</div>
+                    <div className="text-sm mb-1" style={{ color: '#9CA3AF' }}>{r.relevance}</div>
+                    <div className="text-xs italic" style={{ color: '#6B7280' }}>{r.source}</div>
                   </div>
                 ))}
               </div>
             </Section>
 
-            <Section title="Trigger Patterns & Avoidance" icon={<HeartPulse className="w-5 h-5 text-red-500" />} defaultOpen={false}>
+            <Section title="Trigger Patterns & Avoidance" icon={<HeartPulse className="w-5 h-5 text-red-400" />} defaultOpen={false}>
               <div className="pt-4 space-y-4">
                 {analysis.triggerPatterns?.identified?.length > 0 && (
                   <div>
-                    <div className="text-sm font-semibold text-gray-700 mb-2">Identified Patterns:</div>
-                    <ul className="space-y-1">{analysis.triggerPatterns.identified.map((p, i) => <li key={i} className="text-sm text-gray-700 flex gap-2"><span className="text-red-500">•</span>{p}</li>)}</ul>
+                    <div className="text-sm font-semibold mb-2" style={{ color: '#D1D5DB' }}>Identified Patterns:</div>
+                    <ul className="space-y-1">{analysis.triggerPatterns.identified.map((p, i) => <li key={i} className="flex gap-2 text-sm" style={{ color: '#9CA3AF' }}><span className="text-red-400">•</span>{p}</li>)}</ul>
                   </div>
                 )}
                 {analysis.triggerPatterns?.avoidanceRecommendations?.length > 0 && (
                   <div>
-                    <div className="text-sm font-semibold text-gray-700 mb-2">Avoidance Recommendations:</div>
-                    <ul className="space-y-1">{analysis.triggerPatterns.avoidanceRecommendations.map((r, i) => <li key={i} className="text-sm text-gray-700 flex gap-2"><span className="text-orange-500">→</span>{r}</li>)}</ul>
+                    <div className="text-sm font-semibold mb-2" style={{ color: '#D1D5DB' }}>Avoidance Recommendations:</div>
+                    <ul className="space-y-1">{analysis.triggerPatterns.avoidanceRecommendations.map((r, i) => <li key={i} className="flex gap-2 text-sm" style={{ color: '#9CA3AF' }}><span className="text-orange-400">→</span>{r}</li>)}</ul>
                   </div>
                 )}
               </div>
             </Section>
 
-            <Section title="Doctor Briefing — Questions to Ask" icon={<Shield className="w-5 h-5 text-green-600" />}>
+            <Section title="Doctor Briefing — Questions to Ask" icon={<Shield className="w-5 h-5 text-green-400" />}>
               <div className="pt-4 space-y-4">
                 {analysis.doctorBriefing?.criticalHistory?.length > 0 && (
                   <div>
-                    <div className="text-sm font-semibold text-gray-700 mb-2">Critical History (share with every new doctor):</div>
-                    <ul className="space-y-1">{analysis.doctorBriefing.criticalHistory.map((h, i) => <li key={i} className="text-sm text-gray-700 flex gap-2"><span className="text-blue-500">•</span>{h}</li>)}</ul>
+                    <div className="text-sm font-semibold mb-2" style={{ color: '#D1D5DB' }}>Critical History (share with every new doctor):</div>
+                    <ul className="space-y-1">{analysis.doctorBriefing.criticalHistory.map((h, i) => <li key={i} className="flex gap-2 text-sm" style={{ color: '#9CA3AF' }}><span className="text-blue-400">•</span>{h}</li>)}</ul>
                   </div>
                 )}
                 {analysis.doctorBriefing?.questionsToAsk?.length > 0 && (
                   <div>
-                    <div className="text-sm font-semibold text-gray-700 mb-2">Questions to Ask This Doctor:</div>
-                    <ul className="space-y-2">{analysis.doctorBriefing.questionsToAsk.map((q, i) => <li key={i} className="bg-blue-50 border border-blue-200 rounded p-2 text-sm text-blue-900">"{q}"</li>)}</ul>
+                    <div className="text-sm font-semibold mb-2" style={{ color: '#D1D5DB' }}>Questions to Ask This Doctor:</div>
+                    <ul className="space-y-2">{analysis.doctorBriefing.questionsToAsk.map((q, i) => (
+                      <li key={i} className="rounded-xl p-3 text-sm" style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', color: '#93C5FD' }}>&ldquo;{q}&rdquo;</li>
+                    ))}</ul>
                   </div>
                 )}
                 {analysis.doctorBriefing?.medicationsToDiscuss?.length > 0 && (
                   <div>
-                    <div className="text-sm font-semibold text-gray-700 mb-2">Medications to Discuss:</div>
-                    <ul className="space-y-1">{analysis.doctorBriefing.medicationsToDiscuss.map((m, i) => <li key={i} className="text-sm text-gray-700 flex gap-2"><span className="text-green-500">💊</span>{m}</li>)}</ul>
+                    <div className="text-sm font-semibold mb-2" style={{ color: '#D1D5DB' }}>Medications to Discuss:</div>
+                    <ul className="space-y-1">{analysis.doctorBriefing.medicationsToDiscuss.map((m, i) => <li key={i} className="flex gap-2 text-sm" style={{ color: '#9CA3AF' }}><span>💊</span>{m}</li>)}</ul>
                   </div>
                 )}
               </div>
             </Section>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 mt-4">
-              <div className="text-sm font-semibold text-blue-800 mb-3">For You — {patientData.name}&apos;s Health</div>
+            {/* Parent guidance */}
+            <div className="rounded-2xl p-5 mt-2" style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)' }}>
+              <div className="text-sm font-semibold mb-3" style={{ color: '#93C5FD' }}>For You — {patientData.name}&apos;s Health</div>
               {analysis.parentGuidance?.immediateActions?.length > 0 && (
                 <div className="mb-3">
-                  <div className="text-xs font-bold text-blue-700 mb-1">RIGHT NOW:</div>
-                  <ul className="space-y-1">{analysis.parentGuidance.immediateActions.map((a, i) => <li key={i} className="text-sm text-blue-800 flex gap-2"><span>→</span>{a}</li>)}</ul>
+                  <div className="text-xs font-bold mb-1" style={{ color: '#60A5FA' }}>RIGHT NOW:</div>
+                  <ul className="space-y-1">{analysis.parentGuidance.immediateActions.map((a, i) => <li key={i} className="flex gap-2 text-sm" style={{ color: '#BFDBFE' }}><span>→</span>{a}</li>)}</ul>
                 </div>
               )}
               {analysis.parentGuidance?.monitoringTips?.length > 0 && (
                 <div className="mb-3">
-                  <div className="text-xs font-bold text-blue-700 mb-1">TRACK FOR NEXT APPOINTMENT:</div>
-                  <ul className="space-y-1">{analysis.parentGuidance.monitoringTips.map((t, i) => <li key={i} className="text-sm text-blue-800 flex gap-2"><span>•</span>{t}</li>)}</ul>
+                  <div className="text-xs font-bold mb-1" style={{ color: '#60A5FA' }}>TRACK FOR NEXT APPOINTMENT:</div>
+                  <ul className="space-y-1">{analysis.parentGuidance.monitoringTips.map((t, i) => <li key={i} className="flex gap-2 text-sm" style={{ color: '#BFDBFE' }}><span>•</span>{t}</li>)}</ul>
                 </div>
               )}
               {analysis.parentGuidance?.emotionalSupport && (
-                <p className="text-sm text-blue-700 italic">{analysis.parentGuidance.emotionalSupport}</p>
+                <p className="text-sm italic" style={{ color: '#93C5FD' }}>{analysis.parentGuidance.emotionalSupport}</p>
               )}
             </div>
           </div>

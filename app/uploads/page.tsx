@@ -38,16 +38,15 @@ function formatSize(bytes: number) {
 }
 
 function FileIcon({ type }: { type: string }) {
-  if (type.startsWith('image/')) return <FileImage className="w-8 h-8 text-blue-500" />;
-  if (type === 'application/pdf') return <FileText className="w-8 h-8 text-red-500" />;
-  return <File className="w-8 h-8 text-gray-500" />;
+  if (type.startsWith('image/')) return <FileImage className="w-8 h-8" style={{ color: '#60A5FA' }} />;
+  if (type === 'application/pdf') return <FileText className="w-8 h-8" style={{ color: '#F87171' }} />;
+  return <File className="w-8 h-8" style={{ color: '#9CA3AF' }} />;
 }
 
 export default function UploadsPage() {
   const { activeId, personQuery } = usePersonContext();
   const [uploads, setUploads] = useState<UploadedFile[]>([]);
   const [uploadsLoading, setUploadsLoading] = useState(true);
-  // Full patient + events context for AI analysis
   const [patientData, setPatientData] = useState<any>(null);
   const [eventsData, setEventsData] = useState<any[]>([]);
   const [dragging, setDragging] = useState(false);
@@ -63,7 +62,6 @@ export default function UploadsPage() {
   const [consentAccepted, setConsentAccepted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load existing uploads + patient/events context — reload when active person changes
   useEffect(() => {
     setUploadsLoading(true);
     Promise.all([
@@ -138,7 +136,6 @@ export default function UploadsPage() {
   const analyzeWithAI = async (upload: UploadedFile) => {
     setAnalyzingId(upload.id);
     try {
-      // Build patient context — use real data if available, minimal fallback otherwise
       const patient = patientData ?? { name: 'your patient', age: null, primaryConcern: 'See uploaded document' };
       const recentEvents = eventsData.slice(-5);
 
@@ -154,7 +151,6 @@ export default function UploadsPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      // Use the full doctorBriefing summary — criticalHistory gives more detail than oneLineSummary alone
       const briefing = data.analysis?.doctorBriefing;
       const summary = briefing
         ? [briefing.oneLineSummary, ...(briefing.criticalHistory || [])].filter(Boolean).join(' ')
@@ -169,7 +165,6 @@ export default function UploadsPage() {
   };
 
   const removeUpload = async (id: string) => {
-    // Optimistic removal from UI
     setUploads(prev => prev.filter(u => u.id !== id));
     await fetch(`/api/uploads${personQuery}`, {
       method: 'DELETE',
@@ -179,7 +174,7 @@ export default function UploadsPage() {
   };
 
   return (
-    <div className="min-h-screen" style={{ background: '#F8FAFC' }}>
+    <div className="min-h-screen" style={{ background: 'linear-gradient(160deg,#050814 0%,#0B1120 60%,#0f172a 100%)' }}>
       {showConsent && (
         <UploadConsent
           onAccept={handleConsentAccept}
@@ -187,22 +182,31 @@ export default function UploadsPage() {
         />
       )}
       <HealthHeader />
-      <div className="max-w-3xl mx-auto px-4 py-8 pb-24 sm:pb-10">
+      <div className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-10">
 
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">Doctor Visit Uploads</h1>
-          <p className="text-gray-600 text-sm">
+        {/* Page header */}
+        <div className="mb-5">
+          <div className="flex items-center gap-3 mb-1">
+            <div className="flex items-center justify-center w-10 h-10 rounded-2xl shrink-0" style={{ background: 'linear-gradient(135deg,#3B82F6,#6366F1)', boxShadow: '0 2px 12px rgba(99,102,241,0.3)' }}>
+              <Upload className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-white leading-tight">Medical Files</h1>
+              <p className="text-xs" style={{ color: '#6B7280' }}>Lab results, ECGs, doctor notes & more</p>
+            </div>
+          </div>
+          <p className="text-sm mt-3" style={{ color: '#9CA3AF' }}>
             Upload screenshots, photos, lab results, ECGs, and doctor letters. AI can help contextualize what they mean for {patientData?.name ?? 'the person you\'re tracking'}&apos;s case.
           </p>
         </div>
 
-        {/* PII notice */}
-        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-5 flex gap-3 items-start">
-          <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+        {/* Privacy notice */}
+        <div className="rounded-2xl px-4 py-3 mb-5 flex gap-3 items-start" style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)' }}>
+          <ShieldAlert className="w-5 h-5 shrink-0 mt-0.5" style={{ color: '#FBBF24' }} />
           <div>
-            <p className="text-sm font-semibold text-amber-800">Privacy reminder before uploading</p>
-            <p className="text-xs text-amber-700 mt-0.5">
-              Only use <strong>first names</strong> — no last names, phone numbers, home addresses, or Social Security numbers.
+            <p className="text-sm font-semibold" style={{ color: '#FCD34D' }}>Privacy reminder before uploading</p>
+            <p className="text-xs mt-0.5" style={{ color: '#9CA3AF' }}>
+              Only use <strong className="text-white/80">first names</strong> — no last names, phone numbers, home addresses, or Social Security numbers.
               For PDFs and images, black out or blur sensitive information before uploading.
               Text files (.txt) are automatically scanned and PII is redacted on upload.
             </p>
@@ -210,13 +214,14 @@ export default function UploadsPage() {
         </div>
 
         {redactedCount !== null && redactedCount > 0 && (
-          <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 mb-4 flex gap-2 items-center text-green-800 text-sm">
-            <Check className="w-4 h-4 text-green-600 shrink-0" />
+          <div className="rounded-2xl px-4 py-3 mb-4 flex gap-2 items-center text-sm" style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', color: '#86EFAC' }}>
+            <Check className="w-4 h-4 shrink-0" style={{ color: '#4ADE80' }} />
             {redactedCount} piece{redactedCount !== 1 ? 's' : ''} of personal information were automatically redacted from the uploaded text file.
           </div>
         )}
 
-        <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+        {/* Upload card */}
+        <div className="rounded-2xl p-5 mb-5" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
           <input
             ref={fileInputRef}
             type="file"
@@ -225,38 +230,45 @@ export default function UploadsPage() {
             accept="image/*,.pdf,.txt"
           />
 
+          {/* Drop zone */}
           <div
             onDragOver={e => { e.preventDefault(); setDragging(true); }}
             onDragLeave={() => setDragging(false)}
             onDrop={handleDrop}
-            className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
-              dragging ? 'border-blue-500 bg-blue-50' :
-              pendingFile ? 'border-green-400 bg-green-50' :
-              'border-gray-300'
-            }`}
+            className="rounded-2xl p-8 text-center transition-all"
+            style={{
+              border: `2px dashed ${dragging ? '#3B82F6' : pendingFile ? '#22C55E' : 'rgba(255,255,255,0.12)'}`,
+              background: dragging ? 'rgba(59,130,246,0.08)' : pendingFile ? 'rgba(34,197,94,0.06)' : 'rgba(255,255,255,0.02)',
+            }}
           >
             {pendingFile ? (
               <div className="flex flex-col items-center gap-2">
-                <Check className="w-10 h-10 text-green-500" />
-                <div className="font-semibold text-green-800">{pendingFile.name}</div>
-                <div className="text-sm text-green-600">{formatSize(pendingFile.size)}</div>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)' }}>
+                  <Check className="w-6 h-6" style={{ color: '#4ADE80' }} />
+                </div>
+                <div className="font-semibold text-white">{pendingFile.name}</div>
+                <div className="text-sm" style={{ color: '#4ADE80' }}>{formatSize(pendingFile.size)}</div>
                 <button
                   onClick={() => setPendingFile(null)}
-                  className="text-xs text-gray-500 hover:text-red-500 mt-1 flex items-center gap-1"
+                  className="flex items-center gap-1 text-xs mt-1 transition-colors hover:text-red-400"
+                  style={{ color: '#6B7280' }}
                 >
                   <X className="w-3 h-3" /> Remove
                 </button>
               </div>
             ) : (
-              <div className="flex flex-col items-center gap-4 text-gray-500">
-                <Upload className="w-10 h-10 text-gray-400" />
+              <div className="flex flex-col items-center gap-4" style={{ color: '#6B7280' }}>
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <Upload className="w-7 h-7" style={{ color: '#9CA3AF' }} />
+                </div>
                 <div>
-                  <div className="font-semibold text-gray-700">Drag and drop a file here</div>
-                  <div className="text-sm mt-1 text-gray-500">Photos, screenshots, PDFs, lab results, ECGs — up to 10MB</div>
+                  <div className="font-semibold text-white">Drag and drop a file here</div>
+                  <div className="text-sm mt-1" style={{ color: '#6B7280' }}>Photos, screenshots, PDFs, lab results, ECGs — up to 10MB</div>
                 </div>
                 <button
                   onClick={handleBrowseClick}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm transition-colors"
+                  className="px-5 py-2.5 rounded-xl font-medium text-sm text-white transition-all"
+                  style={{ background: 'linear-gradient(135deg,#3B82F6,#6366F1)', boxShadow: '0 2px 12px rgba(99,102,241,0.3)' }}
                 >
                   Browse Files
                 </button>
@@ -264,36 +276,45 @@ export default function UploadsPage() {
             )}
           </div>
 
+          {/* Form fields */}
           {pendingFile && (
             <div className="mt-4 space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: '#D1D5DB' }}>Category</label>
                 <select
                   value={selectedCategory}
                   onChange={e => setSelectedCategory(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm text-gray-900 bg-white"
+                  className="w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
                 >
-                  {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                  {CATEGORIES.map(c => <option key={c.value} value={c.value} style={{ background: '#1E293B' }}>{c.label}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Note <span className="text-gray-400 font-normal">(optional)</span></label>
+                <label className="block text-sm font-medium mb-1" style={{ color: '#D1D5DB' }}>
+                  Note <span className="font-normal" style={{ color: '#6B7280' }}>(optional)</span>
+                </label>
                 <input
                   type="text"
                   value={note}
                   onChange={e => { setNote(e.target.value); setNoteError(''); }}
                   onBlur={e => { const w = detectPiiInText(e.target.value); if (w.length > 0) setNoteError(w[0]); }}
                   placeholder="e.g. Dr. Sarah visit Nov 20, QTc result was 520ms"
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm text-gray-900 bg-white ${noteError ? 'border-red-400' : 'border-gray-300'}`}
+                  className="w-full px-3 py-2.5 rounded-xl text-sm text-white placeholder-gray-600 outline-none focus:ring-2 transition-all"
+                  style={{
+                    background: 'rgba(255,255,255,0.06)',
+                    border: `1px solid ${noteError ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.1)'}`,
+                  }}
                 />
                 {noteError
-                  ? <p className="text-xs text-red-600 mt-1">⚠ {noteError}</p>
-                  : <p className="text-xs text-gray-400 mt-1">First names only — no last names, phone numbers, or addresses</p>}
+                  ? <p className="text-xs mt-1" style={{ color: '#F87171' }}>⚠ {noteError}</p>
+                  : <p className="text-xs mt-1" style={{ color: '#4B5563' }}>First names only — no last names, phone numbers, or addresses</p>}
               </div>
               <button
                 onClick={handleUpload}
                 disabled={uploading}
-                className="w-full flex items-center justify-center gap-2 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold disabled:opacity-60"
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm text-white disabled:opacity-60 transition-all"
+                style={{ background: 'linear-gradient(135deg,#3B82F6,#6366F1)', boxShadow: uploading ? 'none' : '0 2px 12px rgba(99,102,241,0.3)' }}
               >
                 {uploading ? <><Loader2 className="w-4 h-4 animate-spin" /> Uploading...</> : <><Upload className="w-4 h-4" /> Upload File</>}
               </button>
@@ -302,58 +323,73 @@ export default function UploadsPage() {
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4 flex gap-2 text-red-700 text-sm">
+          <div className="rounded-xl p-4 mb-4 flex gap-2 text-sm" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#FCA5A5' }}>
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />{error}
           </div>
         )}
 
+        {/* File list */}
         {uploadsLoading ? (
-          <div className="flex items-center justify-center py-12 gap-2 text-gray-400">
+          <div className="flex items-center justify-center py-12 gap-2" style={{ color: '#6B7280' }}>
             <Loader2 className="w-5 h-5 animate-spin" />
-            <span className="text-sm">Loading your uploads…</span>
+            <span className="text-sm">Loading your files…</span>
           </div>
         ) : uploads.length > 0 ? (
           <div>
-            <h2 className="text-lg font-semibold text-gray-800 mb-3">Uploaded Documents ({uploads.length})</h2>
+            <h2 className="text-sm font-semibold mb-3" style={{ color: '#9CA3AF' }}>
+              Uploaded Documents ({uploads.length})
+            </h2>
             <div className="space-y-3">
               {uploads.map(upload => (
-                <div key={upload.id} className="bg-white rounded-xl border border-gray-200 p-4">
+                <div key={upload.id} className="rounded-2xl p-4 transition-all" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
                   <div className="flex items-start gap-4">
                     <FileIcon type={upload.type} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <div className="font-semibold text-gray-900 truncate">{upload.originalName}</div>
-                          <div className="text-xs text-gray-500 mt-0.5 flex gap-3">
+                        <div className="min-w-0">
+                          <div className="font-semibold text-white truncate">{upload.originalName}</div>
+                          <div className="text-xs mt-0.5 flex flex-wrap gap-2" style={{ color: '#6B7280' }}>
                             <span>{CATEGORIES.find(c => c.value === upload.category)?.label || upload.category}</span>
                             <span>{formatSize(upload.size)}</span>
                             <span>{new Date(upload.uploadedAt).toLocaleString()}</span>
                           </div>
-                          {upload.note && <div className="text-sm text-gray-600 mt-1 italic">"{upload.note}"</div>}
+                          {upload.note && <div className="text-sm mt-1 italic" style={{ color: '#9CA3AF' }}>&ldquo;{upload.note}&rdquo;</div>}
                         </div>
-                        <button onClick={() => removeUpload(upload.id)} className="text-gray-400 hover:text-red-500 shrink-0">
+                        <button
+                          onClick={() => removeUpload(upload.id)}
+                          className="shrink-0 transition-colors hover:text-red-400"
+                          style={{ color: '#4B5563' }}
+                        >
                           <X className="w-4 h-4" />
                         </button>
                       </div>
 
                       {upload.aiSummary && (
-                        <div className="mt-3 bg-purple-50 border border-purple-200 rounded-lg p-3">
-                          <div className="text-xs font-bold text-purple-700 mb-1">AI Context</div>
-                          <div className="text-sm text-purple-900">{upload.aiSummary}</div>
+                        <div className="mt-3 rounded-xl p-3" style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)' }}>
+                          <div className="text-xs font-bold mb-1" style={{ color: '#A78BFA' }}>AI Context</div>
+                          <div className="text-sm" style={{ color: '#DDD6FE' }}>{upload.aiSummary}</div>
                         </div>
                       )}
 
                       <div className="mt-3 flex gap-2">
-                        <a href={upload.url} target="_blank" rel="noopener noreferrer"
-                          className="text-xs px-3 py-1.5 border border-gray-300 text-gray-600 hover:bg-gray-50 rounded-lg">
+                        <a
+                          href={upload.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs px-3 py-1.5 rounded-lg transition-colors"
+                          style={{ border: '1px solid rgba(255,255,255,0.12)', color: '#9CA3AF' }}
+                        >
                           View File
                         </a>
                         <button
                           onClick={() => analyzeWithAI(upload)}
                           disabled={analyzingId === upload.id}
-                          className="text-xs px-3 py-1.5 border border-purple-300 text-purple-700 hover:bg-purple-50 rounded-lg flex items-center gap-1 disabled:opacity-60"
+                          className="text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors disabled:opacity-60"
+                          style={{ border: '1px solid rgba(139,92,246,0.3)', color: '#A78BFA' }}
                         >
-                          {analyzingId === upload.id ? <><Loader2 className="w-3 h-3 animate-spin" /> Analyzing...</> : <><Brain className="w-3 h-3" /> AI Context</>}
+                          {analyzingId === upload.id
+                            ? <><Loader2 className="w-3 h-3 animate-spin" /> Analyzing...</>
+                            : <><Brain className="w-3 h-3" /> AI Context</>}
                         </button>
                       </div>
                     </div>
@@ -363,10 +399,12 @@ export default function UploadsPage() {
             </div>
           </div>
         ) : (
-          <div className="text-center py-12 text-gray-400">
-            <FileImage className="w-12 h-12 mx-auto mb-3 opacity-40" />
-            <div className="font-medium">No documents uploaded yet</div>
-            <div className="text-sm mt-1">Start by uploading a photo of a lab result, ECG, or doctor's note</div>
+          <div className="text-center py-16" style={{ color: '#4B5563' }}>
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <FileImage className="w-8 h-8" style={{ color: '#374151' }} />
+            </div>
+            <div className="font-medium" style={{ color: '#6B7280' }}>No documents uploaded yet</div>
+            <div className="text-sm mt-1" style={{ color: '#4B5563' }}>Start by uploading a photo of a lab result, ECG, or doctor&apos;s note</div>
           </div>
         )}
       </div>

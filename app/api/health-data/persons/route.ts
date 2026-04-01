@@ -16,22 +16,23 @@ export async function POST(req: NextRequest) {
   const session = await getSessionFromRequest(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { name, ageGroup, id } = await req.json();
+  const { name, ageGroup, id, currentPersons } = await req.json();
   if (!name || !ageGroup) {
     return NextResponse.json({ error: 'Name and age group are required.' }, { status: 400 });
   }
 
-  const persons = await getPersons(session.userId);
-
   if (id) {
-    // Update existing
-    const updated = persons.map(p => p.id === id ? { ...p, name: name.trim(), ageGroup } : p);
+    // Update existing — client sends full current list as base
+    const base: TrackedPerson[] = Array.isArray(currentPersons) ? currentPersons : await getPersons(session.userId);
+    const updated = base.map(p => p.id === id ? { ...p, name: name.trim(), ageGroup } : p);
     await savePersons(session.userId, updated);
     return NextResponse.json({ success: true, persons: updated });
   }
 
-  // Add new
-  if (persons.length >= 10) {
+  // Add new — use client-provided list to avoid CDN stale-read race condition
+  const base: TrackedPerson[] = Array.isArray(currentPersons) ? currentPersons : await getPersons(session.userId);
+
+  if (base.length >= 10) {
     return NextResponse.json({ error: 'Maximum of 10 people per account.' }, { status: 400 });
   }
 
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
     name: name.trim().split(/\s+/)[0], // first name only
     ageGroup,
   };
-  const updated = [...persons, newPerson];
+  const updated = [...base, newPerson];
   await savePersons(session.userId, updated);
   return NextResponse.json({ success: true, person: newPerson, persons: updated });
 }

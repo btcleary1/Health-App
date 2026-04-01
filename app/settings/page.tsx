@@ -147,7 +147,7 @@ export default function SettingsPage() {
     setPersonSaving(true);
     setPersonMessage(null);
     try {
-      const body: Record<string, string> = { name: newPersonName, ageGroup: newPersonAgeGroup };
+      const body: Record<string, unknown> = { name: newPersonName, ageGroup: newPersonAgeGroup, currentPersons: persons };
       if (editingPerson) body.id = editingPerson.id;
       const res = await fetch('/api/health-data/persons', {
         method: 'POST',
