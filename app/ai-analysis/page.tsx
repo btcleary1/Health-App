@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react';
 import HealthHeader from '@/components/HealthHeader';
 import HIPAAFooter from '@/components/HIPAAFooter';
 import { Brain, Loader2, ChevronDown, ChevronUp, AlertTriangle, Search, ClipboardList, Lightbulb, HeartPulse, Shield } from 'lucide-react';
-import { useActivePerson } from '@/lib/useActivePerson';
-import PersonSelector from '@/components/PersonSelector';
+import { usePersonContext } from '@/lib/PersonContext';
 
 const SAMPLE_PATIENT_DATA = {
   name: 'Ethan Alvarez',
@@ -57,7 +56,7 @@ const likelihoodColor = (l: string) => l === 'High' ? 'bg-red-100 text-red-700' 
 const urgencyColor = (u: string) => u === 'Immediate' ? 'bg-red-100 text-red-700' : u === 'Soon' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700';
 
 export default function AIAnalysisPage() {
-  const { persons, activeId, setActiveId, personQuery } = useActivePerson();
+  const { activeId, personQuery } = usePersonContext();
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [error, setError] = useState('');
@@ -130,14 +129,9 @@ export default function AIAnalysisPage() {
         )}
 
         <div className="mb-8">
-          <div className="flex items-start justify-between gap-3 mb-2">
-            <div className="flex items-center gap-3">
-              <Brain className="w-7 h-7 text-purple-600 shrink-0" />
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">AI Medical Research Analysis</h1>
-            </div>
-            {persons.length > 0 && (
-              <PersonSelector persons={persons} activeId={activeId} onChange={(id) => { setActiveId(id); }} />
-            )}
+          <div className="flex items-center gap-3 mb-2">
+            <Brain className="w-7 h-7 text-purple-600 shrink-0" />
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">AI Medical Research Analysis</h1>
           </div>
           <p className="text-gray-600">
             Claude reviews the complete health history and generates research questions, conditions to explore, and talking points to help you prepare for doctor appointments.

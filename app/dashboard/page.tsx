@@ -6,8 +6,7 @@ import { useRouter } from 'next/navigation';
 import HealthHeader from '@/components/HealthHeader';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, ReferenceLine, Legend } from 'recharts';
 import { detectPiiInText, validateDoctorName } from '@/lib/pii-validator';
-import { useActivePerson } from '@/lib/useActivePerson';
-import PersonSelector from '@/components/PersonSelector';
+import { usePersonContext } from '@/lib/PersonContext';
 
 interface CareTeamMember {
   name: string;
@@ -137,7 +136,7 @@ const SAMPLE_DOCTOR_VISITS: DoctorVisit[] = [
 
 export default function HealthDashboard() {
   const router = useRouter();
-  const { persons, activeId, setActiveId, personQuery } = useActivePerson();
+  const { persons, activeId, personQuery } = usePersonContext();
   const [mounted, setMounted] = useState(false);
   const [showNewEventForm, setShowNewEventForm] = useState(false);
   const [showVisitForm, setShowVisitForm] = useState(false);
@@ -657,14 +656,6 @@ export default function HealthDashboard() {
               </div>
             </div>
             <a href="/settings" className="shrink-0 text-xs font-semibold text-amber-800 underline whitespace-nowrap mt-0.5">Set Up Profile →</a>
-          </div>
-        )}
-
-        {/* ── Person selector (multi-person) ── */}
-        {persons.length > 0 && (
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">Viewing</span>
-            <PersonSelector persons={persons} activeId={activeId} onChange={setActiveId} />
           </div>
         )}
 

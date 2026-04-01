@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import HealthHeader from '@/components/HealthHeader';
 import HIPAAFooter from '@/components/HIPAAFooter';
 import { Printer, Brain, Loader2, AlertTriangle, ClipboardList, HeartPulse, User } from 'lucide-react';
+import { usePersonContext } from '@/lib/PersonContext';
 
 const SAMPLE_PATIENT = {
   name: 'Ethan Alvarez', age: 7, dob: 'March 14, 2016',
@@ -40,6 +41,7 @@ function eventsToSummary(events: any[]) {
 }
 
 export default function DoctorBriefingPage() {
+  const { activeId, personQuery } = usePersonContext();
   const [aiSummary, setAiSummary] = useState('');
   const [loadingAI, setLoadingAI] = useState(false);
   const [error, setError] = useState('');
@@ -53,9 +55,11 @@ export default function DoctorBriefingPage() {
   const [isSample, setIsSample] = useState(true);
 
   useEffect(() => {
+    setIsSample(true);
+    setAiSummary('');
     Promise.all([
-      fetch('/api/health-data/patient').then(r => r.json()).catch(() => ({})),
-      fetch('/api/health-data/events').then(r => r.json()).catch(() => ({})),
+      fetch(`/api/health-data/patient${personQuery}`).then(r => r.json()).catch(() => ({})),
+      fetch(`/api/health-data/events${personQuery}`).then(r => r.json()).catch(() => ({})),
     ]).then(([pd, ev]) => {
       const hasPatient = pd.patient?.name;
       const hasEvents = Array.isArray(ev.events) && ev.events.length > 0;
@@ -89,7 +93,7 @@ export default function DoctorBriefingPage() {
         setIsSample(false);
       }
     });
-  }, []);
+  }, [activeId, personQuery]);
 
   const generateAISummary = async () => {
     setLoadingAI(true);

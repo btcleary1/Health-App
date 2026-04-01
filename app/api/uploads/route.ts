@@ -9,14 +9,15 @@ export const runtime = 'nodejs';
 export async function GET(req: NextRequest) {
   const session = await getSessionFromRequest(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const files = await getUploadManifest(session.userId);
+  const personId = req.nextUrl.searchParams.get('personId') ?? undefined;
+  const files = await getUploadManifest(session.userId, personId);
   return NextResponse.json({ files });
 }
 
 export async function POST(req: NextRequest) {
   const session = await getSessionFromRequest(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const personId = req.nextUrl.searchParams.get('personId') ?? undefined;
 
   try {
     const formData = await req.formData();
@@ -71,8 +72,8 @@ export async function POST(req: NextRequest) {
     };
 
     // Persist metadata to manifest
-    const existing = await getUploadManifest(session.userId) as typeof fileRecord[];
-    await saveUploadManifest(session.userId, [fileRecord, ...existing]);
+    const existing = await getUploadManifest(session.userId, personId) as typeof fileRecord[];
+    await saveUploadManifest(session.userId, [fileRecord, ...existing], personId);
 
     return NextResponse.json({ success: true, redactedCount, file: fileRecord });
   } catch (error: unknown) {
@@ -84,20 +85,19 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const session = await getSessionFromRequest(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const personId = req.nextUrl.searchParams.get('personId') ?? undefined;
 
   const { fileId } = await req.json();
   if (!fileId) return NextResponse.json({ error: 'fileId required' }, { status: 400 });
 
-  const manifest = await getUploadManifest(session.userId) as { id: string; url: string; blobPath?: string }[];
+  const manifest = await getUploadManifest(session.userId, personId) as { id: string; url: string; blobPath?: string }[];
   const target = manifest.find(f => f.id === fileId);
   if (!target) return NextResponse.json({ error: 'File not found' }, { status: 404 });
 
-  // Delete the actual blob
   try { await del(target.url); } catch { /* ignore if already gone */ }
 
-  // Remove from manifest
   const updated = manifest.filter(f => f.id !== fileId);
-  await saveUploadManifest(session.userId, updated);
+  await saveUploadManifest(session.userId, updated, personId);
 
   return NextResponse.json({ success: true });
 }

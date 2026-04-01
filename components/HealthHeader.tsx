@@ -4,6 +4,8 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Activity, LayoutDashboard, Brain, Clipboard, Upload, LogOut, Settings } from 'lucide-react';
+import { usePersonContext } from '@/lib/PersonContext';
+import PersonSelector from '@/components/PersonSelector';
 
 const navItems = [
   { href: '/dashboard',       label: 'Dashboard', icon: LayoutDashboard },
@@ -14,6 +16,7 @@ const navItems = [
 
 export default function HealthHeader() {
   const pathname = usePathname();
+  const { persons, activeId, setActiveId } = usePersonContext();
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -73,6 +76,11 @@ export default function HealthHeader() {
                 })}
               </nav>
 
+              {/* Person selector — desktop */}
+              {persons.length > 0 && (
+                <PersonSelector persons={persons} activeId={activeId} onChange={setActiveId} />
+              )}
+
               <Link
                 href="/settings"
                 title="Settings"
@@ -96,8 +104,11 @@ export default function HealthHeader() {
               </button>
             </div>
 
-            {/* Mobile top-right: settings + logout */}
-            <div className="sm:hidden flex items-center gap-0.5">
+            {/* Mobile top-right: person selector + settings + logout */}
+            <div className="sm:hidden flex items-center gap-1">
+              {persons.length > 0 && (
+                <PersonSelector persons={persons} activeId={activeId} onChange={setActiveId} />
+              )}
               <Link
                 href="/settings"
                 title="Settings"

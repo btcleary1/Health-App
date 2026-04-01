@@ -5,6 +5,7 @@ import HealthHeader from '@/components/HealthHeader';
 import HIPAAFooter from '@/components/HIPAAFooter';
 import UploadConsent from '@/components/UploadConsent';
 import { Upload, FileImage, FileText, File, X, Check, AlertCircle, Brain, Loader2, ShieldAlert } from 'lucide-react';
+import { usePersonContext } from '@/lib/PersonContext';
 import { detectPiiInText } from '@/lib/pii-validator';
 
 const CATEGORIES = [
@@ -43,6 +44,7 @@ function FileIcon({ type }: { type: string }) {
 }
 
 export default function UploadsPage() {
+  const { activeId, personQuery } = usePersonContext();
   const [uploads, setUploads] = useState<UploadedFile[]>([]);
   const [uploadsLoading, setUploadsLoading] = useState(true);
   // Full patient + events context for AI analysis
@@ -61,18 +63,19 @@ export default function UploadsPage() {
   const [consentAccepted, setConsentAccepted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load existing uploads + patient/events context on mount
+  // Load existing uploads + patient/events context — reload when active person changes
   useEffect(() => {
+    setUploadsLoading(true);
     Promise.all([
-      fetch('/api/uploads').then(r => r.json()).catch(() => ({ files: [] })),
-      fetch('/api/health-data/patient').then(r => r.json()).catch(() => ({})),
-      fetch('/api/health-data/events').then(r => r.json()).catch(() => ({ events: [] })),
+      fetch(`/api/uploads${personQuery}`).then(r => r.json()).catch(() => ({ files: [] })),
+      fetch(`/api/health-data/patient${personQuery}`).then(r => r.json()).catch(() => ({})),
+      fetch(`/api/health-data/events${personQuery}`).then(r => r.json()).catch(() => ({ events: [] })),
     ]).then(([uploadData, pd, ev]) => {
       if (Array.isArray(uploadData.files)) setUploads(uploadData.files);
       if (pd.patient) setPatientData(pd.patient);
       if (Array.isArray(ev.events)) setEventsData(ev.events);
     }).finally(() => setUploadsLoading(false));
-  }, []);
+  }, [activeId, personQuery]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -115,7 +118,7 @@ export default function UploadsPage() {
       formData.append('category', selectedCategory);
       formData.append('note', note);
 
-      const res = await fetch('/api/uploads', { method: 'POST', body: formData });
+      const res = await fetch(`/api/uploads${personQuery}`, { method: 'POST', body: formData });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
@@ -168,8 +171,7 @@ export default function UploadsPage() {
   const removeUpload = async (id: string) => {
     // Optimistic removal from UI
     setUploads(prev => prev.filter(u => u.id !== id));
-    // Delete from server
-    await fetch('/api/uploads', {
+    await fetch(`/api/uploads${personQuery}`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fileId: id }),
