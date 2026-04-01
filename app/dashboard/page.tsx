@@ -826,6 +826,7 @@ export default function HealthDashboard() {
                       value={newEvent.duration}
                       onChange={(e) => updateNewEvent('duration', e.target.value)}
                       placeholder="e.g., 15 minutes"
+                      style={{ color: '#111827', backgroundColor: '#ffffff' }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
@@ -837,21 +838,24 @@ export default function HealthDashboard() {
                         type="number"
                         value={newEvent.vitals?.heartRate || ''}
                         onChange={(e) => updateNewEvent('vitals', { ...newEvent.vitals, heartRate: parseInt(e.target.value) || 0 })}
-                        placeholder="HR"
+                        placeholder="HR bpm"
+                        style={{ color: '#111827', backgroundColor: '#ffffff' }}
                         className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                       <input
                         type="text"
                         value={newEvent.vitals?.bloodPressure || ''}
                         onChange={(e) => updateNewEvent('vitals', { ...newEvent.vitals, bloodPressure: e.target.value })}
-                        placeholder="BP"
+                        placeholder="BP 120/80"
+                        style={{ color: '#111827', backgroundColor: '#ffffff' }}
                         className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                       <input
                         type="number"
                         value={newEvent.vitals?.oxygen || ''}
                         onChange={(e) => updateNewEvent('vitals', { ...newEvent.vitals, oxygen: parseInt(e.target.value) || 0 })}
-                        placeholder="O2"
+                        placeholder="O2 %"
+                        style={{ color: '#111827', backgroundColor: '#ffffff' }}
                         className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
@@ -871,7 +875,7 @@ export default function HealthDashboard() {
                 </div>
 
                 <div className="space-y-5">
-                  <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Parent Comments</h3>
+                  <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Your Notes</h3>
 
                   <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-800">
                     <strong>Privacy reminder:</strong> Use first names only for people. Do not include phone numbers, home addresses, or full names.
@@ -890,7 +894,7 @@ export default function HealthDashboard() {
                     </div>
                     <div className="p-3 space-y-3">
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">What was the child doing before the event started?</label>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">What was {patient.name || 'the person'} doing before the event started?</label>
                         <textarea
                           value={newEvent.parentNotes?.activitiesPrior || ''}
                           onChange={(e) => updateParentNotes('activitiesPrior', e.target.value)}
@@ -901,7 +905,7 @@ export default function HealthDashboard() {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">How was the child feeling emotionally and physically beforehand?</label>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">How was {patient.name || 'the person'} feeling emotionally and physically beforehand?</label>
                         <textarea
                           value={newEvent.parentNotes?.emotionalState || ''}
                           onChange={(e) => updateParentNotes('emotionalState', e.target.value)}
@@ -963,7 +967,7 @@ export default function HealthDashboard() {
                     </div>
                     <div className="p-3 space-y-3">
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">How was the child after the event? Describe recovery.</label>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">How was {patient.name || 'the person'} after the event? Describe recovery.</label>
                         <textarea
                           value={newEvent.parentNotes?.afterEvent || ''}
                           onChange={(e) => updateParentNotes('afterEvent', e.target.value)}
@@ -1413,7 +1417,7 @@ export default function HealthDashboard() {
 
                       <div className="mt-3 border-t border-current border-opacity-20 pt-3">
                         <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm font-semibold">Parent Comments</span>
+                          <span className="text-sm font-semibold">Your Notes</span>
                           <button
                             onClick={() => handleOpenEditNotes(event)}
                             className="text-xs px-2 py-1 bg-white bg-opacity-60 border border-current border-opacity-30 rounded hover:bg-opacity-90 transition-colors font-medium"
@@ -1700,7 +1704,7 @@ export default function HealthDashboard() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Child's emotional and physical state beforehand</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Emotional and physical state beforehand</label>
                     <textarea
                       value={editingNotes?.emotionalState || ''}
                       onChange={(e) => setEditingNotes(n => ({ ...n!, emotionalState: e.target.value }))}
@@ -1756,11 +1760,11 @@ export default function HealthDashboard() {
               <div className="border border-green-200 rounded-lg overflow-hidden mb-6">
                 <div className="bg-green-50 px-4 py-3">
                   <div className="font-bold text-green-800">③ AFTER THE EVENT</div>
-                  <div className="text-xs text-green-600 mt-0.5">How did the child recover and what actions were taken?</div>
+                  <div className="text-xs text-green-600 mt-0.5">How did {patient.name || 'the person'} recover and what actions were taken?</div>
                 </div>
                 <div className="p-4 space-y-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Child's recovery and condition after the event</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Recovery and condition after the event</label>
                     <textarea
                       value={editingNotes?.afterEvent || ''}
                       onChange={(e) => setEditingNotes(n => ({ ...n!, afterEvent: e.target.value }))}
