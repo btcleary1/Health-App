@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
           <!-- CTA -->
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr><td align="center">
-              <a href="https://ethan-health.vercel.app/dashboard"
+              <a href="https://health-wiz.vercel.app/dashboard"
                 style="display:inline-block;background:linear-gradient(135deg,#3B82F6,#6366F1);color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;padding:14px 36px;border-radius:12px;box-shadow:0 4px 16px rgba(99,102,241,0.35);">
                 Open Health Wiz →
               </a>
