@@ -533,17 +533,23 @@ export default function HealthDashboard() {
   const doctorVisits = doctorVisitsData;
 
   const generateVitalSignsData = () => {
-    const eventData = filteredCardiacEvents.map(event => ({
-      isoDate: event.date,
-      date: new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      heartRate: event.vitals.heartRate || 0,
-      systolic: parseInt(event.vitals.bloodPressure?.split('/')[0] || '0'),
-      oxygen: event.vitals.oxygen || 0,
-      severity: event.severity,
-      eventType: event.type,
-      cprRequired: !!event.cprRequired,
-      hasDoctorVisit: doctorVisits.some(v => v.date === event.date),
-    }));
+    const eventData = filteredCardiacEvents.map(event => {
+      const hr = event.vitals?.heartRate;
+      const bpRaw = event.vitals?.bloodPressure?.split('/')[0];
+      const sys = bpRaw ? parseInt(bpRaw) : null;
+      const o2 = event.vitals?.oxygen;
+      return {
+        isoDate: event.date,
+        date: new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        heartRate: hr && hr > 0 ? hr : null,
+        systolic: sys && sys > 0 ? sys : null,
+        oxygen: o2 && o2 > 0 ? o2 : null,
+        severity: event.severity,
+        eventType: event.type,
+        cprRequired: !!event.cprRequired,
+        hasDoctorVisit: doctorVisits.some(v => v.date === event.date),
+      };
+    });
     return eventData.sort((a, b) => new Date(a.isoDate).getTime() - new Date(b.isoDate).getTime());
   };
 
@@ -1181,6 +1187,13 @@ export default function HealthDashboard() {
                 </div>
               </div>
 
+              {vitalSignsData.length === 0 || vitalSignsData.every(d => !d.heartRate && !d.systolic && !d.oxygen) ? (
+                <div className="flex flex-col items-center justify-center h-48 gap-2" style={{ color: '#4B5563' }}>
+                  <svg className="w-10 h-10 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12h3l3-9 3 18 3-9h3" /></svg>
+                  <div className="text-sm font-medium" style={{ color: '#6B7280' }}>No vital signs recorded yet</div>
+                  <div className="text-xs" style={{ color: '#4B5563' }}>Add heart rate, blood pressure, or O₂ when logging an event</div>
+                </div>
+              ) : (
               <ResponsiveContainer width="100%" height={320}>
                 <LineChart data={vitalSignsData} margin={{ top: 20, right: 20, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
@@ -1259,6 +1272,7 @@ export default function HealthDashboard() {
                   />
                 </LineChart>
               </ResponsiveContainer>
+              )}
 
               {/* Doctor visit summary below chart */}
               <div className="mt-4 pt-4 flex items-center justify-between" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>

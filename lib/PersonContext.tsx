@@ -29,10 +29,21 @@ const PersonContext = createContext<PersonContextValue>({
 });
 
 const STORAGE_KEY = 'hw_active_person_id';
+const PERSONS_CACHE_KEY = 'hw_persons_cache';
 
 export function PersonProvider({ children }: { children: ReactNode }) {
-  const [persons, setPersons] = useState<TrackedPerson[]>([]);
-  const [activeId, setActiveIdState] = useState<string>('primary');
+  // Seed from sessionStorage so selector shows instantly on re-renders/navigation
+  const [persons, setPersons] = useState<TrackedPerson[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const cached = sessionStorage.getItem(PERSONS_CACHE_KEY);
+      return cached ? JSON.parse(cached) : [];
+    } catch { return []; }
+  });
+  const [activeId, setActiveIdState] = useState<string>(() => {
+    if (typeof window === 'undefined') return 'primary';
+    return localStorage.getItem(STORAGE_KEY) || 'primary';
+  });
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(() => {
@@ -42,6 +53,8 @@ export function PersonProvider({ children }: { children: ReactNode }) {
       .then(d => {
         const list: TrackedPerson[] = d.persons ?? [];
         setPersons(list);
+        // Cache for instant render on next visit
+        try { sessionStorage.setItem(PERSONS_CACHE_KEY, JSON.stringify(list)); } catch { /* ignore */ }
         if (list.length > 0) {
           const validStored = stored && list.some(p => p.id === stored);
           setActiveIdState(validStored ? stored! : list[0].id);
