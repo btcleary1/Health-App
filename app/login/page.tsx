@@ -27,9 +27,11 @@ export default function LoginPage() {
     const ua = navigator.userAgent;
     if (/iPhone|iPad|iPod/.test(ua)) {
       setBiometricLabel('Sign in with Face ID');
-    } else if (/Mac/.test(ua) && /Safari/.test(ua)) {
+    } else if (/Mac/.test(ua) && !/CrOS/.test(ua)) {
       setBiometricLabel('Sign in with Touch ID');
-    } else if (/Win/.test(ua) || /CrOS/.test(ua)) {
+    } else if (/CrOS/.test(ua)) {
+      setBiometricLabel('Sign in with Screen Lock');
+    } else if (/Win/.test(ua)) {
       setBiometricLabel('Sign in with Windows Hello');
     } else {
       setBiometricLabel('Sign in with Biometrics');
@@ -79,7 +81,11 @@ export default function LoginPage() {
     setBiometricLoading(true);
     setBiometricError('');
     try {
-      const optRes = await fetch('/api/auth/webauthn/auth-options', { method: 'POST' });
+      const optRes = await fetch('/api/auth/webauthn/auth-options', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() || undefined }),
+      });
       const options = await optRes.json();
       if (!optRes.ok) { setBiometricError(options.error); setBiometricLoading(false); return; }
       const assertion = await startAuthentication({ optionsJSON: options, useBrowserAutofill: false });
@@ -221,6 +227,11 @@ export default function LoginPage() {
             </button>
             {biometricError && (
               <p className="mt-2 text-xs text-red-400 text-center leading-relaxed">{biometricError}</p>
+            )}
+            {!biometricError && !email && (
+              <p className="mt-1.5 text-[11px] text-center" style={{ color: '#4B5563' }}>
+                Enter your email below first for best results
+              </p>
             )}
 
             <div className="flex items-center gap-3 mt-5 mb-1">

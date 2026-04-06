@@ -35,11 +35,16 @@ export async function POST(req: NextRequest) {
     }
 
     const { credential } = verification.registrationInfo;
+    // Save transports so auth-options can target this authenticator directly (no QR code)
+    const transports: string[] =
+      body.response?.transports ??
+      (body.authenticatorAttachment === 'platform' ? ['internal'] : []);
     const newCred = {
       id: credential.id,
       publicKey: Buffer.from(credential.publicKey).toString('base64'),
       counter: credential.counter,
       userId: session.userId,
+      transports,
     };
 
     const existing = await getCredentialsForUser(session.userId);
