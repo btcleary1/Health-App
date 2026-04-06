@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest, clearSessionCookie } from '@/lib/session';
 import { deleteUser } from '@/lib/users';
 import { del, list } from '@vercel/blob';
+import { deleteCredentialsForUser } from '@/lib/webauthn-store';
 import { logAudit, getClientIp } from '@/lib/audit';
 
 export const runtime = 'nodejs';
@@ -17,8 +18,7 @@ export async function DELETE(req: NextRequest) {
   if (healthBlobs.length > 0) await del(healthBlobs.map(b => b.url));
 
   // Delete WebAuthn credentials
-  const { blobs: webauthnBlobs } = await list({ prefix: `health-app/webauthn/${userId}/` });
-  if (webauthnBlobs.length > 0) await del(webauthnBlobs.map(b => b.url));
+  await deleteCredentialsForUser(userId);
 
   // Delete uploads
   const { blobs: uploadBlobs } = await list({ prefix: `health-app/uploads/${userId}/` });

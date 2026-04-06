@@ -1,4 +1,4 @@
-import { put, list, del } from '@vercel/blob';
+import { put, head, del } from '@vercel/blob';
 import { createHash, randomBytes } from 'crypto';
 
 const PREFIX = 'health-app/users/';
@@ -23,16 +23,17 @@ export function hashPassword(password: string): string {
 function blobFetch(url: string): Promise<Response> {
   return fetch(url, {
     headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
+    cache: 'no-store',
   });
 }
 
-// --- Index helpers (fast email lookups without listing all blobs) ---
+// --- Index helpers ---
 
 async function readIndex(): Promise<{ email: string; userId: string }[]> {
   try {
-    const { blobs } = await list({ prefix: INDEX_PATH });
-    if (blobs.length === 0) return [];
-    const res = await blobFetch(blobs[0].url);
+    const blob = await head(INDEX_PATH);
+    if (!blob) return [];
+    const res = await blobFetch(blob.downloadUrl);
     if (!res.ok) return [];
     return await res.json();
   } catch {
@@ -61,9 +62,9 @@ export async function getUserByEmail(email: string): Promise<User | null> {
 export async function getUserById(userId: string): Promise<User | null> {
   try {
     const path = `${PREFIX}${userId}.json`;
-    const { blobs } = await list({ prefix: path });
-    if (blobs.length === 0) return null;
-    const res = await blobFetch(blobs[0].url);
+    const blob = await head(path);
+    if (!blob) return null;
+    const res = await blobFetch(blob.downloadUrl);
     if (!res.ok) return null;
     return await res.json();
   } catch {
@@ -102,7 +103,6 @@ export async function createUser(
     createdAt: new Date().toISOString(),
   };
 
-  // Save user record
   await put(`${PREFIX}${userId}.json`, JSON.stringify(user), {
     access: 'private',
     addRandomSuffix: false,
@@ -110,7 +110,6 @@ export async function createUser(
     contentType: 'application/json',
   });
 
-  // Update index
   const index = await readIndex();
   index.push({ email: user.email, userId });
   await writeIndex(index);
@@ -122,12 +121,10 @@ export async function deleteUser(userId: string): Promise<void> {
   const user = await getUserById(userId);
   if (!user) return;
 
-  // Remove user record blob
   const path = `${PREFIX}${userId}.json`;
-  const { blobs } = await list({ prefix: path });
-  if (blobs.length > 0) await del(blobs.map(b => b.url));
+  const blob = await head(path);
+  if (blob) await del(blob.url);
 
-  // Update index
   const index = await readIndex();
   await writeIndex(index.filter(e => e.userId !== userId));
 }
@@ -136,6 +133,18 @@ export async function updateUserRole(userId: string, role: 'admin' | 'user'): Pr
   const user = await getUserById(userId);
   if (!user) return;
   const updated = { ...user, role };
+  await put(`${PREFIX}${userId}.json`, JSON.stringify(updated), {
+    access: 'private',
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    contentType: 'application/json',
+  });
+}
+
+export async function updatePassword(userId: string, newPassword: string): Promise<void> {
+  const user = await getUserById(userId);
+  if (!user) throw new Error('User not found.');
+  const updated = { ...user, passwordHash: hashPassword(newPassword) };
   await put(`${PREFIX}${userId}.json`, JSON.stringify(updated), {
     access: 'private',
     addRandomSuffix: false,
