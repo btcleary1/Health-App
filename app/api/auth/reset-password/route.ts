@@ -1,17 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserByEmail } from '@/lib/users';
+import { getUserByEmail, updatePassword } from '@/lib/users';
 import { verifyResetCode } from '@/lib/reset-tokens';
 import { validatePassword } from '@/lib/password-rules';
-import { put } from '@vercel/blob';
-import { createHash } from 'crypto';
 import { logAudit, getClientIp } from '@/lib/audit';
 
 export const runtime = 'nodejs';
-
-function hashPassword(password: string): string {
-  const salt = process.env.SESSION_SECRET ?? 'health-app-salt';
-  return createHash('sha256').update(salt + password).digest('hex');
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -34,13 +27,7 @@ export async function POST(req: NextRequest) {
     const user = await getUserByEmail(email);
     if (!user) return NextResponse.json({ error: 'User not found.' }, { status: 404 });
 
-    const updated = { ...user, passwordHash: hashPassword(newPassword) };
-    await put(`health-app/users/${user.userId}.json`, JSON.stringify(updated), {
-      access: 'private',
-      addRandomSuffix: false,
-      allowOverwrite: true,
-      contentType: 'application/json',
-    });
+    await updatePassword(user.userId, newPassword);
 
     logAudit({ timestamp: new Date().toISOString(), userId: user.userId, email: user.email, action: 'password_reset_completed', ip: getClientIp(req) });
     return NextResponse.json({ success: true });
