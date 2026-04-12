@@ -400,7 +400,9 @@ export default function HealthDashboard() {
     };
 
     setDoctorVisitsData(prev => {
-      const updated = [visitToSave, ...prev];
+      // If prev was sample data, don't persist it — only save the new real visit
+      const base = isVisitsSample ? [] : prev;
+      const updated = [visitToSave, ...base];
       fetch(`/api/health-data/visits${personQuery}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -419,6 +421,17 @@ export default function HealthDashboard() {
     setVisitFormError('');
     setNewVisit(blankVisitForm);
     setNewVisitMeds('');
+  };
+
+  const handleDeleteVisit = (visitId: string) => {
+    if (!confirm('Delete this visit?')) return;
+    const updated = doctorVisitsData.filter(v => v.id !== visitId);
+    setDoctorVisitsData(updated);
+    fetch(`/api/health-data/visits${personQuery}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ visits: updated }),
+    }).catch(() => {});
   };
 
   const updateNewEvent = (field: string, value: any) => {
@@ -1505,7 +1518,7 @@ export default function HealthDashboard() {
                   {[...doctorVisitsData].sort((a, b) => b.date.localeCompare(a.date)).map(visit => (
                     <div key={visit.id} className="rounded-xl p-4" style={{ border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' }}>
                       <div className="flex items-start justify-between gap-2 mb-2">
-                        <div>
+                        <div className="flex-1">
                           <div className="flex items-center flex-wrap gap-2">
                             <span className="font-semibold text-white text-sm">
                               {new Date(visit.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -1525,6 +1538,14 @@ export default function HealthDashboard() {
                             )}
                           </div>
                         </div>
+                        <button
+                          onClick={() => handleDeleteVisit(visit.id)}
+                          className="shrink-0 p-1.5 rounded-lg transition-colors hover:bg-red-500/20"
+                          style={{ color: '#6B7280' }}
+                          title="Delete visit"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                        </button>
                       </div>
                       {visit.personalNotes && (
                         <div className="mb-1.5">
