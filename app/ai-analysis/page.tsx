@@ -198,9 +198,9 @@ export default function AIAnalysisPage() {
             style={{ background: 'linear-gradient(135deg,#8B5CF6,#6366F1)', boxShadow: loading ? 'none' : '0 4px 20px rgba(139,92,246,0.35)' }}
           >
             {loading ? (
-              <><Loader2 className="w-5 h-5 animate-spin" /> Analyzing {patientData.name}&apos;s full history with Claude AI...</>
+              <><Loader2 className="w-5 h-5 animate-spin" /> Analyzing {isSample ? 'demo' : patientData.name}&apos;s full history with Claude AI...</>
             ) : (
-              <><Brain className="w-5 h-5" /> Run Deep Medical Analysis</>
+              <><Brain className="w-5 h-5" /> Run Deep Medical Analysis{!isSample && patientData.name ? ` for ${patientData.name}` : ''}</>
             )}
           </button>
           {loading && (
@@ -333,7 +333,7 @@ export default function AIAnalysisPage() {
 
             {/* Parent guidance */}
             <div className="rounded-2xl p-5 mt-2" style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)' }}>
-              <div className="text-sm font-semibold mb-3" style={{ color: '#93C5FD' }}>For You — {patientData.name}&apos;s Health</div>
+              <div className="text-sm font-semibold mb-3" style={{ color: '#93C5FD' }}>For You — {isSample ? 'Demo Patient' : patientData.name}&apos;s Health</div>
               {analysis.parentGuidance?.immediateActions?.length > 0 && (
                 <div className="mb-3">
                   <div className="text-xs font-bold mb-1" style={{ color: '#60A5FA' }}>RIGHT NOW:</div>
