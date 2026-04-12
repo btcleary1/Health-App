@@ -31,7 +31,7 @@ const SAMPLE_EVENTS = [
 
 interface Analysis {
   topDiagnoses: { name: string; likelihood: string; reasoning: string; keyEvidence: string[]; missedClues: string[] }[];
-  whatDoctorsMayHaveMissed: { observation: string; significance: string; source: string }[];
+  whatDoctorsMayHaveMissed: { observation: string; significance: string }[];
   recommendedTests: { test: string; reason: string; urgency: string; specialist: string }[];
   similarCasesAndResearch: { title: string; relevance: string; source: string }[];
   triggerPatterns: { identified: string[]; avoidanceRecommendations: string[] };
@@ -262,8 +262,7 @@ export default function AIAnalysisPage() {
                 {analysis.whatDoctorsMayHaveMissed?.map((item, i) => (
                   <div key={i} className="rounded-xl p-4" style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.2)' }}>
                     <div className="font-semibold mb-1" style={{ color: '#FED7AA' }}>{item.observation}</div>
-                    <div className="text-sm mb-1" style={{ color: '#FDBA74' }}>{item.significance}</div>
-                    <div className="text-xs" style={{ color: '#9CA3AF' }}>From: {item.source}</div>
+                    <div className="text-sm" style={{ color: '#FDBA74' }}>{item.significance}</div>
                   </div>
                 ))}
               </div>
@@ -284,17 +283,19 @@ export default function AIAnalysisPage() {
               </div>
             </Section>
 
-            <Section title="Similar Cases & Research" icon={<Lightbulb className="w-5 h-5 text-yellow-400" />} defaultOpen={false}>
-              <div className="space-y-3 pt-4">
-                {analysis.similarCasesAndResearch?.map((r, i) => (
-                  <div key={i} className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                    <div className="font-semibold text-white mb-1">{r.title}</div>
-                    <div className="text-sm mb-1" style={{ color: '#9CA3AF' }}>{r.relevance}</div>
-                    <div className="text-xs italic" style={{ color: '#6B7280' }}>{r.source}</div>
-                  </div>
-                ))}
-              </div>
-            </Section>
+            {analysis.similarCasesAndResearch?.length > 0 && (
+              <Section title="Similar Cases & Research" icon={<Lightbulb className="w-5 h-5 text-yellow-400" />} defaultOpen={false}>
+                <div className="space-y-3 pt-4">
+                  {analysis.similarCasesAndResearch.map((r, i) => (
+                    <div key={i} className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                      <div className="font-semibold text-white mb-1">{r.title}</div>
+                      <div className="text-sm mb-1" style={{ color: '#9CA3AF' }}>{r.relevance}</div>
+                      {r.source && <div className="text-xs italic" style={{ color: '#6B7280' }}>{r.source}</div>}
+                    </div>
+                  ))}
+                </div>
+              </Section>
+            )}
 
             <Section title="Trigger Patterns & Avoidance" icon={<HeartPulse className="w-5 h-5 text-red-400" />} defaultOpen={false}>
               <div className="pt-4 space-y-4">
@@ -327,6 +328,12 @@ export default function AIAnalysisPage() {
                     <ul className="space-y-2">{analysis.doctorBriefing.questionsToAsk.map((q, i) => (
                       <li key={i} className="rounded-xl p-3 text-sm" style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', color: '#93C5FD' }}>&ldquo;{q}&rdquo;</li>
                     ))}</ul>
+                  </div>
+                )}
+                {analysis.doctorBriefing?.redFlags?.length > 0 && (
+                  <div>
+                    <div className="text-sm font-semibold mb-2" style={{ color: '#FCA5A5' }}>Red Flags — Seek Care Immediately If:</div>
+                    <ul className="space-y-1">{analysis.doctorBriefing.redFlags.map((f, i) => <li key={i} className="flex gap-2 text-sm" style={{ color: '#FCA5A5' }}><span className="text-red-400 shrink-0">!</span>{f}</li>)}</ul>
                   </div>
                 )}
                 {analysis.doctorBriefing?.medicationsToDiscuss?.length > 0 && (
