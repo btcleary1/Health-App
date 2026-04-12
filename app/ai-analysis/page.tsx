@@ -76,13 +76,14 @@ const urgencyColor = (u: string) =>
     : 'bg-blue-500/20 text-blue-300 border border-blue-500/30';
 
 export default function AIAnalysisPage() {
-  const { activeId, personQuery, persons } = usePersonContext();
+  const { activeId, personQuery, persons, activePerson } = usePersonContext();
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [error, setError] = useState('');
   const [focusArea, setFocusArea] = useState('');
   const [patientData, setPatientData] = useState<any>(SAMPLE_PATIENT_DATA);
   const [events, setEvents] = useState<any[]>(SAMPLE_EVENTS);
+  const [doctorVisits, setDoctorVisits] = useState<any[]>([]);
   const [isSample, setIsSample] = useState(true);
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
 
@@ -92,17 +93,23 @@ export default function AIAnalysisPage() {
     Promise.all([
       fetch(`/api/health-data/patient${personQuery}`).then(r => r.json()).catch(() => ({})),
       fetch(`/api/health-data/events${personQuery}`).then(r => r.json()).catch(() => ({})),
-      fetch('/api/uploads').then(r => r.json()).catch(() => ({ files: [] })),
-    ]).then(([pd, ev, up]) => {
+      fetch(`/api/health-data/visits${personQuery}`).then(r => r.json()).catch(() => ({ visits: [] })),
+      fetch(`/api/uploads${personQuery}`).then(r => r.json()).catch(() => ({ files: [] })),
+    ]).then(([pd, ev, vis, up]) => {
       const hasPersons = persons.length > 0;
       const hasPatient = pd.patient?.name;
       const hasEvents = Array.isArray(ev.events) && ev.events.length > 0;
+      const hasVisits = Array.isArray(vis.visits) && vis.visits.length > 0;
       if (hasPatient || hasPersons) {
-        setPatientData(hasPatient ? pd.patient : {});
+        // If no full patient profile yet, seed basic info from the persons list
+        const basePatient = hasPatient ? pd.patient : (activePerson ? { name: activePerson.name, ageGroup: activePerson.ageGroup } : {});
+        setPatientData(basePatient);
         setEvents(hasEvents ? ev.events : []);
+        setDoctorVisits(hasVisits ? vis.visits : []);
         setIsSample(false);
-      } else if (hasEvents) {
-        setEvents(ev.events);
+      } else if (hasEvents || hasVisits) {
+        setEvents(hasEvents ? ev.events : []);
+        setDoctorVisits(hasVisits ? vis.visits : []);
         setIsSample(false);
       }
       if (Array.isArray(up.files) && up.files.length > 0) setUploadedFiles(up.files);
@@ -117,7 +124,7 @@ export default function AIAnalysisPage() {
       const res = await fetch('/api/ai-analysis', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ patientData, events, focusArea, uploadedFiles }),
+        body: JSON.stringify({ patientData, events, doctorVisits, focusArea, uploadedFiles }),
       });
       let data: any;
       try {

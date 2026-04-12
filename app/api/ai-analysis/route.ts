@@ -80,22 +80,51 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { patientData, events, focusArea, uploadedFiles } = body;
+  const { patientData, events, doctorVisits, focusArea, uploadedFiles } = body;
 
   const { addressAs, context } = getPatientContext(patientData);
 
-  const prompt = `You are a medical research assistant helping prepare for doctor appointments. Return ONLY a valid, complete JSON object — no markdown fences, no text before or after the JSON.
+  const visitsText = Array.isArray(doctorVisits) && doctorVisits.length > 0
+    ? doctorVisits.slice(-5).map((v: any) =>
+        `[${v.date}] ${v.visitType?.replace('_', ' ')} with ${v.doctor || 'unknown doctor'}` +
+        (v.diagnosis ? ` | Diagnosis: ${v.diagnosis}` : '') +
+        (v.doctorNotes ? ` | Doctor notes: ${v.doctorNotes}` : '') +
+        (v.personalNotes ? ` | Personal notes: ${v.personalNotes}` : '') +
+        (v.treatment?.length ? ` | Treatment: ${v.treatment.join(', ')}` : '') +
+        (v.medicationsChanged ? ' | Medications changed' : '')
+      ).join('\n')
+    : 'No doctor visits recorded';
+
+  const eventsText = Array.isArray(events) && events.length > 0
+    ? events.slice(-10).map((e: any) =>
+        `[${e.date}${e.time ? ' ' + e.time : ''}] ${e.type} — severity: ${e.severity}` +
+        (e.symptoms?.length ? ` | symptoms: ${e.symptoms.join(', ')}` : '') +
+        (e.triggers?.length ? ` | triggers: ${e.triggers.join(', ')}` : '') +
+        (e.vitals ? ` | vitals: HR ${e.vitals.heartRate}, BP ${e.vitals.bloodPressure}, O2 ${e.vitals.oxygen}%` : '') +
+        (e.parentNotes?.duringEvent ? ` | notes: ${e.parentNotes.duringEvent}` : '') +
+        (e.notes ? ` | notes: ${e.notes}` : '')
+      ).join('\n')
+    : 'No health events recorded';
+
+  const prompt = `You are a medical research assistant helping prepare for doctor appointments. Analyze ALL the data below thoroughly and return ONLY a valid, complete JSON object — no markdown fences, no text before or after the JSON.
 
 PATIENT: ${addressAs}, ${context}
 CONCERN: ${patientData?.primaryConcern || 'Not specified'}
 MEDICATIONS: ${patientData?.medications?.map((m: any) => `${m.name} ${m.dosage} ${m.frequency}`).join(', ') || 'none'}
 CARE TEAM: ${patientData?.careTeam?.map((c: any) => `${c.name} (${c.role})`).join(', ') || 'none'}
-RECENT EVENTS (last 5): ${events?.slice(-5).map((e: any) => `${e.date} ${e.type} sev:${e.severity}`).join('; ') || 'none'}
-${focusArea ? `FOCUS: ${focusArea}` : ''}
-${uploadedFiles?.length > 0 ? `UPLOADED DOCUMENTS: ${uploadedFiles.map((f: any) => `${f.category} — ${f.originalName}${f.note ? ` (${f.note})` : ''}`).join('; ')}` : ''}
 
-${uploadedFiles?.length > 0 ? 'The uploaded medical documents are attached above. Extract all biometric data, lab values, test results, measurements, and clinical findings visible in the documents and incorporate them into your analysis.\n' : ''}
-Return EXACTLY this JSON (max 2 items per array, strings under 80 chars):
+DOCTOR VISITS (most recent first):
+${visitsText}
+
+HEALTH EVENTS (most recent first):
+${eventsText}
+
+${focusArea ? `FOCUS AREA: ${focusArea}\n` : ''}${uploadedFiles?.length > 0 ? `UPLOADED DOCUMENTS: ${uploadedFiles.map((f: any) => `${f.category} — ${f.originalName}${f.note ? ` (${f.note})` : ''}`).join('; ')}` : ''}
+
+${uploadedFiles?.length > 0 ? 'The uploaded medical documents/screenshots are attached above as images. Extract ALL biometric data, lab values, test results, measurements, diagnoses, and clinical findings visible in the images and incorporate them into your analysis. These are the most important source of clinical data.\n' : ''}
+Base your analysis on ALL the above data. Be specific — reference actual dates, doctor names, diagnoses, and values from the records above. Do not give generic advice.
+
+Return EXACTLY this JSON (max 3 items per array, strings under 100 chars):
 {"topDiagnoses":[{"name":"","likelihood":"High/Medium/Low","reasoning":"","keyEvidence":[""],"missedClues":[""]}],"whatDoctorsMayHaveMissed":[{"observation":"","significance":""}],"recommendedTests":[{"test":"","reason":"","urgency":"Immediate/Soon/Routine","specialist":""}],"triggerPatterns":{"identified":[""],"avoidanceRecommendations":[""]},"doctorBriefing":{"oneLineSummary":"","criticalHistory":[""],"questionsToAsk":[""],"redFlags":[""],"medicationsToDiscuss":[""]},"patientGuidance":{"immediateActions":[""],"monitoringTips":[""],"supportNote":""}}
 
 IMPORTANT: For appointment prep only — not medical diagnosis. All findings are topics to discuss with the care team.`;
