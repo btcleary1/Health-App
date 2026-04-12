@@ -36,7 +36,7 @@ interface Analysis {
   similarCasesAndResearch: { title: string; relevance: string; source: string }[];
   triggerPatterns: { identified: string[]; avoidanceRecommendations: string[] };
   doctorBriefing: { oneLineSummary: string; criticalHistory: string[]; questionsToAsk: string[]; redFlags: string[]; medicationsToDiscuss: string[] };
-  parentGuidance: { immediateActions: string[]; monitoringTips: string[]; emotionalSupport: string };
+  patientGuidance: { immediateActions: string[]; monitoringTips: string[]; supportNote: string };
 }
 
 function Section({ title, icon, children, defaultOpen = true }: { title: string; icon: React.ReactNode; children: React.ReactNode; defaultOpen?: boolean }) {
@@ -331,23 +331,23 @@ export default function AIAnalysisPage() {
               </div>
             </Section>
 
-            {/* Parent guidance */}
+            {/* Patient guidance */}
             <div className="rounded-2xl p-5 mt-2" style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)' }}>
-              <div className="text-sm font-semibold mb-3" style={{ color: '#93C5FD' }}>For You — {isSample ? 'Demo Patient' : patientData.name}&apos;s Health</div>
-              {analysis.parentGuidance?.immediateActions?.length > 0 && (
+              <div className="text-sm font-semibold mb-3" style={{ color: '#93C5FD' }}>Action Plan — {isSample ? 'Demo Patient' : patientData.name}&apos;s Health</div>
+              {analysis.patientGuidance?.immediateActions?.length > 0 && (
                 <div className="mb-3">
                   <div className="text-xs font-bold mb-1" style={{ color: '#60A5FA' }}>RIGHT NOW:</div>
-                  <ul className="space-y-1">{analysis.parentGuidance.immediateActions.map((a, i) => <li key={i} className="flex gap-2 text-sm" style={{ color: '#BFDBFE' }}><span>→</span>{a}</li>)}</ul>
+                  <ul className="space-y-1">{analysis.patientGuidance.immediateActions.map((a, i) => <li key={i} className="flex gap-2 text-sm" style={{ color: '#BFDBFE' }}><span>→</span>{a}</li>)}</ul>
                 </div>
               )}
-              {analysis.parentGuidance?.monitoringTips?.length > 0 && (
+              {analysis.patientGuidance?.monitoringTips?.length > 0 && (
                 <div className="mb-3">
                   <div className="text-xs font-bold mb-1" style={{ color: '#60A5FA' }}>TRACK FOR NEXT APPOINTMENT:</div>
-                  <ul className="space-y-1">{analysis.parentGuidance.monitoringTips.map((t, i) => <li key={i} className="flex gap-2 text-sm" style={{ color: '#BFDBFE' }}><span>•</span>{t}</li>)}</ul>
+                  <ul className="space-y-1">{analysis.patientGuidance.monitoringTips.map((t, i) => <li key={i} className="flex gap-2 text-sm" style={{ color: '#BFDBFE' }}><span>•</span>{t}</li>)}</ul>
                 </div>
               )}
-              {analysis.parentGuidance?.emotionalSupport && (
-                <p className="text-sm italic" style={{ color: '#93C5FD' }}>{analysis.parentGuidance.emotionalSupport}</p>
+              {analysis.patientGuidance?.supportNote && (
+                <p className="text-sm italic" style={{ color: '#93C5FD' }}>{analysis.patientGuidance.supportNote}</p>
               )}
             </div>
           </div>

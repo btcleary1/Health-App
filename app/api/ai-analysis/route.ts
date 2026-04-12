@@ -2,11 +2,25 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { MessageParam } from '@anthropic-ai/sdk/resources/messages';
 import { NextRequest } from 'next/server';
 import { getSessionFromRequest } from '@/lib/session';
+import {
+  S3Client,
+  GetObjectCommand,
+} from '@aws-sdk/client-s3';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+const r2 = new S3Client({
+  region: 'auto',
+  endpoint: process.env.R2_ENDPOINT,
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+  },
+  forcePathStyle: true,
+});
 
 type ImageMediaType = 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
 
@@ -16,18 +30,39 @@ function isImageMediaType(t: string): t is ImageMediaType {
   return ALLOWED_IMAGE_TYPES.includes(t as ImageMediaType);
 }
 
-async function fetchFileAsBase64(url: string): Promise<{ data: string; mediaType: string } | null> {
+// file.url is now an R2 key (e.g. "health-uploads/userId/filename.jpg")
+async function fetchFileFromR2(r2Key: string, fileType: string): Promise<{ data: string; mediaType: string } | null> {
   try {
-    const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
-    });
-    if (!res.ok) return null;
-    const buffer = await res.arrayBuffer();
-    const data = Buffer.from(buffer).toString('base64');
-    const mediaType = res.headers.get('content-type') || 'application/octet-stream';
+    const res = await r2.send(new GetObjectCommand({
+      Bucket: process.env.R2_BUCKET!,
+      Key: r2Key,
+    }));
+    if (!res.Body) return null;
+    const bytes = await res.Body.transformToByteArray();
+    const data = Buffer.from(bytes).toString('base64');
+    const mediaType = res.ContentType || fileType || 'application/octet-stream';
     return { data, mediaType };
   } catch {
     return null;
+  }
+}
+
+// Determine how to address the patient based on their age group
+function getPatientContext(patientData: any): { addressAs: string; context: string } {
+  const ageGroup = patientData?.ageGroup || '';
+  const name = patientData?.name || 'the patient';
+  switch (ageGroup) {
+    case 'infant':
+    case 'toddler':
+      return { addressAs: name, context: `infant/toddler patient (${patientData?.age || 'young child'})` };
+    case 'child':
+      return { addressAs: name, context: `pediatric patient (${patientData?.age || 'child'})` };
+    case 'teenager':
+      return { addressAs: name, context: `teenage patient (${patientData?.age || 'teenager'})` };
+    case 'adult':
+    case 'senior':
+    default:
+      return { addressAs: name, context: `adult patient (${patientData?.age || 'adult'})` };
   }
 }
 
@@ -47,9 +82,11 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { patientData, events, focusArea, uploadedFiles } = body;
 
-  const prompt = `You are a medical research assistant helping a family prepare for doctor appointments. Return ONLY a valid, complete JSON object — no markdown fences, no text before or after the JSON.
+  const { addressAs, context } = getPatientContext(patientData);
 
-PATIENT: ${patientData?.name || 'Child'}, Age ${patientData?.age || 'unknown'}
+  const prompt = `You are a medical research assistant helping prepare for doctor appointments. Return ONLY a valid, complete JSON object — no markdown fences, no text before or after the JSON.
+
+PATIENT: ${addressAs}, ${context}
 CONCERN: ${patientData?.primaryConcern || 'Not specified'}
 MEDICATIONS: ${patientData?.medications?.map((m: any) => `${m.name} ${m.dosage} ${m.frequency}`).join(', ') || 'none'}
 CARE TEAM: ${patientData?.careTeam?.map((c: any) => `${c.name} (${c.role})`).join(', ') || 'none'}
@@ -59,7 +96,7 @@ ${uploadedFiles?.length > 0 ? `UPLOADED DOCUMENTS: ${uploadedFiles.map((f: any) 
 
 ${uploadedFiles?.length > 0 ? 'The uploaded medical documents are attached above. Extract all biometric data, lab values, test results, measurements, and clinical findings visible in the documents and incorporate them into your analysis.\n' : ''}
 Return EXACTLY this JSON (max 2 items per array, strings under 80 chars):
-{"topDiagnoses":[{"name":"","likelihood":"High/Medium/Low","reasoning":"","keyEvidence":[""],"missedClues":[""]}],"whatDoctorsMayHaveMissed":[{"observation":"","significance":""}],"recommendedTests":[{"test":"","reason":"","urgency":"Immediate/Soon/Routine","specialist":""}],"triggerPatterns":{"identified":[""],"avoidanceRecommendations":[""]},"doctorBriefing":{"oneLineSummary":"","criticalHistory":[""],"questionsToAsk":[""],"redFlags":[""],"medicationsToDiscuss":[""]},"parentGuidance":{"immediateActions":[""],"monitoringTips":[""],"emotionalSupport":""}}
+{"topDiagnoses":[{"name":"","likelihood":"High/Medium/Low","reasoning":"","keyEvidence":[""],"missedClues":[""]}],"whatDoctorsMayHaveMissed":[{"observation":"","significance":""}],"recommendedTests":[{"test":"","reason":"","urgency":"Immediate/Soon/Routine","specialist":""}],"triggerPatterns":{"identified":[""],"avoidanceRecommendations":[""]},"doctorBriefing":{"oneLineSummary":"","criticalHistory":[""],"questionsToAsk":[""],"redFlags":[""],"medicationsToDiscuss":[""]},"patientGuidance":{"immediateActions":[""],"monitoringTips":[""],"supportNote":""}}
 
 IMPORTANT: For appointment prep only — not medical diagnosis. All findings are topics to discuss with the care team.`;
 
@@ -70,8 +107,12 @@ IMPORTANT: For appointment prep only — not medical diagnosis. All findings are
     const filesToProcess = uploadedFiles.slice(0, 5);
     for (const file of filesToProcess) {
       const fileType: string = file.type || '';
+      // file.url is an R2 key path; fall back to file.blobPath for compatibility
+      const r2Key: string = file.url || file.blobPath || '';
+      if (!r2Key) continue;
+
       if (fileType.startsWith('image/')) {
-        const fetched = await fetchFileAsBase64(file.url);
+        const fetched = await fetchFileFromR2(r2Key, fileType);
         if (fetched && isImageMediaType(fetched.mediaType)) {
           contentBlocks.push({
             type: 'image',
@@ -79,14 +120,12 @@ IMPORTANT: For appointment prep only — not medical diagnosis. All findings are
           });
         }
       } else if (fileType === 'application/pdf') {
-        const fetched = await fetchFileAsBase64(file.url);
+        const fetched = await fetchFileFromR2(r2Key, fileType);
         if (fetched) {
-          // PDFs are passed as plain text description to avoid unsupported block type at runtime
           contentBlocks.push({
             type: 'text',
             text: `[PDF document attached: ${file.originalName}${file.note ? ` — ${file.note}` : ''}, category: ${file.category}. Extract all data from this document.]`,
           });
-          // Attempt to include as document block (supported on newer models)
           try {
             (contentBlocks as any[]).push({
               type: 'document',
@@ -96,11 +135,9 @@ IMPORTANT: For appointment prep only — not medical diagnosis. All findings are
         }
       } else if (fileType === 'text/plain') {
         try {
-          const res = await fetch(file.url, {
-            headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
-          });
-          if (res.ok) {
-            const text = await res.text();
+          const fetched = await fetchFileFromR2(r2Key, fileType);
+          if (fetched) {
+            const text = Buffer.from(fetched.data, 'base64').toString('utf8');
             contentBlocks.push({ type: 'text', text: `[Text file: ${file.originalName}]\n${text.slice(0, 3000)}` });
           }
         } catch { /* skip */ }
@@ -113,7 +150,7 @@ IMPORTANT: For appointment prep only — not medical diagnosis. All findings are
 
   try {
     const message = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: 'claude-sonnet-4-6',
       max_tokens: 3000,
       messages: [{ role: 'user', content: contentBlocks }],
     });
