@@ -1,4 +1,4 @@
-import { put, head, del } from '@vercel/blob';
+import { r2Get, r2Put, r2Del } from './r2';
 
 export interface StoredCredential {
   id: string;
@@ -8,57 +8,24 @@ export interface StoredCredential {
   transports?: string[]; // e.g. ['internal'] for platform (Face ID / Touch ID)
 }
 
-// Credentials stored as a JSON array at a deterministic path per user.
-// No list() needed — head() is a basic (non-advanced) operation.
 function credPath(userId: string): string {
   return `webauthn/${userId}/credentials.json`;
 }
 
-// Reverse index: maps credentialId → userId so we can look up during auth
-// without scanning all users.
 const CRED_INDEX_PATH = 'webauthn/cred-index.json';
 
-function blobFetch(url: string) {
-  return fetch(url, {
-    headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
-    cache: 'no-store',
-  });
-}
-
 async function readCredIndex(): Promise<Record<string, string>> {
-  try {
-    const blob = await head(CRED_INDEX_PATH);
-    if (!blob) return {};
-    const res = await blobFetch(blob.downloadUrl);
-    if (!res.ok) return {};
-    return await res.json();
-  } catch {
-    return {};
-  }
+  return (await r2Get<Record<string, string>>(CRED_INDEX_PATH)) ?? {};
 }
 
 async function writeCredIndex(index: Record<string, string>): Promise<void> {
-  await put(CRED_INDEX_PATH, JSON.stringify(index), {
-    access: 'private',
-    addRandomSuffix: false,
-    allowOverwrite: true,
-    contentType: 'application/json',
-  });
+  await r2Put(CRED_INDEX_PATH, JSON.stringify(index));
 }
 
 export async function getCredentialsForUser(userId: string): Promise<StoredCredential[]> {
-  try {
-    const blob = await head(credPath(userId));
-    if (!blob) return [];
-    const res = await blobFetch(blob.downloadUrl);
-    if (!res.ok) return [];
-    return await res.json();
-  } catch {
-    return [];
-  }
+  return (await r2Get<StoredCredential[]>(credPath(userId))) ?? [];
 }
 
-/** Find which user owns a given credential ID (needed for WebAuthn login before session exists) */
 export async function findCredentialById(credId: string): Promise<StoredCredential | null> {
   try {
     const index = await readCredIndex();
@@ -72,30 +39,20 @@ export async function findCredentialById(credId: string): Promise<StoredCredenti
 }
 
 export async function saveCredentialsForUser(userId: string, creds: StoredCredential[]): Promise<void> {
-  await put(credPath(userId), JSON.stringify(creds), {
-    access: 'private',
-    addRandomSuffix: false,
-    allowOverwrite: true,
-    contentType: 'application/json',
-  });
+  await r2Put(credPath(userId), JSON.stringify(creds));
 
-  // Update the reverse index
   const index = await readCredIndex();
-  // Remove old entries for this user
   for (const key of Object.keys(index)) {
     if (index[key] === userId) delete index[key];
   }
-  // Add new entries
   for (const cred of creds) {
     index[cred.id] = userId;
   }
   await writeCredIndex(index);
 }
 
-/** Delete all credentials for a user (called when account is deleted or biometrics disabled) */
 export async function deleteCredentialsForUser(userId: string): Promise<void> {
-  const blob = await head(credPath(userId));
-  if (blob) await del(blob.url);
+  await r2Del(credPath(userId));
 
   const index = await readCredIndex();
   for (const key of Object.keys(index)) {
@@ -104,12 +61,10 @@ export async function deleteCredentialsForUser(userId: string): Promise<void> {
   await writeCredIndex(index);
 }
 
-/** Update counter for a specific credential */
 export async function updateCredentialCounter(credId: string, newCounter: number): Promise<void> {
   const cred = await findCredentialById(credId);
   if (!cred) return;
-  const userId = cred.userId;
-  const all = await getCredentialsForUser(userId);
+  const all = await getCredentialsForUser(cred.userId);
   const updated = all.map(c => c.id === credId ? { ...c, counter: newCounter } : c);
-  await saveCredentialsForUser(userId, updated);
+  await saveCredentialsForUser(cred.userId, updated);
 }

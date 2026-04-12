@@ -1,5 +1,15 @@
-import { put, del } from '@vercel/blob';
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { NextRequest, NextResponse } from 'next/server';
+
+const r2 = new S3Client({
+  region: 'auto',
+  endpoint: process.env.R2_ENDPOINT,
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+  },
+});
+const BUCKET = () => process.env.R2_BUCKET!;
 import { getSessionFromRequest } from '@/lib/session';
 import { redactPiiFromText, detectPiiInText } from '@/lib/pii-validator';
 import { getUploadManifest, saveUploadManifest } from '@/lib/health-data';
@@ -57,7 +67,13 @@ export async function POST(req: NextRequest) {
       uploadBody = new Blob([redacted], { type: 'text/plain' });
     }
 
-    const blob = await put(blobPath, uploadBody, { access: 'private' });
+    const arrayBuffer = await (uploadBody as Blob).arrayBuffer();
+    await r2.send(new PutObjectCommand({
+      Bucket: BUCKET(),
+      Key: blobPath,
+      Body: Buffer.from(arrayBuffer),
+      ContentType: file.type,
+    }));
 
     const fileRecord = {
       id: timestamp.toString(),
@@ -66,7 +82,7 @@ export async function POST(req: NextRequest) {
       note,
       size: file.size,
       type: file.type,
-      url: blob.url,
+      url: blobPath,
       blobPath,
       uploadedAt: new Date().toISOString(),
     };
@@ -94,7 +110,9 @@ export async function DELETE(req: NextRequest) {
   const target = manifest.find(f => f.id === fileId);
   if (!target) return NextResponse.json({ error: 'File not found' }, { status: 404 });
 
-  try { await del(target.url); } catch { /* ignore if already gone */ }
+  try {
+    await r2.send(new DeleteObjectCommand({ Bucket: BUCKET(), Key: target.blobPath ?? target.url }));
+  } catch { /* ignore if already gone */ }
 
   const updated = manifest.filter(f => f.id !== fileId);
   await saveUploadManifest(session.userId, updated, personId);
