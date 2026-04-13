@@ -140,6 +140,12 @@ export default function HealthDashboard() {
   const [mounted, setMounted] = useState(false);
   const [showNewEventForm, setShowNewEventForm] = useState(false);
   const [showVisitForm, setShowVisitForm] = useState(false);
+  const [showNoteForm, setShowNoteForm] = useState(false);
+  const [notes, setNotes] = useState<{ id: string; date: string; text: string; source: string; createdAt: string }[]>([]);
+  const [newNoteText, setNewNoteText] = useState('');
+  const [newNoteDate, setNewNoteDate] = useState(new Date().toISOString().split('T')[0]);
+  const [noteFormError, setNoteFormError] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
   const [selectedTimeRange, setSelectedTimeRange] = useState<'1week' | '1month' | '3months' | '6months'>('1month');
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [editingNotes, setEditingNotes] = useState<CardiacEvent['parentNotes']>({
@@ -179,11 +185,13 @@ export default function HealthDashboard() {
   useEffect(() => {
     setMounted(true);
     const loadAll = async () => {
-      const [evData, pdData, visData] = await Promise.all([
+      const [evData, pdData, visData, notesData] = await Promise.all([
         fetch(`/api/health-data/events${personQuery}`).then(r => r.json()).catch(() => ({ events: [] })),
         fetch(`/api/health-data/patient${personQuery}`).then(r => r.json()).catch(() => ({})),
         fetch(`/api/health-data/visits${personQuery}`).then(r => r.json()).catch(() => ({ visits: [] })),
+        fetch(`/api/health-data/notes${personQuery}`).then(r => r.json()).catch(() => ({ notes: [] })),
       ]);
+      if (Array.isArray(notesData.notes)) setNotes(notesData.notes);
 
       const hasProfile = !!pdData.patient?.name;
       const hasPersons = persons.length > 0;
@@ -256,6 +264,41 @@ export default function HealthDashboard() {
 
   const handleAddVisitNotes = () => {
     setShowVisitForm(true);
+  };
+
+  const handleSaveNote = async () => {
+    if (!newNoteText.trim()) { setNoteFormError('Note cannot be empty.'); return; }
+    const piiWarnings = detectPiiInText(newNoteText);
+    if (piiWarnings.length > 0) { setNoteFormError(piiWarnings[0]); return; }
+    setSavingNote(true);
+    setNoteFormError('');
+    try {
+      const res = await fetch(`/api/health-data/notes${personQuery}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: newNoteText, date: newNoteDate, source: 'manual' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setNotes(prev => [data.note, ...prev]);
+      setNewNoteText('');
+      setNewNoteDate(new Date().toISOString().split('T')[0]);
+      setShowNoteForm(false);
+      showToast('Note saved.');
+    } catch (e: any) {
+      setNoteFormError(e.message);
+    } finally {
+      setSavingNote(false);
+    }
+  };
+
+  const handleDeleteNote = async (id: string) => {
+    setNotes(prev => prev.filter(n => n.id !== id));
+    await fetch(`/api/health-data/notes${personQuery}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    }).catch(() => {});
   };
 
   const blankEventForm: Partial<CardiacEvent> = {
@@ -1392,13 +1435,22 @@ export default function HealthDashboard() {
             <div className="rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-white">Events Timeline ({filteredCardiacEvents.length} events)</h2>
-                <button
-                  onClick={handleAddCardiacEvent}
-                  className="text-white px-4 py-2 rounded-lg"
-                  style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.4)', color: '#F87171' }}
-                >
-                  + Add Event
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowNoteForm(true)}
+                    className="px-4 py-2 rounded-lg text-sm"
+                    style={{ background: 'rgba(99,102,241,0.2)', border: '1px solid rgba(99,102,241,0.4)', color: '#A5B4FC' }}
+                  >
+                    + Add Note
+                  </button>
+                  <button
+                    onClick={handleAddCardiacEvent}
+                    className="px-4 py-2 rounded-lg text-sm"
+                    style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.4)', color: '#F87171' }}
+                  >
+                    + Add Event
+                  </button>
+                </div>
               </div>
               
               <div className="space-y-4 max-h-96 overflow-y-auto">
@@ -1679,10 +1731,93 @@ export default function HealthDashboard() {
               ) : null;
             })()}
 
+            {/* Quick Notes */}
+            {notes.length > 0 && (
+              <div className="rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <h2 className="text-xl font-semibold mb-4 text-white">Notes ({notes.length})</h2>
+                <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+                  {notes.map(note => (
+                    <div key={note.id} className="rounded-xl p-4 flex gap-3" style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)' }}>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs mb-1.5" style={{ color: '#818CF8' }}>
+                          {new Date(note.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          {note.source === 'ai-chat' && <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(139,92,246,0.2)', color: '#A78BFA' }}>from AI chat</span>}
+                        </div>
+                        <p className="text-sm text-white whitespace-pre-wrap">{note.text}</p>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteNote(note.id)}
+                        className="shrink-0 transition-colors hover:text-red-400"
+                        style={{ color: '#4B5563' }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* incident reports section removed */}
           </div>
         </div>
       </div>
+
+      {/* Add Note Modal */}
+      {showNoteForm && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
+          <div className="rounded-2xl w-full max-w-lg" style={{ background: '#0B1120', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div className="p-6">
+              <h2 className="text-xl font-bold text-white mb-1">Add Note</h2>
+              <p className="text-sm mb-4" style={{ color: '#9CA3AF' }}>Quick observations, symptoms, or anything worth tracking between visits.</p>
+              <div className="rounded-lg px-3 py-2 text-xs mb-4" style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', color: '#FCD34D' }}>
+                First names only — no last names, phone numbers, or addresses.
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium mb-1.5" style={{ color: '#D1D5DB' }}>Date</label>
+                  <input
+                    type="date"
+                    value={newNoteDate}
+                    onChange={e => setNewNoteDate(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl text-sm text-white outline-none focus:ring-2 focus:ring-blue-500/50"
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1.5" style={{ color: '#D1D5DB' }}>Note</label>
+                  <textarea
+                    value={newNoteText}
+                    onChange={e => { setNewNoteText(e.target.value); setNoteFormError(''); }}
+                    rows={5}
+                    placeholder="e.g. Noticed fatigue after afternoon activity. No symptoms but felt off. Will monitor."
+                    className="w-full px-3 py-2.5 rounded-xl text-sm text-white placeholder-gray-600 outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
+                    style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${noteFormError ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.1)'}` }}
+                  />
+                  {noteFormError && <p className="text-xs mt-1" style={{ color: '#F87171' }}>⚠ {noteFormError}</p>}
+                </div>
+              </div>
+              <div className="flex gap-3 mt-5">
+                <button
+                  onClick={handleSaveNote}
+                  disabled={savingNote}
+                  className="flex-1 py-2.5 rounded-xl font-semibold text-sm text-white disabled:opacity-60"
+                  style={{ background: 'linear-gradient(135deg,#6366F1,#8B5CF6)' }}
+                >
+                  {savingNote ? 'Saving…' : 'Save Note'}
+                </button>
+                <button
+                  onClick={() => { setShowNoteForm(false); setNewNoteText(''); setNoteFormError(''); }}
+                  className="px-5 py-2.5 rounded-xl text-sm font-medium"
+                  style={{ border: '1px solid rgba(255,255,255,0.12)', color: '#9CA3AF' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Edit Notes Modal */}
       {editingEventId && (

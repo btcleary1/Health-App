@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import HealthHeader from '@/components/HealthHeader';
 import HIPAAFooter from '@/components/HIPAAFooter';
-import { Brain, Loader2, ChevronDown, ChevronUp, AlertTriangle, Search, ClipboardList, Lightbulb, HeartPulse, Shield } from 'lucide-react';
+import { Brain, Loader2, ChevronDown, ChevronUp, AlertTriangle, Search, ClipboardList, Lightbulb, HeartPulse, Shield, Send, BookmarkPlus, Check } from 'lucide-react';
 import { usePersonContext } from '@/lib/PersonContext';
 
 const SAMPLE_PATIENT_DATA = {
@@ -87,6 +87,13 @@ export default function AIAnalysisPage() {
   const [isSample, setIsSample] = useState(true);
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
 
+  // Chat state
+  const [chatInput, setChatInput] = useState('');
+  const [chatHistory, setChatHistory] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
+  const [chatLoading, setChatLoading] = useState(false);
+  const [chatError, setChatError] = useState('');
+  const [savedNotes, setSavedNotes] = useState<Set<number>>(new Set());
+
   useEffect(() => {
     setAnalysis(null);
     setIsSample(true);
@@ -139,6 +146,49 @@ export default function AIAnalysisPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const sendChat = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!chatInput.trim() || chatLoading) return;
+    const userMessage = chatInput.trim();
+    setChatInput('');
+    setChatError('');
+    const newHistory = [...chatHistory, { role: 'user' as const, content: userMessage }];
+    setChatHistory(newHistory);
+    setChatLoading(true);
+    try {
+      const res = await fetch('/api/ai-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: userMessage,
+          history: chatHistory.map(m => ({ role: m.role, content: m.content })),
+          analysis,
+          patientData,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'Chat failed.');
+      setChatHistory([...newHistory, { role: 'assistant', content: data.reply }]);
+    } catch (e: any) {
+      setChatError(e.message);
+      setChatHistory(newHistory); // keep user message, remove failed assistant
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
+  const saveAsNote = async (text: string, index: number) => {
+    const noteText = text.length > 1000 ? text.slice(0, 1000) + '…' : text;
+    try {
+      const res = await fetch(`/api/health-data/notes${personQuery}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: noteText, source: 'ai-chat' }),
+      });
+      if (res.ok) setSavedNotes(prev => new Set([...prev, index]));
+    } catch { /* silent */ }
   };
 
   return (
@@ -363,6 +413,83 @@ export default function AIAnalysisPage() {
               {analysis.patientGuidance?.supportNote && (
                 <p className="text-sm italic" style={{ color: '#93C5FD' }}>{analysis.patientGuidance.supportNote}</p>
               )}
+            </div>
+
+            {/* AI Chat */}
+            <div className="mt-6 rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(139,92,246,0.3)', background: 'rgba(139,92,246,0.05)' }}>
+              <div className="px-5 py-4" style={{ borderBottom: '1px solid rgba(139,92,246,0.2)' }}>
+                <div className="flex items-center gap-2">
+                  <Brain className="w-4 h-4" style={{ color: '#A78BFA' }} />
+                  <span className="font-semibold text-white text-sm">Ask a follow-up question</span>
+                </div>
+                <p className="text-xs mt-1" style={{ color: '#6B7280' }}>Ask Claude anything about this analysis. Responses can be saved as notes to your dashboard.</p>
+              </div>
+
+              {/* Chat messages */}
+              {chatHistory.length > 0 && (
+                <div className="px-5 py-4 space-y-4 max-h-96 overflow-y-auto">
+                  {chatHistory.map((msg, i) => (
+                    <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div
+                        className="rounded-2xl px-4 py-3 max-w-[85%] text-sm"
+                        style={msg.role === 'user'
+                          ? { background: 'rgba(99,102,241,0.2)', border: '1px solid rgba(99,102,241,0.3)', color: '#E0E7FF' }
+                          : { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#D1D5DB' }}
+                      >
+                        <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                        {msg.role === 'assistant' && (
+                          <button
+                            onClick={() => saveAsNote(msg.content, i)}
+                            disabled={savedNotes.has(i)}
+                            className="flex items-center gap-1 text-xs mt-2 transition-colors disabled:opacity-60"
+                            style={{ color: savedNotes.has(i) ? '#4ADE80' : '#818CF8' }}
+                          >
+                            {savedNotes.has(i)
+                              ? <><Check className="w-3 h-3" /> Saved to notes</>
+                              : <><BookmarkPlus className="w-3 h-3" /> Save as note</>}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {chatLoading && (
+                    <div className="flex justify-start">
+                      <div className="rounded-2xl px-4 py-3 flex items-center gap-2" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                        <Loader2 className="w-3 h-3 animate-spin" style={{ color: '#A78BFA' }} />
+                        <span className="text-xs" style={{ color: '#6B7280' }}>Claude is thinking…</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {chatError && (
+                <div className="mx-5 mb-3 rounded-xl px-3 py-2 text-xs" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#FCA5A5' }}>
+                  {chatError}
+                </div>
+              )}
+
+              {/* Input */}
+              <form onSubmit={sendChat} className="px-5 py-4 flex gap-3" style={{ borderTop: chatHistory.length > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={e => setChatInput(e.target.value)}
+                  placeholder="e.g. What does QTc of 520ms mean? Should we ask about genetic testing?"
+                  className="flex-1 px-4 py-2.5 rounded-xl text-sm text-white placeholder-gray-600 outline-none focus:ring-2 focus:ring-purple-500/40"
+                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+                  disabled={chatLoading}
+                />
+                <button
+                  type="submit"
+                  disabled={!chatInput.trim() || chatLoading}
+                  className="px-4 py-2.5 rounded-xl font-medium text-sm text-white flex items-center gap-2 transition-all disabled:opacity-50"
+                  style={{ background: 'linear-gradient(135deg,#7C3AED,#6366F1)', boxShadow: '0 2px 12px rgba(124,58,237,0.3)' }}
+                >
+                  <Send className="w-4 h-4" />
+                  <span className="hidden sm:inline">Ask</span>
+                </button>
+              </form>
             </div>
           </div>
         )}

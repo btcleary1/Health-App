@@ -72,6 +72,23 @@ export async function saveDoctorVisits(userId: string, visits: unknown[], person
   await writeBlob(`${personPrefix(userId, personId)}/visits.json`, visits);
 }
 
+// --- Notes (freeform, not tied to a visit or event) ---
+export interface HealthNote {
+  id: string;
+  date: string;         // YYYY-MM-DD
+  text: string;
+  source: 'manual' | 'ai-chat';
+  createdAt: string;
+}
+
+export async function getNotes(userId: string, personId?: string): Promise<HealthNote[]> {
+  return (await readBlob<HealthNote[]>(`${personPrefix(userId, personId)}/notes.json`)) ?? [];
+}
+
+export async function saveNotes(userId: string, notes: HealthNote[], personId?: string): Promise<void> {
+  await writeBlob(`${personPrefix(userId, personId)}/notes.json`, notes);
+}
+
 // --- Upload manifest (metadata about uploaded files) ---
 export async function getUploadManifest(userId: string, personId?: string): Promise<unknown[]> {
   return (await readBlob<unknown[]>(`${personPrefix(userId, personId)}/uploads-manifest.json`)) ?? [];
