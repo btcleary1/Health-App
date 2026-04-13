@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import HealthHeader from '@/components/HealthHeader';
 import HIPAAFooter from '@/components/HIPAAFooter';
 import UploadConsent from '@/components/UploadConsent';
-import { Upload, FileImage, FileText, File, X, Check, AlertCircle, Brain, Loader2, ShieldAlert } from 'lucide-react';
+import { Upload, FileImage, FileText, File, X, Check, AlertCircle, Brain, Loader2, ShieldAlert, ImagePlus } from 'lucide-react';
 import { usePersonContext } from '@/lib/PersonContext';
 import { detectPiiInText } from '@/lib/pii-validator';
 
@@ -63,7 +63,9 @@ export default function UploadsPage() {
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [showConsent, setShowConsent] = useState(false);
   const [consentAccepted, setConsentAccepted] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingInputType, setPendingInputType] = useState<'photos' | 'docs'>('photos');
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setUploadsLoading(true);
@@ -104,20 +106,23 @@ export default function UploadsPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [consentAccepted, pendingFiles]);
 
-  const handleBrowseClick = () => {
-    if (!consentAccepted) { setShowConsent(true); } else { fileInputRef.current?.click(); }
+  const handlePhotoClick = () => {
+    if (!consentAccepted) { setPendingInputType('photos'); setShowConsent(true); } else { photoInputRef.current?.click(); }
+  };
+
+  const handleDocClick = () => {
+    if (!consentAccepted) { setPendingInputType('docs'); setShowConsent(true); } else { docInputRef.current?.click(); }
   };
 
   const handleConsentAccept = () => {
     setConsentAccepted(true);
     setShowConsent(false);
-    fileInputRef.current?.click();
+    if (pendingInputType === 'docs') { docInputRef.current?.click(); } else { photoInputRef.current?.click(); }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     if (files.length > 0) addFiles(files);
-    // Reset so same files can be selected again
     e.target.value = '';
   };
 
@@ -213,6 +218,10 @@ export default function UploadsPage() {
           onCancel={() => { setShowConsent(false); setPendingFiles([]); }}
         />
       )}
+      {/* Photos input — image/* only so iOS shows Photos multi-select */}
+      <input ref={photoInputRef} type="file" className="hidden" onChange={handleFileSelect} accept="image/*" multiple />
+      {/* Docs input — PDF/TXT, single file */}
+      <input ref={docInputRef} type="file" className="hidden" onChange={handleFileSelect} accept=".pdf,.txt" />
       <HealthHeader />
       <div className="max-w-3xl mx-auto px-4 py-6 pb-24 sm:pb-10">
 
@@ -254,14 +263,6 @@ export default function UploadsPage() {
 
         {/* Upload card */}
         <div className="rounded-2xl p-5 mb-5" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <input
-            ref={fileInputRef}
-            type="file"
-            className="hidden"
-            onChange={handleFileSelect}
-            accept="image/*,.pdf,.txt"
-            multiple
-          />
 
           {/* Drop zone */}
           <div
@@ -280,13 +281,22 @@ export default function UploadsPage() {
                   <Check className="w-6 h-6" style={{ color: '#4ADE80' }} />
                 </div>
                 <div className="font-semibold text-white">{pendingFiles.length} file{pendingFiles.length !== 1 ? 's' : ''} ready to upload</div>
-                <button
-                  onClick={handleBrowseClick}
-                  className="text-xs px-3 py-1.5 rounded-lg transition-colors mt-1"
-                  style={{ border: '1px solid rgba(255,255,255,0.15)', color: '#9CA3AF' }}
-                >
-                  + Add more files
-                </button>
+                <div className="flex gap-2 mt-1">
+                  <button
+                    onClick={handlePhotoClick}
+                    className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg transition-colors"
+                    style={{ border: '1px solid rgba(59,130,246,0.3)', color: '#60A5FA' }}
+                  >
+                    <ImagePlus className="w-3 h-3" /> More photos
+                  </button>
+                  <button
+                    onClick={handleDocClick}
+                    className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg transition-colors"
+                    style={{ border: '1px solid rgba(255,255,255,0.15)', color: '#9CA3AF' }}
+                  >
+                    <FileText className="w-3 h-3" /> Add document
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-4" style={{ color: '#6B7280' }}>
@@ -295,15 +305,24 @@ export default function UploadsPage() {
                 </div>
                 <div>
                   <div className="font-semibold text-white">Drag and drop files here</div>
-                  <div className="text-sm mt-1" style={{ color: '#6B7280' }}>Select up to {MAX_PER_UPLOAD} photos at once — 10MB max per file</div>
+                  <div className="text-sm mt-1" style={{ color: '#6B7280' }}>Up to {MAX_PER_UPLOAD} photos at once — 10MB max per file</div>
                 </div>
-                <button
-                  onClick={handleBrowseClick}
-                  className="px-5 py-2.5 rounded-xl font-medium text-sm text-white transition-all"
-                  style={{ background: 'linear-gradient(135deg,#3B82F6,#6366F1)', boxShadow: '0 2px 12px rgba(99,102,241,0.3)' }}
-                >
-                  Browse Files
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handlePhotoClick}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm text-white transition-all"
+                    style={{ background: 'linear-gradient(135deg,#3B82F6,#6366F1)', boxShadow: '0 2px 12px rgba(99,102,241,0.3)' }}
+                  >
+                    <ImagePlus className="w-4 h-4" /> Add Photos
+                  </button>
+                  <button
+                    onClick={handleDocClick}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm transition-all"
+                    style={{ border: '1px solid rgba(255,255,255,0.15)', color: '#9CA3AF' }}
+                  >
+                    <FileText className="w-4 h-4" /> Add Document
+                  </button>
+                </div>
               </div>
             )}
           </div>
