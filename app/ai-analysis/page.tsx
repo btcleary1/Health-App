@@ -86,6 +86,7 @@ export default function AIAnalysisPage() {
   const [doctorVisits, setDoctorVisits] = useState<any[]>([]);
   const [isSample, setIsSample] = useState(true);
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
+  const [notes, setNotes] = useState<any[]>([]);
 
   // Chat state
   const [chatInput, setChatInput] = useState('');
@@ -102,7 +103,8 @@ export default function AIAnalysisPage() {
       fetch(`/api/health-data/events${personQuery}`).then(r => r.json()).catch(() => ({})),
       fetch(`/api/health-data/visits${personQuery}`).then(r => r.json()).catch(() => ({ visits: [] })),
       fetch(`/api/uploads${personQuery}`).then(r => r.json()).catch(() => ({ files: [] })),
-    ]).then(([pd, ev, vis, up]) => {
+      fetch(`/api/health-data/notes${personQuery}`).then(r => r.json()).catch(() => ({ notes: [] })),
+    ]).then(([pd, ev, vis, up, nt]) => {
       const hasPersons = persons.length > 0;
       const hasPatient = pd.patient?.name;
       const hasEvents = Array.isArray(ev.events) && ev.events.length > 0;
@@ -120,6 +122,7 @@ export default function AIAnalysisPage() {
         setIsSample(false);
       }
       if (Array.isArray(up.files) && up.files.length > 0) setUploadedFiles(up.files);
+      if (Array.isArray(nt.notes) && nt.notes.length > 0) setNotes(nt.notes);
     });
   }, [activeId, personQuery, persons.length]);
 
@@ -131,7 +134,7 @@ export default function AIAnalysisPage() {
       const res = await fetch('/api/ai-analysis', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ patientData, events, doctorVisits, focusArea, uploadedFiles }),
+        body: JSON.stringify({ patientData, events, doctorVisits, notes, focusArea, uploadedFiles }),
       });
       let data: any;
       try {
@@ -262,7 +265,7 @@ export default function AIAnalysisPage() {
           </button>
           {loading && (
             <p className="text-center text-xs mt-3" style={{ color: '#6B7280' }}>
-              Claude is reading all events, notes, triggers, medications{uploadedFiles.length > 0 ? `, and ${uploadedFiles.length} uploaded file${uploadedFiles.length !== 1 ? 's' : ''}` : ''} — this takes 15–30 seconds
+              Claude is reading all events{notes.length > 0 ? `, ${notes.length} note${notes.length !== 1 ? 's' : ''}` : ''}, visits, medications{uploadedFiles.length > 0 ? `, and ${uploadedFiles.length} uploaded file${uploadedFiles.length !== 1 ? 's' : ''}` : ''} — this takes 15–30 seconds
             </p>
           )}
         </div>

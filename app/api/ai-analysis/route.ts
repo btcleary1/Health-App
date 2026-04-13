@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { patientData, events, doctorVisits, focusArea, uploadedFiles } = body;
+  const { patientData, events, doctorVisits, notes, focusArea, uploadedFiles } = body;
 
   const { addressAs, context } = getPatientContext(patientData);
 
@@ -106,6 +106,12 @@ export async function POST(req: NextRequest) {
       ).join('\n')
     : 'No health events recorded';
 
+  const notesText = Array.isArray(notes) && notes.length > 0
+    ? notes.slice(-20).map((n: any) =>
+        `[${n.date}] ${n.text}${n.source === 'ai-chat' ? ' (from AI chat)' : ''}`
+      ).join('\n')
+    : null;
+
   const prompt = `You are a medical research assistant helping prepare for doctor appointments. Analyze ALL the data below thoroughly and return ONLY a valid, complete JSON object — no markdown fences, no text before or after the JSON.
 
 PATIENT: ${addressAs}, ${context}
@@ -119,7 +125,7 @@ ${visitsText}
 HEALTH EVENTS (most recent first):
 ${eventsText}
 
-${focusArea ? `FOCUS AREA: ${focusArea}\n` : ''}${uploadedFiles?.length > 0 ? `UPLOADED DOCUMENTS: ${uploadedFiles.map((f: any) => `${f.category} — ${f.originalName}${f.note ? ` (${f.note})` : ''}`).join('; ')}` : ''}
+${notesText ? `CAREGIVER NOTES (observations outside of visits/events):\n${notesText}\n` : ''}${focusArea ? `FOCUS AREA: ${focusArea}\n` : ''}${uploadedFiles?.length > 0 ? `UPLOADED DOCUMENTS: ${uploadedFiles.map((f: any) => `${f.category} — ${f.originalName}${f.note ? ` (${f.note})` : ''}`).join('; ')}` : ''}
 
 ${uploadedFiles?.length > 0 ? 'The uploaded medical documents/screenshots are attached above as images. Extract ALL biometric data, lab values, test results, measurements, diagnoses, and clinical findings visible in the images and incorporate them into your analysis. These are the most important source of clinical data.\n' : ''}
 Base your analysis on ALL the above data. Be specific — reference actual dates, doctor names, diagnoses, and values from the records above. Do not give generic advice.
