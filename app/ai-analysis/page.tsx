@@ -85,6 +85,7 @@ export default function AIAnalysisPage() {
   const [events, setEvents] = useState<any[]>(SAMPLE_EVENTS);
   const [doctorVisits, setDoctorVisits] = useState<any[]>([]);
   const [isSample, setIsSample] = useState(true);
+  const [dataLoading, setDataLoading] = useState(true);
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
   const [notes, setNotes] = useState<any[]>([]);
 
@@ -98,6 +99,7 @@ export default function AIAnalysisPage() {
   useEffect(() => {
     setAnalysis(null);
     setIsSample(true);
+    setDataLoading(true);
     Promise.all([
       fetch(`/api/health-data/patient${personQuery}`).then(r => r.json()).catch(() => ({})),
       fetch(`/api/health-data/events${personQuery}`).then(r => r.json()).catch(() => ({})),
@@ -123,6 +125,7 @@ export default function AIAnalysisPage() {
       }
       if (Array.isArray(up.files) && up.files.length > 0) setUploadedFiles(up.files);
       if (Array.isArray(nt.notes) && nt.notes.length > 0) setNotes(nt.notes);
+      setDataLoading(false);
     });
   }, [activeId, personQuery, persons.length]);
 
@@ -199,7 +202,12 @@ export default function AIAnalysisPage() {
       <HealthHeader />
       <div className="max-w-4xl mx-auto px-4 py-6 pb-24 sm:pb-10">
 
-        {isSample && (
+        {dataLoading ? (
+          <div className="flex items-center justify-center py-20 gap-3" style={{ color: '#6B7280' }}>
+            <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#8B5CF6' }} />
+            <span className="text-sm">Loading health data…</span>
+          </div>
+        ) : isSample && (
           <div className="mb-4 rounded-2xl px-5 py-3 flex items-start gap-3" style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)' }}>
             <span className="text-yellow-400 font-bold text-lg shrink-0">⚠</span>
             <div>
@@ -209,8 +217,8 @@ export default function AIAnalysisPage() {
           </div>
         )}
 
-        {/* Header */}
-        <div className="mb-6">
+        {/* Main content — only render once data is fetched */}
+        {!dataLoading && <div className="mb-6">
           <div className="flex items-center gap-3 mb-2">
             <div className="flex items-center justify-center w-10 h-10 rounded-2xl shrink-0" style={{ background: 'linear-gradient(135deg,#8B5CF6,#6366F1)', boxShadow: '0 2px 12px rgba(139,92,246,0.4)' }}>
               <Brain className="w-5 h-5 text-white" />
@@ -352,16 +360,16 @@ export default function AIAnalysisPage() {
 
             <Section title="Trigger Patterns & Avoidance" icon={<HeartPulse className="w-5 h-5 text-red-400" />} defaultOpen={false}>
               <div className="pt-4 space-y-4">
-                {analysis.triggerPatterns?.identified?.length > 0 && (
+                {analysis.triggerPatterns?.identified?.filter((p: string) => p?.trim()).length > 0 && (
                   <div>
                     <div className="text-sm font-semibold mb-2" style={{ color: '#D1D5DB' }}>Identified Patterns:</div>
-                    <ul className="space-y-1">{analysis.triggerPatterns.identified.map((p, i) => <li key={i} className="flex gap-2 text-sm" style={{ color: '#9CA3AF' }}><span className="text-red-400">•</span>{p}</li>)}</ul>
+                    <ul className="space-y-1">{analysis.triggerPatterns.identified.filter((p: string) => p?.trim()).map((p: string, i: number) => <li key={i} className="flex gap-2 text-sm" style={{ color: '#9CA3AF' }}><span className="text-red-400">•</span>{p}</li>)}</ul>
                   </div>
                 )}
-                {analysis.triggerPatterns?.avoidanceRecommendations?.length > 0 && (
+                {analysis.triggerPatterns?.avoidanceRecommendations?.filter((r: string) => r?.trim()).length > 0 && (
                   <div>
                     <div className="text-sm font-semibold mb-2" style={{ color: '#D1D5DB' }}>Avoidance Recommendations:</div>
-                    <ul className="space-y-1">{analysis.triggerPatterns.avoidanceRecommendations.map((r, i) => <li key={i} className="flex gap-2 text-sm" style={{ color: '#9CA3AF' }}><span className="text-orange-400">→</span>{r}</li>)}</ul>
+                    <ul className="space-y-1">{analysis.triggerPatterns.avoidanceRecommendations.filter((r: string) => r?.trim()).map((r: string, i: number) => <li key={i} className="flex gap-2 text-sm" style={{ color: '#9CA3AF' }}><span className="text-orange-400">→</span>{r}</li>)}</ul>
                   </div>
                 )}
               </div>
@@ -369,30 +377,30 @@ export default function AIAnalysisPage() {
 
             <Section title="Doctor Briefing — Questions to Ask" icon={<Shield className="w-5 h-5 text-green-400" />}>
               <div className="pt-4 space-y-4">
-                {analysis.doctorBriefing?.criticalHistory?.length > 0 && (
+                {analysis.doctorBriefing?.criticalHistory?.filter((h: string) => h?.trim()).length > 0 && (
                   <div>
                     <div className="text-sm font-semibold mb-2" style={{ color: '#D1D5DB' }}>Critical History (share with every new doctor):</div>
-                    <ul className="space-y-1">{analysis.doctorBriefing.criticalHistory.map((h, i) => <li key={i} className="flex gap-2 text-sm" style={{ color: '#9CA3AF' }}><span className="text-blue-400">•</span>{h}</li>)}</ul>
+                    <ul className="space-y-1">{analysis.doctorBriefing.criticalHistory.filter((h: string) => h?.trim()).map((h: string, i: number) => <li key={i} className="flex gap-2 text-sm" style={{ color: '#9CA3AF' }}><span className="text-blue-400">•</span>{h}</li>)}</ul>
                   </div>
                 )}
-                {analysis.doctorBriefing?.questionsToAsk?.length > 0 && (
+                {analysis.doctorBriefing?.questionsToAsk?.filter((q: string) => q?.trim()).length > 0 && (
                   <div>
                     <div className="text-sm font-semibold mb-2" style={{ color: '#D1D5DB' }}>Questions to Ask This Doctor:</div>
-                    <ul className="space-y-2">{analysis.doctorBriefing.questionsToAsk.map((q, i) => (
+                    <ul className="space-y-2">{analysis.doctorBriefing.questionsToAsk.filter((q: string) => q?.trim()).map((q: string, i: number) => (
                       <li key={i} className="rounded-xl p-3 text-sm" style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', color: '#93C5FD' }}>&ldquo;{q}&rdquo;</li>
                     ))}</ul>
                   </div>
                 )}
-                {analysis.doctorBriefing?.redFlags?.length > 0 && (
+                {analysis.doctorBriefing?.redFlags?.filter((f: string) => f?.trim()).length > 0 && (
                   <div>
                     <div className="text-sm font-semibold mb-2" style={{ color: '#FCA5A5' }}>Red Flags — Seek Care Immediately If:</div>
-                    <ul className="space-y-1">{analysis.doctorBriefing.redFlags.map((f, i) => <li key={i} className="flex gap-2 text-sm" style={{ color: '#FCA5A5' }}><span className="text-red-400 shrink-0">!</span>{f}</li>)}</ul>
+                    <ul className="space-y-1">{analysis.doctorBriefing.redFlags.filter((f: string) => f?.trim()).map((f: string, i: number) => <li key={i} className="flex gap-2 text-sm" style={{ color: '#FCA5A5' }}><span className="text-red-400 shrink-0">!</span>{f}</li>)}</ul>
                   </div>
                 )}
-                {analysis.doctorBriefing?.medicationsToDiscuss?.length > 0 && (
+                {analysis.doctorBriefing?.medicationsToDiscuss?.filter((m: string) => m?.trim()).length > 0 && (
                   <div>
                     <div className="text-sm font-semibold mb-2" style={{ color: '#D1D5DB' }}>Medications to Discuss:</div>
-                    <ul className="space-y-1">{analysis.doctorBriefing.medicationsToDiscuss.map((m, i) => <li key={i} className="flex gap-2 text-sm" style={{ color: '#9CA3AF' }}><span>💊</span>{m}</li>)}</ul>
+                    <ul className="space-y-1">{analysis.doctorBriefing.medicationsToDiscuss.filter((m: string) => m?.trim()).map((m: string, i: number) => <li key={i} className="flex gap-2 text-sm" style={{ color: '#9CA3AF' }}><span>💊</span>{m}</li>)}</ul>
                   </div>
                 )}
               </div>
@@ -401,16 +409,16 @@ export default function AIAnalysisPage() {
             {/* Patient guidance */}
             <div className="rounded-2xl p-5 mt-2" style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)' }}>
               <div className="text-sm font-semibold mb-3" style={{ color: '#93C5FD' }}>Action Plan — {isSample ? 'Demo Patient' : patientData.name}&apos;s Health</div>
-              {analysis.patientGuidance?.immediateActions?.length > 0 && (
+              {analysis.patientGuidance?.immediateActions?.filter((a: string) => a?.trim()).length > 0 && (
                 <div className="mb-3">
                   <div className="text-xs font-bold mb-1" style={{ color: '#60A5FA' }}>RIGHT NOW:</div>
-                  <ul className="space-y-1">{analysis.patientGuidance.immediateActions.map((a, i) => <li key={i} className="flex gap-2 text-sm" style={{ color: '#BFDBFE' }}><span>→</span>{a}</li>)}</ul>
+                  <ul className="space-y-1">{analysis.patientGuidance.immediateActions.filter((a: string) => a?.trim()).map((a: string, i: number) => <li key={i} className="flex gap-2 text-sm" style={{ color: '#BFDBFE' }}><span>→</span>{a}</li>)}</ul>
                 </div>
               )}
-              {analysis.patientGuidance?.monitoringTips?.length > 0 && (
+              {analysis.patientGuidance?.monitoringTips?.filter((t: string) => t?.trim()).length > 0 && (
                 <div className="mb-3">
                   <div className="text-xs font-bold mb-1" style={{ color: '#60A5FA' }}>TRACK FOR NEXT APPOINTMENT:</div>
-                  <ul className="space-y-1">{analysis.patientGuidance.monitoringTips.map((t, i) => <li key={i} className="flex gap-2 text-sm" style={{ color: '#BFDBFE' }}><span>•</span>{t}</li>)}</ul>
+                  <ul className="space-y-1">{analysis.patientGuidance.monitoringTips.filter((t: string) => t?.trim()).map((t: string, i: number) => <li key={i} className="flex gap-2 text-sm" style={{ color: '#BFDBFE' }}><span>•</span>{t}</li>)}</ul>
                 </div>
               )}
               {analysis.patientGuidance?.supportNote && (
@@ -496,6 +504,7 @@ export default function AIAnalysisPage() {
             </div>
           </div>
         )}
+        </div>}
       </div>
       <HIPAAFooter />
     </div>
