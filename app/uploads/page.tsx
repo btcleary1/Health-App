@@ -19,6 +19,9 @@ const CATEGORIES = [
   { value: 'general', label: 'General / Other' },
 ];
 
+const MAX_PER_UPLOAD = 15;
+const MAX_TOTAL = 500;
+
 interface UploadedFile {
   id: string;
   originalName: string;
@@ -53,7 +56,7 @@ export default function UploadsPage() {
   const [uploading, setUploading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('general');
   const [note, setNote] = useState('');
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [error, setError] = useState('');
   const [noteError, setNoteError] = useState('');
   const [redactedCount, setRedactedCount] = useState<number | null>(null);
@@ -75,14 +78,31 @@ export default function UploadsPage() {
     }).finally(() => setUploadsLoading(false));
   }, [activeId, personQuery]);
 
+  const addFiles = (newFiles: File[]) => {
+    const slots = MAX_PER_UPLOAD - pendingFiles.length;
+    if (slots <= 0) {
+      setError(`You can upload up to ${MAX_PER_UPLOAD} files at a time.`);
+      return;
+    }
+    const toAdd = newFiles.slice(0, slots);
+    // Deduplicate by name+size
+    const existing = new Set(pendingFiles.map(f => f.name + f.size));
+    const unique = toAdd.filter(f => !existing.has(f.name + f.size));
+    setPendingFiles(prev => [...prev, ...unique]);
+    if (toAdd.length < newFiles.length) {
+      setError(`Only ${MAX_PER_UPLOAD} files can be queued at once. ${newFiles.length - toAdd.length} file(s) were skipped.`);
+    }
+  };
+
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file) {
-      if (!consentAccepted) { setShowConsent(true); setPendingFile(file); } else { setPendingFile(file); }
-    }
-  }, [consentAccepted]);
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length === 0) return;
+    if (!consentAccepted) { setShowConsent(true); return; }
+    addFiles(files);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [consentAccepted, pendingFiles]);
 
   const handleBrowseClick = () => {
     if (!consentAccepted) { setShowConsent(true); } else { fileInputRef.current?.click(); }
@@ -95,12 +115,18 @@ export default function UploadsPage() {
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) setPendingFile(file);
+    const files = Array.from(e.target.files ?? []);
+    if (files.length > 0) addFiles(files);
+    // Reset so same files can be selected again
+    e.target.value = '';
+  };
+
+  const removeFromQueue = (index: number) => {
+    setPendingFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleUpload = async () => {
-    if (!pendingFile) return;
+    if (pendingFiles.length === 0) return;
     const noteWarnings = detectPiiInText(note);
     if (noteWarnings.length > 0) {
       setNoteError(noteWarnings[0]);
@@ -110,9 +136,12 @@ export default function UploadsPage() {
     setError('');
     setNoteError('');
     setRedactedCount(null);
+
     try {
       const formData = new FormData();
-      formData.append('file', pendingFile);
+      for (const file of pendingFiles) {
+        formData.append('files', file);
+      }
       formData.append('category', selectedCategory);
       formData.append('note', note);
 
@@ -121,11 +150,11 @@ export default function UploadsPage() {
       if (!res.ok) throw new Error(data.error);
 
       if (data.redactedCount > 0) setRedactedCount(data.redactedCount);
-      setUploads(prev => [data.file, ...prev]);
-      setPendingFile(null);
+      const newFiles: UploadedFile[] = data.files ?? (data.file ? [data.file] : []);
+      setUploads(prev => [...newFiles, ...prev]);
+      setPendingFiles([]);
       setNote('');
       setSelectedCategory('general');
-      if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -173,12 +202,15 @@ export default function UploadsPage() {
     }).catch(() => {});
   };
 
+  const totalAfterUpload = uploads.length + pendingFiles.length;
+  const slotsRemaining = MAX_TOTAL - uploads.length;
+
   return (
     <div className="min-h-screen" style={{ background: 'linear-gradient(160deg,#050814 0%,#0B1120 60%,#0f172a 100%)' }}>
       {showConsent && (
         <UploadConsent
           onAccept={handleConsentAccept}
-          onCancel={() => { setShowConsent(false); setPendingFile(null); }}
+          onCancel={() => { setShowConsent(false); setPendingFiles([]); }}
         />
       )}
       <HealthHeader />
@@ -196,7 +228,7 @@ export default function UploadsPage() {
             </div>
           </div>
           <p className="text-sm mt-3" style={{ color: '#9CA3AF' }}>
-            Upload screenshots, photos, lab results, ECGs, and doctor letters. AI can help contextualize what they mean for {patientData?.name ?? 'the person you\'re tracking'}&apos;s case.
+            Upload screenshots, photos, lab results, ECGs, and doctor letters. Select up to {MAX_PER_UPLOAD} at once from your camera roll.
           </p>
         </div>
 
@@ -216,7 +248,7 @@ export default function UploadsPage() {
         {redactedCount !== null && redactedCount > 0 && (
           <div className="rounded-2xl px-4 py-3 mb-4 flex gap-2 items-center text-sm" style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', color: '#86EFAC' }}>
             <Check className="w-4 h-4 shrink-0" style={{ color: '#4ADE80' }} />
-            {redactedCount} piece{redactedCount !== 1 ? 's' : ''} of personal information were automatically redacted from the uploaded text file.
+            {redactedCount} piece{redactedCount !== 1 ? 's' : ''} of personal information were automatically redacted from the uploaded text file(s).
           </div>
         )}
 
@@ -228,6 +260,7 @@ export default function UploadsPage() {
             className="hidden"
             onChange={handleFileSelect}
             accept="image/*,.pdf,.txt"
+            multiple
           />
 
           {/* Drop zone */}
@@ -237,23 +270,22 @@ export default function UploadsPage() {
             onDrop={handleDrop}
             className="rounded-2xl p-8 text-center transition-all"
             style={{
-              border: `2px dashed ${dragging ? '#3B82F6' : pendingFile ? '#22C55E' : 'rgba(255,255,255,0.12)'}`,
-              background: dragging ? 'rgba(59,130,246,0.08)' : pendingFile ? 'rgba(34,197,94,0.06)' : 'rgba(255,255,255,0.02)',
+              border: `2px dashed ${dragging ? '#3B82F6' : pendingFiles.length > 0 ? '#22C55E' : 'rgba(255,255,255,0.12)'}`,
+              background: dragging ? 'rgba(59,130,246,0.08)' : pendingFiles.length > 0 ? 'rgba(34,197,94,0.06)' : 'rgba(255,255,255,0.02)',
             }}
           >
-            {pendingFile ? (
+            {pendingFiles.length > 0 ? (
               <div className="flex flex-col items-center gap-2">
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)' }}>
                   <Check className="w-6 h-6" style={{ color: '#4ADE80' }} />
                 </div>
-                <div className="font-semibold text-white">{pendingFile.name}</div>
-                <div className="text-sm" style={{ color: '#4ADE80' }}>{formatSize(pendingFile.size)}</div>
+                <div className="font-semibold text-white">{pendingFiles.length} file{pendingFiles.length !== 1 ? 's' : ''} ready to upload</div>
                 <button
-                  onClick={() => setPendingFile(null)}
-                  className="flex items-center gap-1 text-xs mt-1 transition-colors hover:text-red-400"
-                  style={{ color: '#6B7280' }}
+                  onClick={handleBrowseClick}
+                  className="text-xs px-3 py-1.5 rounded-lg transition-colors mt-1"
+                  style={{ border: '1px solid rgba(255,255,255,0.15)', color: '#9CA3AF' }}
                 >
-                  <X className="w-3 h-3" /> Remove
+                  + Add more files
                 </button>
               </div>
             ) : (
@@ -262,8 +294,8 @@ export default function UploadsPage() {
                   <Upload className="w-7 h-7" style={{ color: '#9CA3AF' }} />
                 </div>
                 <div>
-                  <div className="font-semibold text-white">Drag and drop a file here</div>
-                  <div className="text-sm mt-1" style={{ color: '#6B7280' }}>Photos, screenshots, PDFs, lab results, ECGs — up to 10MB</div>
+                  <div className="font-semibold text-white">Drag and drop files here</div>
+                  <div className="text-sm mt-1" style={{ color: '#6B7280' }}>Select up to {MAX_PER_UPLOAD} photos at once — 10MB max per file</div>
                 </div>
                 <button
                   onClick={handleBrowseClick}
@@ -276,11 +308,36 @@ export default function UploadsPage() {
             )}
           </div>
 
+          {/* Pending file list */}
+          {pendingFiles.length > 0 && (
+            <div className="mt-4">
+              <div className="text-xs font-semibold mb-2" style={{ color: '#9CA3AF' }}>
+                Queued ({pendingFiles.length}/{MAX_PER_UPLOAD}) — {MAX_TOTAL - uploads.length} slot{MAX_TOTAL - uploads.length !== 1 ? 's' : ''} remaining
+              </div>
+              <div className="space-y-2">
+                {pendingFiles.map((file, i) => (
+                  <div key={i} className="flex items-center gap-3 rounded-xl px-3 py-2" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <FileIcon type={file.type} />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm text-white truncate">{file.name}</div>
+                      <div className="text-xs" style={{ color: '#6B7280' }}>{formatSize(file.size)}</div>
+                    </div>
+                    <button onClick={() => removeFromQueue(i)} className="shrink-0 transition-colors hover:text-red-400" style={{ color: '#4B5563' }}>
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Form fields */}
-          {pendingFile && (
+          {pendingFiles.length > 0 && (
             <div className="mt-4 space-y-3">
               <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: '#D1D5DB' }}>Category</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: '#D1D5DB' }}>
+                  Category <span className="font-normal" style={{ color: '#6B7280' }}>(applies to all)</span>
+                </label>
                 <select
                   value={selectedCategory}
                   onChange={e => setSelectedCategory(e.target.value)}
@@ -292,7 +349,7 @@ export default function UploadsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1" style={{ color: '#D1D5DB' }}>
-                  Note <span className="font-normal" style={{ color: '#6B7280' }}>(optional)</span>
+                  Note <span className="font-normal" style={{ color: '#6B7280' }}>(optional, applies to all)</span>
                 </label>
                 <input
                   type="text"
@@ -307,7 +364,7 @@ export default function UploadsPage() {
                   }}
                 />
                 {noteError
-                  ? <p className="text-xs mt-1" style={{ color: '#F87171' }}>⚠ {noteError}</p>
+                  ? <p className="text-xs mt-1" style={{ color: '#F87171' }}>Warning: {noteError}</p>
                   : <p className="text-xs mt-1" style={{ color: '#4B5563' }}>First names only — no last names, phone numbers, or addresses</p>}
               </div>
               <button
@@ -316,7 +373,9 @@ export default function UploadsPage() {
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm text-white disabled:opacity-60 transition-all"
                 style={{ background: 'linear-gradient(135deg,#3B82F6,#6366F1)', boxShadow: uploading ? 'none' : '0 2px 12px rgba(99,102,241,0.3)' }}
               >
-                {uploading ? <><Loader2 className="w-4 h-4 animate-spin" /> Uploading...</> : <><Upload className="w-4 h-4" /> Upload File</>}
+                {uploading
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Uploading {pendingFiles.length} file{pendingFiles.length !== 1 ? 's' : ''}...</>
+                  : <><Upload className="w-4 h-4" /> Upload {pendingFiles.length} File{pendingFiles.length !== 1 ? 's' : ''}</>}
               </button>
             </div>
           )}
@@ -336,9 +395,14 @@ export default function UploadsPage() {
           </div>
         ) : uploads.length > 0 ? (
           <div>
-            <h2 className="text-sm font-semibold mb-3" style={{ color: '#9CA3AF' }}>
-              Uploaded Documents ({uploads.length})
-            </h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold" style={{ color: '#9CA3AF' }}>
+                Uploaded Documents ({uploads.length})
+              </h2>
+              <span className="text-xs" style={{ color: uploads.length >= MAX_TOTAL ? '#F87171' : '#6B7280' }}>
+                {uploads.length} / {MAX_TOTAL}
+              </span>
+            </div>
             <div className="space-y-3">
               {uploads.map(upload => (
                 <div key={upload.id} className="rounded-2xl p-4 transition-all" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
@@ -404,7 +468,7 @@ export default function UploadsPage() {
               <FileImage className="w-8 h-8" style={{ color: '#374151' }} />
             </div>
             <div className="font-medium" style={{ color: '#6B7280' }}>No documents uploaded yet</div>
-            <div className="text-sm mt-1" style={{ color: '#4B5563' }}>Start by uploading a photo of a lab result, ECG, or doctor&apos;s note</div>
+            <div className="text-sm mt-1" style={{ color: '#4B5563' }}>Start by uploading photos of lab results, ECGs, or doctor&apos;s notes</div>
           </div>
         )}
       </div>

@@ -17,6 +17,11 @@ import { getUploadManifest, saveUploadManifest } from '@/lib/health-data';
 
 export const runtime = 'nodejs';
 
+const MAX_PER_UPLOAD = 15;
+const MAX_TOTAL = 500;
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf', 'text/plain'];
+
 export async function GET(req: NextRequest) {
   const session = await getSessionFromRequest(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -32,67 +37,100 @@ export async function POST(req: NextRequest) {
 
   try {
     const formData = await req.formData();
-    const file = formData.get('file') as File;
     const category = (formData.get('category') as string) || 'general';
     const note = (formData.get('note') as string) || '';
 
-    if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 });
-
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf', 'text/plain'];
-    if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json({ error: 'File type not allowed.' }, { status: 400 });
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-      return NextResponse.json({ error: 'File too large. Maximum size is 10MB.' }, { status: 400 });
-    }
-
-    // Reject PII in the note/metadata field
+    // Reject PII in note
     const noteWarnings = detectPiiInText(note);
     if (noteWarnings.length > 0) {
       return NextResponse.json({ error: 'Note contains personal information (phone number or address). Please remove it before uploading.' }, { status: 400 });
     }
 
-    const timestamp = Date.now();
-    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const blobPath = `health-uploads/${session.userId}/${timestamp}_${category}_${safeName}`;
+    // Support both multi-file ('files') and legacy single-file ('file') fields
+    const multiFiles = formData.getAll('files') as File[];
+    const singleFile = formData.get('file') as File | null;
+    const allFiles = multiFiles.length > 0 ? multiFiles : singleFile ? [singleFile] : [];
 
-    let uploadBody: File | Blob = file;
-    let redactedCount = 0;
-
-    // For plain-text files: redact PII from the content before storing
-    if (file.type === 'text/plain') {
-      const rawText = await file.text();
-      const { redacted, changes } = redactPiiFromText(rawText);
-      redactedCount = changes;
-      uploadBody = new Blob([redacted], { type: 'text/plain' });
+    if (allFiles.length === 0) {
+      return NextResponse.json({ error: 'No files provided' }, { status: 400 });
+    }
+    if (allFiles.length > MAX_PER_UPLOAD) {
+      return NextResponse.json({ error: `Upload up to ${MAX_PER_UPLOAD} files at a time.` }, { status: 400 });
     }
 
-    const arrayBuffer = await (uploadBody as Blob).arrayBuffer();
-    await r2.send(new PutObjectCommand({
-      Bucket: BUCKET(),
-      Key: blobPath,
-      Body: Buffer.from(arrayBuffer),
-      ContentType: file.type,
-    }));
+    // Check total cap
+    const existing = await getUploadManifest(session.userId, personId) as any[];
+    const slots = MAX_TOTAL - existing.length;
+    if (slots <= 0) {
+      return NextResponse.json({ error: `Maximum ${MAX_TOTAL} files reached for this profile.` }, { status: 400 });
+    }
 
-    const fileRecord = {
-      id: timestamp.toString(),
-      originalName: file.name,
-      category,
-      note,
-      size: file.size,
-      type: file.type,
-      url: blobPath,
-      blobPath,
-      uploadedAt: new Date().toISOString(),
-    };
+    const toProcess = allFiles.slice(0, slots);
+    const uploaded: any[] = [];
+    const errors: string[] = [];
 
-    // Persist metadata to manifest
-    const existing = await getUploadManifest(session.userId, personId) as typeof fileRecord[];
-    await saveUploadManifest(session.userId, [fileRecord, ...existing], personId);
+    for (const file of toProcess) {
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        errors.push(`${file.name}: unsupported type (use JPEG, PNG, GIF, WebP, PDF, or TXT)`);
+        continue;
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        errors.push(`${file.name}: too large (max 10MB per file)`);
+        continue;
+      }
 
-    return NextResponse.json({ success: true, redactedCount, file: fileRecord });
+      const timestamp = Date.now() + uploaded.length; // ensure unique timestamps
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const blobPath = `health-uploads/${session.userId}/${timestamp}_${category}_${safeName}`;
+
+      let uploadBody: Blob = file;
+      let redactedCount = 0;
+
+      if (file.type === 'text/plain') {
+        const rawText = await file.text();
+        const { redacted, changes } = redactPiiFromText(rawText);
+        redactedCount = changes;
+        uploadBody = new Blob([redacted], { type: 'text/plain' });
+      }
+
+      const arrayBuffer = await uploadBody.arrayBuffer();
+      await r2.send(new PutObjectCommand({
+        Bucket: BUCKET(),
+        Key: blobPath,
+        Body: Buffer.from(arrayBuffer),
+        ContentType: file.type,
+      }));
+
+      uploaded.push({
+        id: timestamp.toString(),
+        originalName: file.name,
+        category,
+        note,
+        size: file.size,
+        type: file.type,
+        url: blobPath,
+        blobPath,
+        uploadedAt: new Date().toISOString(),
+        redactedCount,
+      });
+    }
+
+    if (uploaded.length === 0) {
+      return NextResponse.json({ error: errors[0] ?? 'Upload failed' }, { status: 400 });
+    }
+
+    const updatedManifest = [...uploaded, ...existing];
+    await saveUploadManifest(session.userId, updatedManifest, personId);
+
+    // Legacy single-file response shape + multi-file shape
+    return NextResponse.json({
+      success: true,
+      file: uploaded[0],       // backward compat
+      files: uploaded,          // multi-file
+      redactedCount: uploaded.reduce((s, f) => s + (f.redactedCount ?? 0), 0),
+      errors,
+      total: updatedManifest.length,
+    });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
     return NextResponse.json({ error: 'Upload failed: ' + msg }, { status: 500 });
