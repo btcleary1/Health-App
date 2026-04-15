@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   Fingerprint, ShieldCheck, ShieldOff, Loader2, CheckCircle, XCircle,
   KeyRound, Eye, EyeOff, Users, Trash2, RefreshCw, AlertTriangle,
-  UserCircle, UserPlus, Pencil, X, Plus, Mail,
+  UserCircle, UserPlus, Pencil, X, Plus,
 } from 'lucide-react';
 import { startRegistration, browserSupportsWebAuthn } from '@simplewebauthn/browser';
 import HealthHeader from '@/components/HealthHeader';
@@ -18,18 +18,6 @@ const AGE_GROUPS = [
   { value: 'teenager', label: 'Teenager',     sub: '13–17 yrs' },
   { value: 'adult',    label: 'Adult',        sub: '18–64 yrs' },
   { value: 'senior',   label: 'Senior',       sub: '65+ yrs' },
-];
-
-const DEALS_CATEGORIES = [
-  { value: 'vitamins',     label: 'Vitamins & Supplements' },
-  { value: 'devices',      label: 'Medical Devices & Equipment' },
-  { value: 'babycare',     label: 'Baby & Infant Care' },
-  { value: 'medications',  label: 'Medications & Pharmacy' },
-  { value: 'nutrition',    label: 'Health Foods & Nutrition' },
-  { value: 'fitness',      label: 'Fitness & Exercise' },
-  { value: 'personalcare', label: 'Personal Care & Hygiene' },
-  { value: 'mentalhealth', label: 'Mental Health & Wellness' },
-  { value: 'seniorcare',   label: 'Senior Care' },
 ];
 
 interface TrackedPerson {
@@ -82,17 +70,6 @@ export default function SettingsPage() {
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
 
-  // Deals email preferences
-  const [dealsEnabled, setDealsEnabled] = useState(false);
-  const [dealsFrequency, setDealsFrequency] = useState<'daily' | 'weekly' | 'monthly'>('weekly');
-  const [dealsMaxItems, setDealsMaxItems] = useState<3 | 5 | 10 | 20>(5);
-  const [dealsMinDiscount, setDealsMinDiscount] = useState<0 | 10 | 20 | 30 | 50>(0);
-  const [dealsPriceRange, setDealsPriceRange] = useState<'any' | 'budget' | 'mid' | 'premium'>('any');
-  const [dealsCategories, setDealsCategories] = useState<string[]>(['vitamins', 'devices', 'nutrition', 'fitness']);
-  const [dealsMatchPersons, setDealsMatchPersons] = useState(true);
-  const [dealsSaving, setDealsSaving] = useState(false);
-  const [dealsMessage, setDealsMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-
   useEffect(() => {
     setSupportsWebAuthn(browserSupportsWebAuthn());
     fetchStatus();
@@ -109,20 +86,6 @@ export default function SettingsPage() {
     fetch('/api/health-data/persons').then(r => r.json()).then(d => {
       setPersons(d.persons ?? []);
     }).catch(() => {}).finally(() => setPersonsLoading(false));
-
-    // Load deals email preferences
-    fetch('/api/health-data/deals-email-preferences').then(r => r.json()).then(d => {
-      if (d.prefs) {
-        const p = d.prefs;
-        setDealsEnabled(p.enabled ?? false);
-        setDealsFrequency(p.frequency ?? 'weekly');
-        setDealsMaxItems(p.maxItemsPerEmail ?? 5);
-        setDealsMinDiscount(p.minDiscountPercent ?? 0);
-        setDealsPriceRange(p.priceRange ?? 'any');
-        setDealsCategories(p.categories ?? ['vitamins', 'devices', 'nutrition', 'fitness']);
-        setDealsMatchPersons(p.matchTrackedPersons ?? true);
-      }
-    }).catch(() => {});
 
     // Load current user + admin data
     fetch('/api/auth/me').then(r => r.json()).then(d => {
@@ -286,36 +249,6 @@ export default function SettingsPage() {
       else { setCpMessage({ type: 'success', text: 'Password changed successfully.' }); setCpCurrent(''); setCpNew(''); setCpConfirm(''); }
     } catch { setCpMessage({ type: 'error', text: 'Something went wrong.' }); }
     setCpLoading(false);
-  };
-
-  const handleSaveDealsPrefs = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    setDealsMessage(null);
-    setDealsSaving(true);
-    try {
-      const res = await fetch('/api/health-data/deals-email-preferences', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          enabled: dealsEnabled,
-          frequency: dealsFrequency,
-          maxItemsPerEmail: dealsMaxItems,
-          minDiscountPercent: dealsMinDiscount,
-          priceRange: dealsPriceRange,
-          categories: dealsCategories,
-          matchTrackedPersons: dealsMatchPersons,
-        }),
-      });
-      if (res.ok) setDealsMessage({ type: 'success', text: 'Preferences saved.' });
-      else { const d = await res.json(); setDealsMessage({ type: 'error', text: d.error || 'Failed to save.' }); }
-    } catch { setDealsMessage({ type: 'error', text: 'Something went wrong.' }); }
-    setDealsSaving(false);
-  };
-
-  const toggleDealsCategory = (value: string) => {
-    setDealsCategories(prev =>
-      prev.includes(value) ? prev.filter(c => c !== value) : [...prev, value]
-    );
   };
 
   const handleResetPassword = async (userId: string, name: string) => {
@@ -682,180 +615,6 @@ export default function SettingsPage() {
                     Update Password
                   </button>
                 </form>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ── Deals Email Preferences ── */}
-        <section className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-4">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Deals Email</h2>
-          </div>
-          <div className="px-6 py-5">
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0 mt-0.5">
-                <Mail className="w-5 h-5 text-emerald-600" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-gray-900 mb-1">Health Deals Newsletter</p>
-                <p className="text-sm text-gray-500 mb-4">
-                  Get curated health product deals sent to your inbox. Adjust what you receive and how often.
-                </p>
-
-                {/* Master enable toggle */}
-                <label className="flex items-center justify-between gap-3 mb-5 cursor-pointer">
-                  <span className="text-sm font-medium text-gray-700">Receive deals emails</span>
-                  <button
-                    type="button"
-                    onClick={() => setDealsEnabled(v => !v)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${dealsEnabled ? 'bg-emerald-500' : 'bg-gray-200'}`}
-                  >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${dealsEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
-                  </button>
-                </label>
-
-                <form onSubmit={handleSaveDealsPrefs} className={`space-y-5 ${!dealsEnabled ? 'opacity-40 pointer-events-none select-none' : ''}`}>
-
-                  {/* Frequency */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-2">Frequency</label>
-                    <div className="flex gap-2 flex-wrap">
-                      {(['daily', 'weekly', 'monthly'] as const).map(f => (
-                        <button
-                          key={f}
-                          type="button"
-                          onClick={() => setDealsFrequency(f)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-colors ${dealsFrequency === f ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-                        >
-                          {f}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Max items per email */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-2">Deals per email</label>
-                    <div className="flex gap-2 flex-wrap">
-                      {([3, 5, 10, 20] as const).map(n => (
-                        <button
-                          key={n}
-                          type="button"
-                          onClick={() => setDealsMaxItems(n)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${dealsMaxItems === n ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-                        >
-                          {n}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Minimum discount */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-2">Minimum discount</label>
-                    <div className="flex gap-2 flex-wrap">
-                      {([0, 10, 20, 30, 50] as const).map(d => (
-                        <button
-                          key={d}
-                          type="button"
-                          onClick={() => setDealsMinDiscount(d)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${dealsMinDiscount === d ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-                        >
-                          {d === 0 ? 'Any' : `${d}%+ off`}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Price range */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-2">Price range</label>
-                    <div className="flex gap-2 flex-wrap">
-                      {([
-                        { value: 'any',     label: 'Any price' },
-                        { value: 'budget',  label: 'Budget (under $25)' },
-                        { value: 'mid',     label: 'Mid ($25–$100)' },
-                        { value: 'premium', label: 'Premium ($100+)' },
-                      ] as const).map(r => (
-                        <button
-                          key={r.value}
-                          type="button"
-                          onClick={() => setDealsPriceRange(r.value)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${dealsPriceRange === r.value ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-                        >
-                          {r.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Categories */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-2">Product categories</label>
-                    <div className="flex flex-wrap gap-2">
-                      {DEALS_CATEGORIES.map(cat => {
-                        const active = dealsCategories.includes(cat.value);
-                        return (
-                          <button
-                            key={cat.value}
-                            type="button"
-                            onClick={() => toggleDealsCategory(cat.value)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${active ? 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
-                          >
-                            {cat.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {dealsCategories.length === 0 && (
-                      <p className="text-xs text-amber-600 mt-1.5">Select at least one category to receive deals.</p>
-                    )}
-                  </div>
-
-                  {/* Match tracked persons */}
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={dealsMatchPersons}
-                      onChange={e => setDealsMatchPersons(e.target.checked)}
-                      className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
-                    />
-                    <div>
-                      <span className="text-sm font-medium text-gray-700">Auto-match to tracked people</span>
-                      <p className="text-xs text-gray-400">Include categories suited to each person&apos;s age group (e.g. baby care for infants, senior care for elders).</p>
-                    </div>
-                  </label>
-
-                  {dealsMessage && (
-                    <div className={`flex items-center gap-1.5 text-xs font-medium ${dealsMessage.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
-                      {dealsMessage.type === 'success' ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
-                      {dealsMessage.text}
-                    </div>
-                  )}
-
-                  <button
-                    type="submit"
-                    disabled={dealsSaving}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium disabled:opacity-40 transition-colors"
-                  >
-                    {dealsSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" />}
-                    Save Preferences
-                  </button>
-                </form>
-
-                {/* Save button when disabled (outside faded form) */}
-                {!dealsEnabled && (
-                  <button
-                    type="button"
-                    onClick={handleSaveDealsPrefs}
-                    disabled={dealsSaving}
-                    className="flex items-center gap-1.5 px-4 py-2 mt-3 bg-gray-200 hover:bg-gray-300 text-gray-600 rounded-lg text-sm font-medium disabled:opacity-40 transition-colors"
-                  >
-                    {dealsSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                    Save (opt out)
-                  </button>
-                )}
               </div>
             </div>
           </div>
