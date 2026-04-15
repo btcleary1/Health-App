@@ -97,3 +97,49 @@ export async function getUploadManifest(userId: string, personId?: string): Prom
 export async function saveUploadManifest(userId: string, files: unknown[], personId?: string): Promise<void> {
   await writeBlob(`${personPrefix(userId, personId)}/uploads-manifest.json`, files);
 }
+
+// --- Deals email preferences ---
+export type DealsEmailFrequency = 'daily' | 'weekly' | 'monthly';
+export type DealsPriceRange = 'any' | 'budget' | 'mid' | 'premium';
+
+export const DEALS_CATEGORIES = [
+  { value: 'vitamins',     label: 'Vitamins & Supplements' },
+  { value: 'devices',      label: 'Medical Devices & Equipment' },
+  { value: 'babycare',     label: 'Baby & Infant Care' },
+  { value: 'medications',  label: 'Medications & Pharmacy' },
+  { value: 'nutrition',    label: 'Health Foods & Nutrition' },
+  { value: 'fitness',      label: 'Fitness & Exercise' },
+  { value: 'personalcare', label: 'Personal Care & Hygiene' },
+  { value: 'mentalhealth', label: 'Mental Health & Wellness' },
+  { value: 'seniorcare',   label: 'Senior Care' },
+] as const;
+
+export type DealsCategoryValue = typeof DEALS_CATEGORIES[number]['value'];
+
+export interface DealsEmailPreferences {
+  enabled: boolean;
+  frequency: DealsEmailFrequency;
+  maxItemsPerEmail: 3 | 5 | 10 | 20;
+  minDiscountPercent: 0 | 10 | 20 | 30 | 50;
+  priceRange: DealsPriceRange;
+  categories: DealsCategoryValue[];
+  matchTrackedPersons: boolean;
+}
+
+export const DEFAULT_DEALS_PREFS: DealsEmailPreferences = {
+  enabled: false,
+  frequency: 'weekly',
+  maxItemsPerEmail: 5,
+  minDiscountPercent: 0,
+  priceRange: 'any',
+  categories: ['vitamins', 'devices', 'nutrition', 'fitness'],
+  matchTrackedPersons: true,
+};
+
+export async function getDealsEmailPreferences(userId: string): Promise<DealsEmailPreferences> {
+  return (await readBlob<DealsEmailPreferences>(`${PREFIX}/${userId}/deals-email-prefs.json`)) ?? { ...DEFAULT_DEALS_PREFS };
+}
+
+export async function saveDealsEmailPreferences(userId: string, prefs: DealsEmailPreferences): Promise<void> {
+  await writeBlob(`${PREFIX}/${userId}/deals-email-prefs.json`, prefs);
+}
