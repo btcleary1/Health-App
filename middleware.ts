@@ -13,6 +13,7 @@ const PUBLIC_PATHS = [
   '/forgot-password',
   '/privacy',
   '/terms',
+  '/api/auth/google',
 ];
 
 function isPublic(req: NextRequest) {
