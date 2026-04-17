@@ -8,6 +8,7 @@ const PUBLIC_PATHS = [
   '/api/auth/register',
   '/api/auth/webauthn/auth-options',
   '/api/auth/webauthn/auth-verify',
+  '/api/auth/google',
   '/api/auth/forgot-password',
   '/api/auth/reset-password',
   '/forgot-password',
