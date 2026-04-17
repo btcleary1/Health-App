@@ -218,7 +218,7 @@ export default function AIAnalysisPage() {
         )}
 
         {/* Main content — only render once data is fetched */}
-        {!dataLoading && <div className="mb-6">
+        {!dataLoading && <><div className="mb-6">
           <div className="flex items-center gap-3 mb-2">
             <div className="flex items-center justify-center w-10 h-10 rounded-2xl shrink-0" style={{ background: 'linear-gradient(135deg,#8B5CF6,#6366F1)', boxShadow: '0 2px 12px rgba(139,92,246,0.4)' }}>
               <Brain className="w-5 h-5 text-white" />
@@ -504,7 +504,7 @@ export default function AIAnalysisPage() {
             </div>
           </div>
         )}
-        </div>}
+        </>}
       </div>
       <HIPAAFooter />
     </div>
