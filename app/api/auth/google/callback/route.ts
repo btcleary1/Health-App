@@ -5,9 +5,9 @@ import { logAudit, getClientIp } from '@/lib/audit';
 
 export const runtime = 'nodejs';
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://health-wiz.vercel.app';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://healthwiz.vercel.app';
 
-async function exchangeCodeForTokens(code: string): Promise<{ access_token: string; id_token: string }> {
+async function exchangeCodeForTokens(code: string, codeVerifier: string): Promise<{ access_token: string; id_token: string }> {
   const res = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -17,6 +17,7 @@ async function exchangeCodeForTokens(code: string): Promise<{ access_token: stri
       client_secret: process.env.GOOGLE_CLIENT_SECRET!,
       redirect_uri: `${APP_URL}/api/auth/google/callback`,
       grant_type: 'authorization_code',
+      code_verifier: codeVerifier,
     }),
   });
   if (!res.ok) {
@@ -39,17 +40,18 @@ export async function GET(req: NextRequest) {
   const error = req.nextUrl.searchParams.get('error');
   const state = req.nextUrl.searchParams.get('state');
   const savedState = req.cookies.get('oauth_state')?.value;
+  const codeVerifier = req.cookies.get('oauth_code_verifier')?.value;
 
   if (error || !code) {
     return NextResponse.redirect(`${APP_URL}/login?error=google_cancelled`);
   }
 
-  if (!state || state !== savedState) {
+  if (!state || state !== savedState || !codeVerifier) {
     return NextResponse.redirect(`${APP_URL}/login?error=google_failed`);
   }
 
   try {
-    const { access_token } = await exchangeCodeForTokens(code);
+    const { access_token } = await exchangeCodeForTokens(code, codeVerifier);
     const googleUser = await getGoogleUserInfo(access_token);
 
     const ip = getClientIp(req);
