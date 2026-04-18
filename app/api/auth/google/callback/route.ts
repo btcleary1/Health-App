@@ -46,8 +46,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${APP_URL}/login?error=google_cancelled`);
   }
 
-  if (!state || state !== savedState || !codeVerifier) {
-    return NextResponse.redirect(`${APP_URL}/login?error=google_failed`);
+  if (!codeVerifier || !state) {
+    return NextResponse.redirect(`${APP_URL}/login?error=no_cookies`);
+  }
+
+  if (state !== savedState) {
+    return NextResponse.redirect(`${APP_URL}/login?error=state_mismatch`);
   }
 
   try {
@@ -80,7 +84,8 @@ export async function GET(req: NextRequest) {
     });
     return res;
   } catch (err) {
-    console.error('Google OAuth error:', err);
-    return NextResponse.redirect(`${APP_URL}/login?error=google_failed`);
+    const msg = err instanceof Error ? err.message : String(err);
+    const code = encodeURIComponent(msg.slice(0, 80));
+    return NextResponse.redirect(`${APP_URL}/login?error=oauth_exception&detail=${code}`);
   }
 }
