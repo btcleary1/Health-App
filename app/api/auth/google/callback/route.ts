@@ -5,7 +5,7 @@ import { logAudit, getClientIp } from '@/lib/audit';
 
 export const runtime = 'nodejs';
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://healthwiz.vercel.app';
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://healthwiz.vercel.app').trim();
 
 async function exchangeCodeForTokens(code: string, codeVerifier: string): Promise<{ access_token: string; id_token: string }> {
   const res = await fetch('https://oauth2.googleapis.com/token', {

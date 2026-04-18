@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Google login not configured.' }, { status: 500 });
   }
 
-  const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://healthwiz.vercel.app'}/api/auth/google/callback`;
+  const redirectUri = `${(process.env.NEXT_PUBLIC_APP_URL ?? 'https://healthwiz.vercel.app').trim()}/api/auth/google/callback`;
   const state = randomBytes(16).toString('hex');
   const codeVerifier = base64urlEncode(randomBytes(32));
   const codeChallenge = base64urlEncode(createHash('sha256').update(codeVerifier).digest());
