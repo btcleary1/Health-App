@@ -37,9 +37,15 @@ async function getGoogleUserInfo(accessToken: string): Promise<{ email: string; 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get('code');
   const error = req.nextUrl.searchParams.get('error');
+  const state = req.nextUrl.searchParams.get('state');
+  const savedState = req.cookies.get('oauth_state')?.value;
 
   if (error || !code) {
     return NextResponse.redirect(`${APP_URL}/login?error=google_cancelled`);
+  }
+
+  if (!state || state !== savedState) {
+    return NextResponse.redirect(`${APP_URL}/login?error=google_failed`);
   }
 
   try {
