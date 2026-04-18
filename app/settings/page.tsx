@@ -38,6 +38,7 @@ export default function SettingsPage() {
 
   // Admin
   const [currentUser, setCurrentUser] = useState<{ role: string; userId: string } | null>(null);
+  const [isGoogleAuth, setIsGoogleAuth] = useState(false);
   const [users, setUsers] = useState<{ userId: string; email: string; name: string; role: string; createdAt: string }[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [deleteMessage, setDeleteMessage] = useState('');
@@ -90,6 +91,7 @@ export default function SettingsPage() {
     // Load current user + admin data
     fetch('/api/auth/me').then(r => r.json()).then(d => {
       setCurrentUser(d);
+      if (d.googleAuth) setIsGoogleAuth(true);
       if (d.role === 'admin') {
         setUsersLoading(true);
         fetch('/api/admin/users').then(r => r.json()).then(u => {
@@ -540,8 +542,8 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* ── Change Password ── */}
-        <section className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-4">
+        {/* ── Change Password — hidden for Google OAuth users ── */}
+        {!isGoogleAuth && <section className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-4">
           <div className="px-6 py-4 border-b border-gray-100">
             <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Password</h2>
           </div>
@@ -618,7 +620,7 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
-        </section>
+        </section>}
 
         {/* ── Danger Zone ── */}
         <section className="bg-white rounded-2xl border border-red-100 shadow-sm overflow-hidden mb-4">
