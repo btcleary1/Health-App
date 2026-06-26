@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
     if (!res.Body) return new NextResponse('File not found in storage', { status: 404 });
 
     const bytes = await res.Body.transformToByteArray();
-    return new NextResponse(bytes, {
+    return new NextResponse(Buffer.from(bytes), {
       headers: {
         'Content-Type': file.type || 'application/octet-stream',
         'Content-Disposition': `inline; filename="${encodeURIComponent(file.originalName)}"`,
