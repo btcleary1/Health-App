@@ -456,7 +456,7 @@ export default function UploadsPage() {
 
                       <div className="mt-3 flex gap-2">
                         <a
-                          href={upload.url}
+                          href={`/api/uploads/view?id=${upload.id}${personQuery ? personQuery.replace('?', '&') : ''}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-xs px-3 py-1.5 rounded-lg transition-colors"

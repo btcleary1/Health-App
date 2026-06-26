@@ -139,7 +139,7 @@ IMPORTANT: For appointment prep only — not medical diagnosis. All findings are
   const contentBlocks: NonNullable<MessageParam['content']> = [];
 
   if (Array.isArray(uploadedFiles) && uploadedFiles.length > 0) {
-    const filesToProcess = uploadedFiles.slice(0, 5);
+    const filesToProcess = uploadedFiles.slice(0, 20);
     for (const file of filesToProcess) {
       const fileType: string = file.type || '';
       // file.url is an R2 key path; fall back to file.blobPath for compatibility
