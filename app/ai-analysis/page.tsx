@@ -129,15 +129,18 @@ export default function AIAnalysisPage() {
     });
   }, [activeId, personQuery, persons.length]);
 
+  const MAX_ANALYSIS_FILES = 20;
+
   const runAnalysis = async () => {
     setLoading(true);
     setError('');
     setAnalysis(null);
+    const filesToSend = uploadedFiles.slice(0, MAX_ANALYSIS_FILES);
     try {
       const res = await fetch('/api/ai-analysis', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ patientData, events, doctorVisits, notes, focusArea, uploadedFiles }),
+        body: JSON.stringify({ patientData, events, doctorVisits, notes, focusArea, uploadedFiles: filesToSend }),
       });
       let data: any;
       try {
@@ -256,7 +259,9 @@ export default function AIAnalysisPage() {
           {uploadedFiles.length > 0 && (
             <div className="mb-4 flex items-center gap-2 text-xs rounded-xl px-3 py-2" style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)', color: '#C4B5FD' }}>
               <Brain className="w-3.5 h-3.5 shrink-0" />
-              {uploadedFiles.length} uploaded file{uploadedFiles.length !== 1 ? 's' : ''} will be read and included in the analysis
+              {uploadedFiles.length > MAX_ANALYSIS_FILES
+                ? `${MAX_ANALYSIS_FILES} of ${uploadedFiles.length} uploaded files will be included in the analysis (first ${MAX_ANALYSIS_FILES} selected)`
+                : `${uploadedFiles.length} uploaded file${uploadedFiles.length !== 1 ? 's' : ''} will be read and included in the analysis`}
             </div>
           )}
           <button
