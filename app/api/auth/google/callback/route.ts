@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserByEmail, createUser, userCount, markGoogleAuth } from '@/lib/users';
+import { getUserByEmail, createUser, userCount, markGoogleAuth, recordLogin } from '@/lib/users';
 import { setSessionCookie } from '@/lib/session';
 import { logAudit, getClientIp } from '@/lib/audit';
 
@@ -61,6 +61,7 @@ export async function GET(req: NextRequest) {
     }
 
     await markGoogleAuth(user.userId);
+    await recordLogin(user.userId);
 
     const safeName = user.name.replace(/[^\u0000-\u00FF]/g, '').trim() || user.email;
     const res = NextResponse.redirect(`${APP_URL}/dashboard`);

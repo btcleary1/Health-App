@@ -11,6 +11,7 @@ export interface User {
   passwordHash: string;
   role: 'admin' | 'user';
   createdAt: string;
+  lastLoginAt?: string;
   googleAuth?: boolean;
 }
 
@@ -106,6 +107,12 @@ export async function markGoogleAuth(userId: string): Promise<void> {
   const user = await getUserById(userId);
   if (!user || user.googleAuth) return;
   await r2Put(`${PREFIX}${userId}.json`, JSON.stringify({ ...user, googleAuth: true }));
+}
+
+export async function recordLogin(userId: string): Promise<void> {
+  const user = await getUserById(userId);
+  if (!user) return;
+  await r2Put(`${PREFIX}${userId}.json`, JSON.stringify({ ...user, lastLoginAt: new Date().toISOString() }));
 }
 
 export async function userCount(): Promise<number> {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuthenticationResponse } from '@simplewebauthn/server';
 import { findCredentialById, updateCredentialCounter } from '@/lib/webauthn-store';
-import { getUserById } from '@/lib/users';
+import { getUserById, recordLogin } from '@/lib/users';
 import { setSessionCookie } from '@/lib/session';
 
 export const runtime = 'nodejs';
@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'User account not found.' }, { status: 400 });
     }
 
+    await recordLogin(user.userId);
     const res = NextResponse.json({ success: true });
     setSessionCookie(res, {
       userId: user.userId,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createUser, userCount } from '@/lib/users';
+import { createUser, userCount, recordLogin } from '@/lib/users';
 import { validatePassword } from '@/lib/password-rules';
 import { setSessionCookie } from '@/lib/session';
 import { checkRateLimit, recordFailure } from '@/lib/rate-limit';
@@ -132,6 +132,7 @@ export async function POST(req: NextRequest) {
       // Email failure doesn't block account creation
     }
 
+    await recordLogin(user.userId);
     const res = NextResponse.json({ success: true, name: user.name });
     setSessionCookie(res, {
       userId: user.userId,
