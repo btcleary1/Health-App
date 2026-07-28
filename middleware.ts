@@ -30,11 +30,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL('/login', req.url));
   }
 
-  const res = NextResponse.next();
-  res.headers.set('x-user-id', session.userId);
-  res.headers.set('x-user-email', session.email);
-  res.headers.set('x-user-role', session.role);
-  return res;
+  return NextResponse.next();
 }
 
 export const config = {

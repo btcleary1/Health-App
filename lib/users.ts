@@ -1,8 +1,10 @@
 import { r2Get, r2Put, r2Del } from './r2';
 import { createHash, randomBytes } from 'crypto';
+import bcrypt from 'bcrypt';
 
 const PREFIX = 'health-app/users/';
 const INDEX_PATH = 'health-app/users-index.json';
+const BCRYPT_ROUNDS = 12;
 
 export interface User {
   userId: string;
@@ -17,9 +19,28 @@ export interface User {
 
 export type PublicUser = Omit<User, 'passwordHash'>;
 
-export function hashPassword(password: string): string {
+function legacySha256Hash(password: string): string {
   const salt = process.env.SESSION_SECRET ?? 'health-app-salt';
   return createHash('sha256').update(salt + password).digest('hex');
+}
+
+function isBcryptHash(hash: string): boolean {
+  return hash.startsWith('$2b$') || hash.startsWith('$2a$');
+}
+
+export async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, BCRYPT_ROUNDS);
+}
+
+export async function verifyPassword(password: string, storedHash: string): Promise<boolean> {
+  if (isBcryptHash(storedHash)) {
+    return bcrypt.compare(password, storedHash);
+  }
+  // Legacy SHA-256 — constant-time compare
+  const legacy = legacySha256Hash(password);
+  const a = Buffer.from(legacy, 'hex');
+  const b = Buffer.from(storedHash.padEnd(a.length, '0').slice(0, a.length), 'hex');
+  return a.length === b.length && require('crypto').timingSafeEqual(a, b);
 }
 
 async function readIndex(): Promise<{ email: string; userId: string }[]> {
@@ -67,7 +88,7 @@ export async function createUser(
     userId,
     email: email.toLowerCase().trim(),
     name: name.trim(),
-    passwordHash: hashPassword(password),
+    passwordHash: await hashPassword(password),
     role,
     createdAt: new Date().toISOString(),
   };
@@ -100,7 +121,7 @@ export async function updateUserRole(userId: string, role: 'admin' | 'user'): Pr
 export async function updatePassword(userId: string, newPassword: string): Promise<void> {
   const user = await getUserById(userId);
   if (!user) throw new Error('User not found.');
-  await r2Put(`${PREFIX}${userId}.json`, JSON.stringify({ ...user, passwordHash: hashPassword(newPassword) }));
+  await r2Put(`${PREFIX}${userId}.json`, JSON.stringify({ ...user, passwordHash: await hashPassword(newPassword) }));
 }
 
 export async function markGoogleAuth(userId: string): Promise<void> {
@@ -109,10 +130,12 @@ export async function markGoogleAuth(userId: string): Promise<void> {
   await r2Put(`${PREFIX}${userId}.json`, JSON.stringify({ ...user, googleAuth: true }));
 }
 
-export async function recordLogin(userId: string): Promise<void> {
+export async function recordLogin(userId: string, upgradedHash?: string): Promise<void> {
   const user = await getUserById(userId);
   if (!user) return;
-  await r2Put(`${PREFIX}${userId}.json`, JSON.stringify({ ...user, lastLoginAt: new Date().toISOString() }));
+  const update: Partial<User> = { lastLoginAt: new Date().toISOString() };
+  if (upgradedHash) update.passwordHash = upgradedHash;
+  await r2Put(`${PREFIX}${userId}.json`, JSON.stringify({ ...user, ...update }));
 }
 
 export async function userCount(): Promise<number> {

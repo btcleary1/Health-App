@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { patientData, events, doctorVisits, notes, focusArea, uploadedFiles } = body;
+  const { patientData, events, doctorVisits, notes, focusArea, uploadedFiles, personId } = body;
 
   const { addressAs, context } = getPatientContext(patientData);
 
@@ -139,12 +139,17 @@ IMPORTANT: For appointment prep only — not medical diagnosis. All findings are
   const contentBlocks: NonNullable<MessageParam['content']> = [];
 
   if (Array.isArray(uploadedFiles) && uploadedFiles.length > 0) {
+    // Resolve allowed keys from the user's own manifest — never trust client-supplied paths
+    const { getUploadManifest } = await import('@/lib/health-data');
+    const manifest: any[] = await getUploadManifest(session.userId, body.personId);
+    const allowedKeys = new Set(manifest.map((f: any) => f.blobPath ?? f.url));
+
     const filesToProcess = uploadedFiles.slice(0, 20);
     for (const file of filesToProcess) {
       const fileType: string = file.type || '';
-      // file.url is an R2 key path; fall back to file.blobPath for compatibility
       const r2Key: string = file.url || file.blobPath || '';
-      if (!r2Key) continue;
+      // IDOR guard: only serve keys that belong to this user
+      if (!r2Key || !allowedKeys.has(r2Key)) continue;
 
       if (fileType.startsWith('image/')) {
         const fetched = await fetchFileFromR2(r2Key, fileType);

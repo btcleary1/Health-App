@@ -29,9 +29,11 @@ export function logAudit(entry: AuditEntry): void {
 
 export function getClientIp(req: Request): string {
   const headers = req instanceof Request ? req.headers : (req as any).headers;
+  // Prefer Vercel's infrastructure-set header (not spoofable by clients)
   return (
-    headers.get?.('x-forwarded-for')?.split(',')[0]?.trim() ??
+    headers.get?.('x-vercel-forwarded-for') ??
     headers.get?.('x-real-ip') ??
+    headers.get?.('x-forwarded-for')?.split(',')[0]?.trim() ??
     'unknown'
   );
 }

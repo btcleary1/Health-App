@@ -1,17 +1,20 @@
 import { r2Get, r2Put } from './r2';
-import { createHash } from 'crypto';
+import bcrypt from 'bcrypt';
 
 const BLOB_PATH = 'health-app/passphrase.json';
+const BCRYPT_ROUNDS = 12;
 
-export function hashPassphrase(passphrase: string): string {
-  return createHash('sha256').update(passphrase).digest('hex');
+export async function hashPassphrase(passphrase: string): Promise<string> {
+  return bcrypt.hash(passphrase, BCRYPT_ROUNDS);
+}
+
+export async function verifyPassphrase(passphrase: string, storedHash: string): Promise<boolean> {
+  return bcrypt.compare(passphrase, storedHash);
 }
 
 export async function getStoredHash(): Promise<string | null> {
   const data = await r2Get<{ hash: string }>(BLOB_PATH);
   if (data?.hash) return data.hash;
-  const envPass = process.env.APP_PASSPHRASE;
-  if (envPass) return hashPassphrase(envPass);
   return null;
 }
 

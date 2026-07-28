@@ -79,9 +79,9 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      const timestamp = Date.now() + uploaded.length; // ensure unique timestamps
+      const fileId = require('crypto').randomBytes(16).toString('hex');
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const blobPath = `health-uploads/${session.userId}/${timestamp}_${category}_${safeName}`;
+      const blobPath = `health-uploads/${session.userId}/${fileId}_${category}_${safeName}`;
 
       let uploadBody: Blob = file;
       let redactedCount = 0;
@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
       }));
 
       uploaded.push({
-        id: timestamp.toString(),
+        id: fileId,
         originalName: file.name,
         category,
         note,

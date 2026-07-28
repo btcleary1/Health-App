@@ -8,6 +8,22 @@ export const maxDuration = 60;
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+const MAX_HISTORY = 20;
+const MAX_MSG_LENGTH = 4000;
+
+function sanitizeHistory(raw: unknown): MessageParam[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter(
+      (m): m is { role: string; content: string } =>
+        m && typeof m === 'object' &&
+        (m.role === 'user' || m.role === 'assistant') &&
+        typeof m.content === 'string'
+    )
+    .slice(-MAX_HISTORY)
+    .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content.slice(0, MAX_MSG_LENGTH) }));
+}
+
 export async function POST(req: NextRequest) {
   const session = await getSessionFromRequest(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -32,10 +48,9 @@ PRIOR ANALYSIS SUMMARY:
 
 Answer questions thoroughly but concisely. Reference specific findings from the analysis when relevant. Remind the user this is for appointment preparation only — not medical diagnosis. In emergencies, call 911.`;
 
-  // Build conversation history for the API
   const messages: MessageParam[] = [
-    ...(Array.isArray(history) ? history : []),
-    { role: 'user', content: message.trim() },
+    ...sanitizeHistory(history),
+    { role: 'user', content: message.trim().slice(0, MAX_MSG_LENGTH) },
   ];
 
   try {

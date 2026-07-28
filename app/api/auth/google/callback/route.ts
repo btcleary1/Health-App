@@ -36,10 +36,17 @@ async function getGoogleUserInfo(accessToken: string): Promise<{ email: string; 
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get('code');
+  const state = req.nextUrl.searchParams.get('state');
   const error = req.nextUrl.searchParams.get('error');
 
   if (error || !code) {
     return NextResponse.redirect(`${APP_URL}/login?error=google_cancelled`);
+  }
+
+  // Verify CSRF state token
+  const savedState = req.cookies.get('oauth_state')?.value;
+  if (!state || !savedState || state !== savedState) {
+    return NextResponse.redirect(`${APP_URL}/login?error=google_state_mismatch`);
   }
 
   try {

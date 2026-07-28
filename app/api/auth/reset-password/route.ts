@@ -3,11 +3,14 @@ import { getUserByEmail, updatePassword } from '@/lib/users';
 import { verifyResetCode } from '@/lib/reset-tokens';
 import { validatePassword } from '@/lib/password-rules';
 import { logAudit, getClientIp } from '@/lib/audit';
+import { checkRateLimit, recordFailure } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
+  const ip = getClientIp(req);
   try {
+    await checkRateLimit(ip);
     const { email, code, newPassword } = await req.json();
 
     if (!email || !code || !newPassword) {
@@ -21,6 +24,7 @@ export async function POST(req: NextRequest) {
 
     const codeValid = await verifyResetCode(email, code);
     if (!codeValid) {
+      await recordFailure(ip);
       return NextResponse.json({ error: 'Invalid or expired code. Please request a new one.' }, { status: 400 });
     }
 

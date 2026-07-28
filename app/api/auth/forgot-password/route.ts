@@ -2,17 +2,24 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { getUserByEmail } from '@/lib/users';
 import { createResetCode } from '@/lib/reset-tokens';
+import { checkRateLimit, recordFailure } from '@/lib/rate-limit';
+import { getClientIp } from '@/lib/audit';
 
 export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
+  const ip = getClientIp(req);
   try {
+    await checkRateLimit(ip);
     const { email } = await req.json();
     if (!email) return NextResponse.json({ error: 'Email is required.' }, { status: 400 });
 
     // Always return success even if email not found (prevents user enumeration)
     const user = await getUserByEmail(email);
-    if (!user) return NextResponse.json({ success: true });
+    if (!user) {
+      await recordFailure(ip);
+      return NextResponse.json({ success: true });
+    }
 
     const code = await createResetCode(email);
 
