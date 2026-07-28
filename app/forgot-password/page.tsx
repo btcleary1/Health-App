@@ -69,7 +69,7 @@ export default function ForgotPasswordPage() {
         <div className="inline-flex items-center justify-center w-14 h-14 bg-red-100 rounded-2xl mb-3">
           <Activity className="w-7 h-7 text-red-600" />
         </div>
-        <h1 className="text-xl font-bold text-gray-900">Health Wiz</h1>
+        <h1 className="text-xl font-bold text-gray-900">Health Wiz AI</h1>
       </div>
 
       <div className="w-full max-w-sm bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">

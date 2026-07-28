@@ -5,14 +5,14 @@ import Providers from '@/components/Providers';
 
 export const metadata: Metadata = {
   title: {
-    default: "Health Wiz",
-    template: "%s | Health Wiz",
+    default: "Health Wiz AI",
+    template: "%s | Health Wiz AI",
   },
   description: 'Personal health tracking, AI medical analysis, and doctor briefings.',
-  applicationName: 'Health Wiz',
+  applicationName: 'Health Wiz AI',
   appleWebApp: {
     capable: true,
-    title: 'Health Wiz',
+    title: 'Health Wiz AI',
     statusBarStyle: 'default',
   },
   manifest: '/manifest.json',

@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
   const safeEmail = toLatin1(session.email) || session.userId;
 
   const options = await generateRegistrationOptions({
-    rpName: 'Health Wiz',
+    rpName: 'Health Wiz AI',
     rpID: RP_ID,
     userID: new TextEncoder().encode(session.userId),
     userName: safeEmail,

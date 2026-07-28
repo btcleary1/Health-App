@@ -18,14 +18,14 @@ export async function POST(req: NextRequest) {
 
     const resend = new Resend(process.env.RESEND_API_KEY);
     await resend.emails.send({
-      from: 'Health Wiz <onboarding@resend.dev>',
+      from: 'Health Wiz AI <onboarding@resend.dev>',
       to: email,
-      subject: 'Your Health Wiz password reset code',
+      subject: 'Your Health Wiz AI password reset code',
       html: `
         <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
           <h2 style="color: #111827; margin-bottom: 8px;">Password Reset</h2>
           <p style="color: #6b7280; margin-bottom: 24px;">
-            Use the code below to reset your Health Wiz password. It expires in 15 minutes.
+            Use the code below to reset your Health Wiz AI password. It expires in 15 minutes.
           </p>
           <div style="background: #f3f4f6; border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 24px;">
             <span style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #111827;">${code}</span>

@@ -13,7 +13,7 @@ export default function HIPAAFooter() {
           <span>🔒 Sensitive Health Data — Authorized Access Only</span>
           <Link href="/privacy" className="hover:text-gray-600 underline" style={{ minHeight: 'unset' }}>Privacy Policy</Link>
           <Link href="/terms" className="hover:text-gray-600 underline" style={{ minHeight: 'unset' }}>Terms of Service</Link>
-          <span>© {new Date().getFullYear()} Health Wiz</span>
+          <span>© {new Date().getFullYear()} Health Wiz AI</span>
         </div>
       </div>
     </footer>
