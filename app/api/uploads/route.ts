@@ -58,6 +58,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Upload up to ${MAX_PER_UPLOAD} files at a time.` }, { status: 400 });
     }
 
+    const totalSize = allFiles.reduce((sum, f) => sum + f.size, 0);
+    if (totalSize > 50 * 1024 * 1024) {
+      return NextResponse.json({ error: 'Total upload size exceeds 50MB limit.' }, { status: 413 });
+    }
+
     // Check total cap
     const existing = await getUploadManifest(session.userId, personId) as any[];
     const slots = MAX_TOTAL - existing.length;
@@ -131,9 +136,8 @@ export async function POST(req: NextRequest) {
       errors,
       total: updatedManifest.length,
     });
-  } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : String(error);
-    return NextResponse.json({ error: 'Upload failed: ' + msg }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: 'Upload failed. Please try again.' }, { status: 500 });
   }
 }
 

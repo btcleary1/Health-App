@@ -40,7 +40,8 @@ export async function POST(req: NextRequest) {
     // Send welcome email — fire and forget, don't block registration
     try {
       const resend = new Resend(process.env.RESEND_API_KEY);
-      const firstName = name.trim().split(/\s+/)[0];
+      const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (c: string) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' } as Record<string, string>)[c] ?? c);
+      const firstName = escapeHtml(name.trim().split(/\s+/)[0]);
       await resend.emails.send({
         from: 'Health Wiz AI <onboarding@resend.dev>',
         to: email,

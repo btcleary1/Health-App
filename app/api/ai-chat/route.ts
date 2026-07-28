@@ -2,6 +2,8 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { MessageParam } from '@anthropic-ai/sdk/resources/messages';
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest } from '@/lib/session';
+import { checkRateLimit, recordFailure } from '@/lib/rate-limit';
+import { getClientIp } from '@/lib/audit';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -27,6 +29,14 @@ function sanitizeHistory(raw: unknown): MessageParam[] {
 export async function POST(req: NextRequest) {
   const session = await getSessionFromRequest(req);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const ip = getClientIp(req);
+  try {
+    await checkRateLimit(`ai-chat_${ip}`, 30);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Too many requests.';
+    return NextResponse.json({ error: msg }, { status: 429 });
+  }
 
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: 'ANTHROPIC_API_KEY is not configured.' }, { status: 500 });
@@ -63,8 +73,7 @@ Answer questions thoroughly but concisely. Reference specific findings from the 
 
     const reply = response.content[0].type === 'text' ? response.content[0].text : '';
     return NextResponse.json({ reply });
-  } catch (err: any) {
-    const detail = err?.status ? `HTTP ${err.status}: ${err.message}` : (err.message || 'Unknown error');
-    return NextResponse.json({ error: detail }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: 'An error occurred. Please try again.' }, { status: 500 });
   }
 }

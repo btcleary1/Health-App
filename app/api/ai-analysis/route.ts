@@ -2,6 +2,8 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { MessageParam } from '@anthropic-ai/sdk/resources/messages';
 import { NextRequest } from 'next/server';
 import { getSessionFromRequest } from '@/lib/session';
+import { checkRateLimit, recordFailure } from '@/lib/rate-limit';
+import { getClientIp } from '@/lib/audit';
 import {
   S3Client,
   GetObjectCommand,
@@ -70,6 +72,14 @@ export async function POST(req: NextRequest) {
   const session = await getSessionFromRequest(req);
   if (!session) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
+  }
+
+  const ip = getClientIp(req);
+  try {
+    await checkRateLimit(`ai-analysis_${ip}`, 10);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Too many requests.';
+    return new Response(JSON.stringify({ error: msg }), { status: 429, headers: { 'Content-Type': 'application/json' } });
   }
 
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -208,8 +218,8 @@ IMPORTANT: For appointment prep only — not medical diagnosis. All findings are
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (err: any) {
-    const detail = err?.status ? `HTTP ${err.status}: ${err.message}` : (err.message || 'Unknown error');
-    return new Response(JSON.stringify({ error: detail }), {
+    await recordFailure(`ai-analysis_${ip}`, 10);
+    return new Response(JSON.stringify({ error: 'Analysis failed. Please try again.' }), {
       status: 500, headers: { 'Content-Type': 'application/json' },
     });
   }

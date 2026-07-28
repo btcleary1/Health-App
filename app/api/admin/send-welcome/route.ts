@@ -18,7 +18,8 @@ export async function POST(req: NextRequest) {
   const user = await getUserByEmail(email);
   if (!user) return NextResponse.json({ error: 'No account found for that email.' }, { status: 404 });
 
-  const firstName = user.name.trim().split(/\s+/)[0];
+  const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (c: string) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' } as Record<string, string>)[c] ?? c);
+  const firstName = escapeHtml(user.name.trim().split(/\s+/)[0]);
 
   const resend = new Resend(process.env.RESEND_API_KEY);
   await resend.emails.send({

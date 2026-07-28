@@ -22,23 +22,23 @@ async function saveRecord(key: string, record: AttemptRecord): Promise<void> {
   await r2Put(`${BLOB_PREFIX}${key}.json`, JSON.stringify(record));
 }
 
-export async function checkRateLimit(ip: string): Promise<void> {
+export async function checkRateLimit(ip: string, max = MAX_ATTEMPTS): Promise<void> {
   const key = sanitizeKey(ip);
   const now = Date.now();
   const record = await getRecord(key);
   if (!record) return;
   if (record.lockedUntil && now < record.lockedUntil) {
     const secondsLeft = Math.ceil((record.lockedUntil - now) / 1000);
-    throw new Error(`Too many failed attempts. Try again in ${secondsLeft} seconds.`);
+    throw new Error(`Too many requests. Try again in ${secondsLeft} seconds.`);
   }
   if (now - record.windowStart > WINDOW_MS) return;
-  if (record.attempts >= MAX_ATTEMPTS) {
+  if (record.attempts >= max) {
     const secondsLeft = Math.ceil((record.windowStart + WINDOW_MS - now) / 1000);
-    throw new Error(`Too many failed attempts. Try again in ${secondsLeft} seconds.`);
+    throw new Error(`Too many requests. Try again in ${secondsLeft} seconds.`);
   }
 }
 
-export async function recordFailure(ip: string): Promise<void> {
+export async function recordFailure(ip: string, max = MAX_ATTEMPTS): Promise<void> {
   const key = sanitizeKey(ip);
   const now = Date.now();
   const record = await getRecord(key);
@@ -48,7 +48,7 @@ export async function recordFailure(ip: string): Promise<void> {
   } else {
     updated = { ...record, attempts: record.attempts + 1 };
   }
-  if (updated.attempts >= MAX_ATTEMPTS) {
+  if (updated.attempts >= max) {
     updated.lockedUntil = now + WINDOW_MS;
   }
   await saveRecord(key, updated);
