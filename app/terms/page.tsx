@@ -9,7 +9,7 @@ export default function TermsPage() {
       <div className="max-w-3xl mx-auto px-4 py-8">
         <Link href="/dashboard" className="flex items-center gap-2 mb-8 text-gray-600 hover:text-gray-900">
           <Activity className="w-5 h-5 text-red-600" />
-          <span className="font-semibold">Health Wiz</span>
+          <span className="font-semibold">Health Wiz AI</span>
         </Link>
 
         <div className="bg-white rounded-2xl border border-gray-200 p-8">
@@ -20,7 +20,7 @@ export default function TermsPage() {
 
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
               <p className="text-xs text-blue-800 leading-relaxed">
-                <strong>Important:</strong> Health Wiz is a private personal health tracking tool. It is not a licensed medical service, not a covered entity under HIPAA, and not an FDA-regulated medical device. It does not provide medical advice.
+                <strong>Important:</strong> Health Wiz AI is a private personal health tracking tool. It is not a licensed medical service, not a covered entity under HIPAA, and not an FDA-regulated medical device. It does not provide medical advice.
               </p>
             </div>
 
@@ -108,7 +108,7 @@ export default function TermsPage() {
 
             <section>
               <h2 className="text-lg font-bold text-gray-900 mb-2">9. Regulatory Disclaimer</h2>
-              <p>Health Wiz is not a HIPAA-covered entity, not an FDA-regulated medical device, and not affiliated with any healthcare authority. Use of the term "health information" refers to personal data you choose to track — not legally defined Protected Health Information under HIPAA.</p>
+              <p>Health Wiz AI is not a HIPAA-covered entity, not an FDA-regulated medical device, and not affiliated with any healthcare authority. Use of the term "health information" refers to personal data you choose to track — not legally defined Protected Health Information under HIPAA.</p>
             </section>
 
             <section>

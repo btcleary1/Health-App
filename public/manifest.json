@@ -1,6 +1,6 @@
 {
-  "name": "Health Wiz",
-  "short_name": "Health Wiz",
+  "name": "Health Wiz AI",
+  "short_name": "Health Wiz AI",
   "description": "Personal health tracking, AI medical analysis, and doctor briefings.",
   "start_url": "/dashboard",
   "display": "standalone",

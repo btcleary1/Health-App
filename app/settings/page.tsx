@@ -310,7 +310,7 @@ export default function SettingsPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-gray-900 mb-0.5">Your First Name</p>
-                <p className="text-sm text-gray-500 mb-4">How Health Wiz addresses you — separate from who you're tracking.</p>
+                <p className="text-sm text-gray-500 mb-4">How Health Wiz AI addresses you — separate from who you're tracking.</p>
                 <form onSubmit={handleSaveAccount} className="flex gap-2">
                   <input
                     type="text"

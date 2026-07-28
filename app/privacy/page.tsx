@@ -9,7 +9,7 @@ export default function PrivacyPage() {
       <div className="max-w-3xl mx-auto px-4 py-8">
         <Link href="/dashboard" className="flex items-center gap-2 mb-8 text-gray-600 hover:text-gray-900">
           <Activity className="w-5 h-5 text-red-600" />
-          <span className="font-semibold">Health Wiz</span>
+          <span className="font-semibold">Health Wiz AI</span>
         </Link>
 
         <div className="bg-white rounded-2xl border border-gray-200 p-8">
@@ -20,13 +20,13 @@ export default function PrivacyPage() {
 
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
               <p className="text-xs text-blue-800 leading-relaxed">
-                <strong>About this application:</strong> Health Wiz is a private, personal health tracking application. It is not a healthcare provider, health plan, or healthcare clearinghouse, and is not subject to HIPAA as a covered entity. We are not affiliated with or certified by any regulatory health authority. This app is a personal tool for organizing and tracking health information.
+                <strong>About this application:</strong> Health Wiz AI is a private, personal health tracking application. It is not a healthcare provider, health plan, or healthcare clearinghouse, and is not subject to HIPAA as a covered entity. We are not affiliated with or certified by any regulatory health authority. This app is a personal tool for organizing and tracking health information.
               </p>
             </div>
 
             <section>
               <h2 className="text-lg font-bold text-gray-900 mb-2">1. Overview</h2>
-              <p>Health Wiz is a private health tracking application intended for authorized users to organize, track, and share personal health information with their care team. All data is treated with strict confidentiality and is never sold or shared for commercial purposes.</p>
+              <p>Health Wiz AI is a private health tracking application intended for authorized users to organize, track, and share personal health information with their care team. All data is treated with strict confidentiality and is never sold or shared for commercial purposes.</p>
             </section>
 
             <section>
@@ -109,7 +109,7 @@ export default function PrivacyPage() {
 
             <section>
               <h2 className="text-lg font-bold text-gray-900 mb-2">10. Regulatory Status</h2>
-              <p>Health Wiz is a private personal health tracking tool. It is not a covered entity under HIPAA, not an FDA-regulated medical device, and not affiliated with any regulatory health authority. It does not replace professional medical care.</p>
+              <p>Health Wiz AI is a private personal health tracking tool. It is not a covered entity under HIPAA, not an FDA-regulated medical device, and not affiliated with any regulatory health authority. It does not replace professional medical care.</p>
             </section>
 
             <section>

@@ -199,7 +199,7 @@ export default function LoginPage() {
         >
           <Activity className="w-10 h-10 text-white" />
         </div>
-        <h1 className="text-2xl font-bold text-white tracking-tight">Health Wiz</h1>
+        <h1 className="text-2xl font-bold text-white tracking-tight">Health Wiz AI</h1>
         <p className="text-sm text-gray-400 mt-1.5">Secure health tracking</p>
       </div>
 

@@ -47,7 +47,7 @@ export default function HealthHeader() {
               >
                 <Activity className="w-4 h-4 text-white" />
               </div>
-              <span className="font-bold text-white text-[15px] tracking-tight">Health Wiz</span>
+              <span className="font-bold text-white text-[15px] tracking-tight">Health Wiz AI</span>
             </Link>
 
             {/* Desktop nav */}

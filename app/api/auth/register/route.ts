@@ -42,9 +42,9 @@ export async function POST(req: NextRequest) {
       const resend = new Resend(process.env.RESEND_API_KEY);
       const firstName = name.trim().split(/\s+/)[0];
       await resend.emails.send({
-        from: 'Health Wiz <onboarding@resend.dev>',
+        from: 'Health Wiz AI <onboarding@resend.dev>',
         to: email,
-        subject: 'Welcome to Health Wiz — You\'re all set',
+        subject: 'Welcome to Health Wiz AI — You\'re all set',
         html: `
 <!DOCTYPE html>
 <html>
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
               </div>
             </td></tr>
           </table>
-          <h1 style="margin:20px 0 4px;font-size:24px;font-weight:700;color:#0F172A;letter-spacing:-0.5px;">Health Wiz</h1>
+          <h1 style="margin:20px 0 4px;font-size:24px;font-weight:700;color:#0F172A;letter-spacing:-0.5px;">Health Wiz AI</h1>
           <p style="margin:0;font-size:14px;color:#64748B;">Secure family health tracking</p>
         </td></tr>
 
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
 
           <h2 style="margin:0 0 8px;font-size:20px;font-weight:700;color:#0F172A;">Welcome, ${firstName}! 👋</h2>
           <p style="margin:0 0 24px;font-size:15px;color:#475569;line-height:1.6;">
-            Your Health Wiz account is ready. You now have a secure, private space to track health events, doctor visits, and get AI-powered insights — all in one place.
+            Your Health Wiz AI account is ready. You now have a secure, private space to track health events, doctor visits, and get AI-powered insights — all in one place.
           </p>
 
           <!-- Steps -->
@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
             <tr><td align="center">
               <a href="https://health-wiz.vercel.app/dashboard"
                 style="display:inline-block;background:linear-gradient(135deg,#3B82F6,#6366F1);color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;padding:14px 36px;border-radius:12px;box-shadow:0 4px 16px rgba(99,102,241,0.35);">
-                Open Health Wiz →
+                Open Health Wiz AI →
               </a>
             </td></tr>
           </table>
@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
             AI analysis is for research preparation only, not medical advice.
           </p>
           <p style="margin:0;font-size:12px;color:#CBD5E1;">
-            © ${new Date().getFullYear()} Health Wiz · In an emergency, call <strong>911</strong>
+            © ${new Date().getFullYear()} Health Wiz AI · In an emergency, call <strong>911</strong>
           </p>
         </td></tr>
 
