@@ -42,7 +42,7 @@ export default function SettingsPage() {
   const [users, setUsers] = useState<{ userId: string; email: string; name: string; role: string; createdAt: string }[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [deleteMessage, setDeleteMessage] = useState('');
-  const [resetResult, setResetResult] = useState<{ userId: string; tempPassword: string } | null>(null);
+  const [resetResult, setResetResult] = useState<{ userId: string; email: string } | null>(null);
   const [resetLoading, setResetLoading] = useState<string | null>(null);
   const [roleLoading, setRoleLoading] = useState<string | null>(null);
   const [deleteAccountLoading, setDeleteAccountLoading] = useState(false);
@@ -263,7 +263,7 @@ export default function SettingsPage() {
         body: JSON.stringify({ userId }),
       });
       const data = await res.json();
-      if (res.ok) setResetResult({ userId, tempPassword: data.tempPassword });
+      if (res.ok) setResetResult({ userId, email: data.email });
     } finally { setResetLoading(null); }
   };
 
@@ -672,9 +672,8 @@ export default function SettingsPage() {
                     </div>
                   )}
                   {resetResult && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3">
-                      <div className="text-xs font-semibold text-yellow-800 mb-1">Temporary password — share once:</div>
-                      <div className="font-mono text-sm bg-white border border-yellow-300 rounded px-2 py-1 text-yellow-900 select-all">{resetResult.tempPassword}</div>
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
+                      <div className="text-xs font-semibold text-green-800">Temporary password emailed to {resetResult.email}</div>
                     </div>
                   )}
                   {usersLoading ? (

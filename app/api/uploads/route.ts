@@ -1,16 +1,6 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { NextRequest, NextResponse } from 'next/server';
-
-const r2 = new S3Client({
-  region: 'auto',
-  endpoint: process.env.R2_ENDPOINT,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-  },
-  forcePathStyle: true,
-});
-const BUCKET = () => process.env.R2_BUCKET!;
+import { randomBytes } from 'crypto';
+import { r2PutBytes, r2Del } from '@/lib/r2';
 import { getSessionFromRequest } from '@/lib/session';
 import { redactPiiFromText, detectPiiInText } from '@/lib/pii-validator';
 import { getUploadManifest, saveUploadManifest } from '@/lib/health-data';
@@ -20,6 +10,7 @@ export const runtime = 'nodejs';
 const MAX_PER_UPLOAD = 15;
 const MAX_TOTAL = 500;
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_TOTAL_SIZE = 50 * 1024 * 1024; // 50MB per batch
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf', 'text/plain'];
 
 export async function GET(req: NextRequest) {
@@ -59,7 +50,7 @@ export async function POST(req: NextRequest) {
     }
 
     const totalSize = allFiles.reduce((sum, f) => sum + f.size, 0);
-    if (totalSize > 50 * 1024 * 1024) {
+    if (totalSize > MAX_TOTAL_SIZE) {
       return NextResponse.json({ error: 'Total upload size exceeds 50MB limit.' }, { status: 413 });
     }
 
@@ -71,9 +62,11 @@ export async function POST(req: NextRequest) {
     }
 
     const toProcess = allFiles.slice(0, slots);
-    const uploaded: any[] = [];
     const errors: string[] = [];
 
+    // Validate files and prepare bodies first
+    type FileEntry = { file: File; body: Buffer; redactedCount: number };
+    const valid: FileEntry[] = [];
     for (const file of toProcess) {
       if (!ALLOWED_TYPES.includes(file.type)) {
         errors.push(`${file.name}: unsupported type (use JPEG, PNG, GIF, WebP, PDF, or TXT)`);
@@ -84,13 +77,8 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      const fileId = require('crypto').randomBytes(16).toString('hex');
-      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const blobPath = `health-uploads/${session.userId}/${fileId}_${category}_${safeName}`;
-
       let uploadBody: Blob = file;
       let redactedCount = 0;
-
       if (file.type === 'text/plain') {
         const rawText = await file.text();
         const { redacted, changes } = redactPiiFromText(rawText);
@@ -98,31 +86,33 @@ export async function POST(req: NextRequest) {
         uploadBody = new Blob([redacted], { type: 'text/plain' });
       }
 
-      const arrayBuffer = await uploadBody.arrayBuffer();
-      await r2.send(new PutObjectCommand({
-        Bucket: BUCKET(),
-        Key: blobPath,
-        Body: Buffer.from(arrayBuffer),
-        ContentType: file.type,
-      }));
-
-      uploaded.push({
-        id: fileId,
-        originalName: file.name,
-        category,
-        note,
-        size: file.size,
-        type: file.type,
-        url: blobPath,
-        blobPath,
-        uploadedAt: new Date().toISOString(),
-        redactedCount,
-      });
+      valid.push({ file, body: Buffer.from(await uploadBody.arrayBuffer()), redactedCount });
     }
 
-    if (uploaded.length === 0) {
+    if (valid.length === 0) {
       return NextResponse.json({ error: errors[0] ?? 'Upload failed' }, { status: 400 });
     }
+
+    // Upload all valid files in parallel
+    const uploaded = await Promise.all(
+      valid.map(async ({ file, body, redactedCount }) => {
+        const fileId = randomBytes(16).toString('hex');
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const blobPath = `health-uploads/${session.userId}/${fileId}_${category}_${safeName}`;
+        await r2PutBytes(blobPath, body, file.type);
+        return {
+          id: fileId,
+          originalName: file.name,
+          category,
+          note,
+          size: file.size,
+          type: file.type,
+          blobPath,
+          uploadedAt: new Date().toISOString(),
+          redactedCount,
+        };
+      })
+    );
 
     const updatedManifest = [...uploaded, ...existing];
     await saveUploadManifest(session.userId, updatedManifest, personId);
@@ -149,12 +139,12 @@ export async function DELETE(req: NextRequest) {
   const { fileId } = await req.json();
   if (!fileId) return NextResponse.json({ error: 'fileId required' }, { status: 400 });
 
-  const manifest = await getUploadManifest(session.userId, personId) as { id: string; url: string; blobPath?: string }[];
+  const manifest = await getUploadManifest(session.userId, personId) as { id: string; url?: string; blobPath?: string }[];
   const target = manifest.find(f => f.id === fileId);
   if (!target) return NextResponse.json({ error: 'File not found' }, { status: 404 });
 
   try {
-    await r2.send(new DeleteObjectCommand({ Bucket: BUCKET(), Key: target.blobPath ?? target.url }));
+    await r2Del(target.blobPath ?? target.url ?? '');
   } catch { /* ignore if already gone */ }
 
   const updated = manifest.filter(f => f.id !== fileId);

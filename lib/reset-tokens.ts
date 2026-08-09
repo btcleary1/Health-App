@@ -1,5 +1,5 @@
 import { r2Get, r2Put, r2Del } from './r2';
-import { randomBytes, createHash, timingSafeEqual } from 'crypto';
+import { createHash, timingSafeEqual, randomInt } from 'crypto';
 
 const PREFIX = 'health-app/reset-tokens/';
 const TTL_MS = 15 * 60 * 1000;
@@ -15,7 +15,7 @@ function hashCode(code: string): string {
 }
 
 export async function createResetCode(email: string): Promise<string> {
-  const code = randomBytes(3).reduce((acc, b) => acc * 256 + b, 0).toString().slice(-6).padStart(6, '0');
+  const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
   const record: ResetToken = {
     email: email.toLowerCase(),
     codeHash: hashCode(code),
@@ -31,7 +31,6 @@ export async function verifyResetCode(email: string, code: string): Promise<bool
   const path = `${PREFIX}${key}.json`;
   const record = await r2Get<ResetToken>(path);
   if (!record) return false;
-  if (record.email !== email.toLowerCase()) return false;
   if (Date.now() > record.expiresAt) return false;
 
   // Constant-time comparison to prevent timing oracle

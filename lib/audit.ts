@@ -27,13 +27,13 @@ export function logAudit(entry: AuditEntry): void {
   r2Put(path, JSON.stringify(entry)).catch(() => {});
 }
 
-export function getClientIp(req: Request): string {
-  const headers = req instanceof Request ? req.headers : (req as any).headers;
+export function getClientIp(req: { headers: { get?: (k: string) => string | null } }): string {
+  const h = req.headers;
   // Prefer Vercel's infrastructure-set header (not spoofable by clients)
   return (
-    headers.get?.('x-vercel-forwarded-for') ??
-    headers.get?.('x-real-ip') ??
-    headers.get?.('x-forwarded-for')?.split(',')[0]?.trim() ??
+    h.get?.('x-vercel-forwarded-for') ??
+    h.get?.('x-real-ip') ??
+    h.get?.('x-forwarded-for')?.split(',')[0]?.trim() ??
     'unknown'
   );
 }

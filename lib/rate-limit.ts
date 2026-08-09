@@ -10,8 +10,9 @@ interface AttemptRecord {
   lockedUntil?: number;
 }
 
-function sanitizeKey(ip: string): string {
-  return ip.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 64);
+function sanitizeKey(ip: string, namespace?: string): string {
+  const raw = namespace ? `${namespace}_${ip}` : ip;
+  return raw.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 80);
 }
 
 async function getRecord(key: string): Promise<AttemptRecord | null> {
@@ -22,8 +23,8 @@ async function saveRecord(key: string, record: AttemptRecord): Promise<void> {
   await r2Put(`${BLOB_PREFIX}${key}.json`, JSON.stringify(record));
 }
 
-export async function checkRateLimit(ip: string, max = MAX_ATTEMPTS): Promise<void> {
-  const key = sanitizeKey(ip);
+export async function checkRateLimit(ip: string, max = MAX_ATTEMPTS, namespace?: string): Promise<void> {
+  const key = sanitizeKey(ip, namespace);
   const now = Date.now();
   const record = await getRecord(key);
   if (!record) return;
@@ -38,8 +39,8 @@ export async function checkRateLimit(ip: string, max = MAX_ATTEMPTS): Promise<vo
   }
 }
 
-export async function recordFailure(ip: string, max = MAX_ATTEMPTS): Promise<void> {
-  const key = sanitizeKey(ip);
+export async function recordFailure(ip: string, max = MAX_ATTEMPTS, namespace?: string): Promise<void> {
+  const key = sanitizeKey(ip, namespace);
   const now = Date.now();
   const record = await getRecord(key);
   let updated: AttemptRecord;
@@ -54,7 +55,7 @@ export async function recordFailure(ip: string, max = MAX_ATTEMPTS): Promise<voi
   await saveRecord(key, updated);
 }
 
-export async function clearFailures(ip: string): Promise<void> {
-  const key = sanitizeKey(ip);
+export async function clearFailures(ip: string, namespace?: string): Promise<void> {
+  const key = sanitizeKey(ip, namespace);
   await saveRecord(key, { attempts: 0, windowStart: Date.now() });
 }

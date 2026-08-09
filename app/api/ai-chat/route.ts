@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
 
   const ip = getClientIp(req);
   try {
-    await checkRateLimit(`ai-chat_${ip}`, 30);
+    await checkRateLimit(ip, 30, 'ai-chat');
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Too many requests.';
     return NextResponse.json({ error: msg }, { status: 429 });

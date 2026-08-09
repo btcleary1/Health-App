@@ -68,13 +68,6 @@ export function detectPiiInText(text: string): string[] {
 }
 
 /**
- * Sanitise a first name: trim and strip non-letter characters that have no place in a name.
- */
-export function sanitiseFirstName(value: string): string {
-  return value.trim().replace(/[^A-Za-zÀ-ÿ'\-]/g, '').slice(0, 50);
-}
-
-/**
  * Redact detectable PII patterns from free text.
  * Replaces phone numbers, email addresses, street addresses, and SSNs with [REDACTED] labels.
  * Returns the sanitised text and a count of how many replacements were made.

@@ -14,8 +14,7 @@ export async function verifyPassphrase(passphrase: string, storedHash: string): 
 
 export async function getStoredHash(): Promise<string | null> {
   const data = await r2Get<{ hash: string }>(BLOB_PATH);
-  if (data?.hash) return data.hash;
-  return null;
+  return data?.hash ?? null;
 }
 
 export async function savePassphraseHash(hash: string): Promise<void> {

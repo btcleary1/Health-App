@@ -10,7 +10,7 @@ export const runtime = 'nodejs';
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
   try {
-    await checkRateLimit(ip);
+    await checkRateLimit(ip, 5, 'reset-password');
     const { email, code, newPassword } = await req.json();
 
     if (!email || !code || !newPassword) {
@@ -22,18 +22,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Password requirements not met: ${errors.join(', ')}.` }, { status: 400 });
     }
 
-    const codeValid = await verifyResetCode(email, code);
+    const [codeValid, user] = await Promise.all([
+      verifyResetCode(email, code),
+      getUserByEmail(email),
+    ]);
+
     if (!codeValid) {
-      await recordFailure(ip);
+      await recordFailure(ip, 5, 'reset-password');
       return NextResponse.json({ error: 'Invalid or expired code. Please request a new one.' }, { status: 400 });
     }
-
-    const user = await getUserByEmail(email);
     if (!user) return NextResponse.json({ error: 'User not found.' }, { status: 404 });
 
     await updatePassword(user.userId, newPassword);
 
-    logAudit({ timestamp: new Date().toISOString(), userId: user.userId, email: user.email, action: 'password_reset_completed', ip: getClientIp(req) });
+    logAudit({ timestamp: new Date().toISOString(), userId: user.userId, email: user.email, action: 'password_reset_completed', ip });
     return NextResponse.json({ success: true });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

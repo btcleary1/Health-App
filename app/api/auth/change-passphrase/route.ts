@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
 
   const ip = getClientIp(req);
   try {
-    await checkRateLimit(ip);
+    await checkRateLimit(ip, 5, 'change-passphrase');
 
     const { currentPassphrase, newPassphrase } = await req.json();
 
@@ -33,12 +33,14 @@ export async function POST(req: NextRequest) {
 
     const valid = await verifyPassphrase(currentPassphrase, storedHash);
     if (!valid) {
-      await recordFailure(ip);
+      await recordFailure(ip, 5, 'change-passphrase');
       return NextResponse.json({ error: 'Current passphrase is incorrect.' }, { status: 401 });
     }
 
-    await savePassphraseHash(await hashPassphrase(newPassphrase));
-    await clearFailures(ip);
+    await Promise.all([
+      savePassphraseHash(await hashPassphrase(newPassphrase)),
+      clearFailures(ip, 'change-passphrase'),
+    ]);
 
     return NextResponse.json({ success: true });
   } catch (err) {

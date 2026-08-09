@@ -4,25 +4,13 @@ import { NextRequest } from 'next/server';
 import { getSessionFromRequest } from '@/lib/session';
 import { checkRateLimit, recordFailure } from '@/lib/rate-limit';
 import { getClientIp } from '@/lib/audit';
-import {
-  S3Client,
-  GetObjectCommand,
-} from '@aws-sdk/client-s3';
+import { r2GetBytes } from '@/lib/r2';
+import { getUploadManifest } from '@/lib/health-data';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-const r2 = new S3Client({
-  region: 'auto',
-  endpoint: process.env.R2_ENDPOINT,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-  },
-  forcePathStyle: true,
-});
 
 type ImageMediaType = 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
 
@@ -32,21 +20,10 @@ function isImageMediaType(t: string): t is ImageMediaType {
   return ALLOWED_IMAGE_TYPES.includes(t as ImageMediaType);
 }
 
-// file.url is now an R2 key (e.g. "health-uploads/userId/filename.jpg")
 async function fetchFileFromR2(r2Key: string, fileType: string): Promise<{ data: string; mediaType: string } | null> {
-  try {
-    const res = await r2.send(new GetObjectCommand({
-      Bucket: process.env.R2_BUCKET!,
-      Key: r2Key,
-    }));
-    if (!res.Body) return null;
-    const bytes = await res.Body.transformToByteArray();
-    const data = Buffer.from(bytes).toString('base64');
-    const mediaType = res.ContentType || fileType || 'application/octet-stream';
-    return { data, mediaType };
-  } catch {
-    return null;
-  }
+  const buf = await r2GetBytes(r2Key);
+  if (!buf) return null;
+  return { data: buf.toString('base64'), mediaType: fileType || 'application/octet-stream' };
 }
 
 // Determine how to address the patient based on their age group
@@ -76,7 +53,7 @@ export async function POST(req: NextRequest) {
 
   const ip = getClientIp(req);
   try {
-    await checkRateLimit(`ai-analysis_${ip}`, 10);
+    await checkRateLimit(ip, 10, 'ai-analysis');
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Too many requests.';
     return new Response(JSON.stringify({ error: msg }), { status: 429, headers: { 'Content-Type': 'application/json' } });
@@ -150,47 +127,44 @@ IMPORTANT: For appointment prep only — not medical diagnosis. All findings are
 
   if (Array.isArray(uploadedFiles) && uploadedFiles.length > 0) {
     // Resolve allowed keys from the user's own manifest — never trust client-supplied paths
-    const { getUploadManifest } = await import('@/lib/health-data');
     const manifest: any[] = await getUploadManifest(session.userId, body.personId);
     const allowedKeys = new Set(manifest.map((f: any) => f.blobPath ?? f.url));
 
-    const filesToProcess = uploadedFiles.slice(0, 20);
-    for (const file of filesToProcess) {
-      const fileType: string = file.type || '';
+    const filesToProcess = uploadedFiles.slice(0, 20).filter((file: any) => {
       const r2Key: string = file.url || file.blobPath || '';
-      // IDOR guard: only serve keys that belong to this user
-      if (!r2Key || !allowedKeys.has(r2Key)) continue;
+      return r2Key && allowedKeys.has(r2Key);
+    });
 
-      if (fileType.startsWith('image/')) {
-        const fetched = await fetchFileFromR2(r2Key, fileType);
-        if (fetched && isImageMediaType(fetched.mediaType)) {
-          contentBlocks.push({
-            type: 'image',
-            source: { type: 'base64', media_type: fetched.mediaType, data: fetched.data },
-          });
-        }
+    // Fetch all files in parallel
+    const fetched = await Promise.all(
+      filesToProcess.map((file: any) => fetchFileFromR2(file.url || file.blobPath, file.type || ''))
+    );
+
+    for (let i = 0; i < filesToProcess.length; i++) {
+      const file = filesToProcess[i];
+      const result = fetched[i];
+      if (!result) continue;
+      const fileType: string = file.type || '';
+
+      if (fileType.startsWith('image/') && isImageMediaType(result.mediaType)) {
+        contentBlocks.push({
+          type: 'image',
+          source: { type: 'base64', media_type: result.mediaType, data: result.data },
+        });
       } else if (fileType === 'application/pdf') {
-        const fetched = await fetchFileFromR2(r2Key, fileType);
-        if (fetched) {
-          contentBlocks.push({
-            type: 'text',
-            text: `[PDF document attached: ${file.originalName}${file.note ? ` — ${file.note}` : ''}, category: ${file.category}. Extract all data from this document.]`,
-          });
-          try {
-            (contentBlocks as any[]).push({
-              type: 'document',
-              source: { type: 'base64', media_type: 'application/pdf', data: fetched.data },
-            });
-          } catch { /* unsupported — text description above covers it */ }
-        }
-      } else if (fileType === 'text/plain') {
+        contentBlocks.push({
+          type: 'text',
+          text: `[PDF document attached: ${file.originalName}${file.note ? ` — ${file.note}` : ''}, category: ${file.category}. Extract all data from this document.]`,
+        });
         try {
-          const fetched = await fetchFileFromR2(r2Key, fileType);
-          if (fetched) {
-            const text = Buffer.from(fetched.data, 'base64').toString('utf8');
-            contentBlocks.push({ type: 'text', text: `[Text file: ${file.originalName}]\n${text.slice(0, 3000)}` });
-          }
-        } catch { /* skip */ }
+          (contentBlocks as any[]).push({
+            type: 'document',
+            source: { type: 'base64', media_type: 'application/pdf', data: result.data },
+          });
+        } catch { /* unsupported — text description above covers it */ }
+      } else if (fileType === 'text/plain') {
+        const text = Buffer.from(result.data, 'base64').toString('utf8');
+        contentBlocks.push({ type: 'text', text: `[Text file: ${file.originalName}]\n${text.slice(0, 3000)}` });
       }
     }
   }
@@ -218,7 +192,7 @@ IMPORTANT: For appointment prep only — not medical diagnosis. All findings are
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (err: any) {
-    await recordFailure(`ai-analysis_${ip}`, 10);
+    await recordFailure(ip, 10, 'ai-analysis');
     return new Response(JSON.stringify({ error: 'Analysis failed. Please try again.' }), {
       status: 500, headers: { 'Content-Type': 'application/json' },
     });

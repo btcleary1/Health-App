@@ -10,14 +10,14 @@ export const runtime = 'nodejs';
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
   try {
-    await checkRateLimit(ip);
+    await checkRateLimit(ip, 5, 'forgot-password');
     const { email } = await req.json();
     if (!email) return NextResponse.json({ error: 'Email is required.' }, { status: 400 });
 
     // Always return success even if email not found (prevents user enumeration)
     const user = await getUserByEmail(email);
     if (!user) {
-      await recordFailure(ip);
+      await recordFailure(ip, 5, 'forgot-password');
       return NextResponse.json({ success: true });
     }
 
