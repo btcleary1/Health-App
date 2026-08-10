@@ -53,6 +53,16 @@ export async function r2Del(keys: string | string[]): Promise<void> {
   }
 }
 
+export async function r2GetBytes(key: string): Promise<Buffer | null> {
+  try {
+    const res = await r2.send(new GetObjectCommand({ Bucket: BUCKET(), Key: key }));
+    if (!res.Body) return null;
+    return Buffer.from(await res.Body.transformToByteArray());
+  } catch {
+    return null;
+  }
+}
+
 export async function r2List(prefix: string): Promise<string[]> {
   const res = await r2.send(new ListObjectsV2Command({ Bucket: BUCKET(), Prefix: prefix }));
   return (res.Contents ?? []).map(obj => obj.Key!).filter(Boolean);

@@ -1,17 +1,7 @@
-import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest } from '@/lib/session';
 import { getUploadManifest } from '@/lib/health-data';
-
-const r2 = new S3Client({
-  region: 'auto',
-  endpoint: process.env.R2_ENDPOINT,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-  },
-  forcePathStyle: true,
-});
+import { r2GetBytes } from '@/lib/r2';
 
 export const runtime = 'nodejs';
 
@@ -28,16 +18,10 @@ export async function GET(req: NextRequest) {
   if (!file) return new NextResponse('Not found', { status: 404 });
 
   try {
-    const res = await r2.send(
-      new GetObjectCommand({
-        Bucket: process.env.R2_BUCKET!,
-        Key: file.blobPath ?? file.url,
-      })
-    );
-    if (!res.Body) return new NextResponse('File not found in storage', { status: 404 });
+    const bytes = await r2GetBytes(file.blobPath ?? file.url);
+    if (!bytes) return new NextResponse('File not found in storage', { status: 404 });
 
-    const bytes = await res.Body.transformToByteArray();
-    return new NextResponse(bytes, {
+    return new NextResponse(bytes as unknown as BodyInit, {
       headers: {
         'Content-Type': file.type || 'application/octet-stream',
         'Content-Disposition': `inline; filename="${encodeURIComponent(file.originalName)}"`,
