@@ -352,11 +352,12 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading || !agreed}
+              disabled={loading}
               className="w-full py-3.5 font-semibold text-sm rounded-xl text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               style={{
-                background: loading || !agreed ? 'rgba(59,130,246,0.5)' : 'linear-gradient(135deg, #3B82F6, #6366F1)',
-                boxShadow: agreed && !loading ? '0 4px 16px rgba(99,102,241,0.4)' : 'none',
+                background: loading ? 'rgba(59,130,246,0.5)' : 'linear-gradient(135deg, #3B82F6, #6366F1)',
+                boxShadow: !loading ? '0 4px 16px rgba(99,102,241,0.4)' : 'none',
+                opacity: !agreed && !loading ? 0.5 : undefined,
               }}
             >
               {loading ? 'Signing in…' : 'Sign In'}
