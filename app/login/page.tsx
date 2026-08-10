@@ -8,6 +8,13 @@ import Link from 'next/link';
 
 type Stage = 'login' | 'register-passkey';
 
+const GOOGLE_ERRORS: Record<string, string> = {
+  google_cancelled: 'Google sign-in was cancelled.',
+  google_state_mismatch: 'Security check failed — please try again.',
+  google_failed: 'Google sign-in failed. Try again or use email/password.',
+  google_not_configured: 'Google sign-in is not available right now.',
+};
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -35,6 +42,11 @@ export default function LoginPage() {
       setBiometricLabel('Sign in with Windows Hello');
     } else {
       setBiometricLabel('Sign in with Biometrics');
+    }
+    const params = new URLSearchParams(window.location.search);
+    const errorParam = params.get('error');
+    if (errorParam) {
+      setError(GOOGLE_ERRORS[errorParam] ?? 'Sign-in failed. Please try again.');
     }
   }, []);
 
