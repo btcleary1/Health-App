@@ -18,8 +18,9 @@ export async function POST(req: NextRequest) {
       const user = await getUserByEmail(body.email);
       if (user) {
         const creds = await getCredentialsForUser(user.userId);
-        if (creds.length > 0) {
-          allowCredentials = creds.map(c => ({
+        const validCreds = creds.filter(c => /^[A-Za-z0-9\-_]+$/.test(c.id));
+        if (validCreds.length > 0) {
+          allowCredentials = validCreds.map(c => ({
             id: c.id,
             ...(c.transports?.length ? { transports: c.transports as any } : {}),
           }));

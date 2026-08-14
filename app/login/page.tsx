@@ -118,6 +118,8 @@ export default function LoginPage() {
         setBiometricError('No passkey found. Sign in with email, then re-enable Face ID in Settings.');
       } else if (msg.includes('InvalidStateError') || msg.includes('not recognized')) {
         setBiometricError('Passkey not recognized. Sign in with email, then re-enable Face ID in Settings.');
+      } else if (msg.includes('did not match') || msg.includes('expected pattern')) {
+        setBiometricError('Stored passkey is invalid. Sign in with email, then go to Settings → remove and re-enable Face ID.');
       } else {
         setBiometricError(msg);
       }
