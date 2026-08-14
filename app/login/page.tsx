@@ -22,6 +22,13 @@ export default function LoginPage() {
   const [supportsWebAuthn, setSupportsWebAuthn] = useState(false);
   const [biometricLabel, setBiometricLabel] = useState('Sign in with Biometrics');
 
+  const GOOGLE_ERRORS: Record<string, string> = {
+    google_cancelled: 'Google sign-in was cancelled.',
+    google_state_mismatch: 'Security check failed — please try again.',
+    google_failed: 'Google sign-in failed. Try again or use email/password.',
+    google_not_configured: 'Google sign-in is not available right now.',
+  };
+
   useEffect(() => {
     setSupportsWebAuthn(browserSupportsWebAuthn());
     const ua = navigator.userAgent;
@@ -35,6 +42,11 @@ export default function LoginPage() {
       setBiometricLabel('Sign in with Windows Hello');
     } else {
       setBiometricLabel('Sign in with Biometrics');
+    }
+    const params = new URLSearchParams(window.location.search);
+    const errorParam = params.get('error');
+    if (errorParam) {
+      setError(GOOGLE_ERRORS[errorParam] ?? 'Sign-in failed. Please try again.');
     }
   }, []);
 
@@ -340,11 +352,11 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading || !agreed}
+              disabled={loading}
               className="w-full py-3.5 font-semibold text-sm rounded-xl text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               style={{
-                background: loading || !agreed ? 'rgba(59,130,246,0.5)' : 'linear-gradient(135deg, #3B82F6, #6366F1)',
-                boxShadow: agreed && !loading ? '0 4px 16px rgba(99,102,241,0.4)' : 'none',
+                background: loading ? 'rgba(59,130,246,0.5)' : 'linear-gradient(135deg, #3B82F6, #6366F1)',
+                boxShadow: !loading ? '0 4px 16px rgba(99,102,241,0.4)' : 'none',
               }}
             >
               {loading ? 'Signing in…' : 'Sign In'}

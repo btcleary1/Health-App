@@ -24,6 +24,9 @@
     "recharts": "^3.8.0",
     "resend": "^6.10.0"
   },
+  "engines": {
+    "node": ">=24"
+  },
   "devDependencies": {
     "@types/node": "^20.19.33",
     "@types/react": "^18.3.28",

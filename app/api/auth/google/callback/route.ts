@@ -7,7 +7,7 @@ export const runtime = 'nodejs';
 
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://healthwiz.vercel.app').trim();
 
-async function exchangeCodeForTokens(code: string): Promise<{ access_token: string; id_token: string }> {
+async function exchangeCodeForTokens(code: string, codeVerifier: string): Promise<{ access_token: string; id_token: string }> {
   const res = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -17,6 +17,7 @@ async function exchangeCodeForTokens(code: string): Promise<{ access_token: stri
       client_secret: process.env.GOOGLE_CLIENT_SECRET!,
       redirect_uri: `${APP_URL}/api/auth/google/callback`,
       grant_type: 'authorization_code',
+      code_verifier: codeVerifier,
     }),
   });
   if (!res.ok) {
@@ -43,14 +44,15 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${APP_URL}/login?error=google_cancelled`);
   }
 
-  // Verify CSRF state token
   const savedState = req.cookies.get('oauth_state')?.value;
-  if (!state || !savedState || state !== savedState) {
+  const codeVerifier = req.cookies.get('oauth_code_verifier')?.value;
+
+  if (!state || !savedState || state !== savedState || !codeVerifier) {
     return NextResponse.redirect(`${APP_URL}/login?error=google_state_mismatch`);
   }
 
   try {
-    const { access_token } = await exchangeCodeForTokens(code);
+    const { access_token } = await exchangeCodeForTokens(code, codeVerifier);
     const googleUser = await getGoogleUserInfo(access_token);
 
     const ip = getClientIp(req);
