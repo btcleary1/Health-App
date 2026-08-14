@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { randomBytes, createHash } from 'crypto';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://healthwiz.vercel.app').trim();
 
