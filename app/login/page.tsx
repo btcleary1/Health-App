@@ -69,24 +69,33 @@ export default function LoginPage() {
     if (!agreed) { setError('You must confirm you are an authorized user.'); return; }
     setLoading(true);
     setError('');
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-    const data = await res.json();
-    if (res.ok) {
-      const statusRes = await fetch('/api/auth/webauthn/status');
-      const statusData = await statusRes.json();
-      if (statusData.registered) {
-        await goAfterLogin();
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        let passkeyRegistered = false;
+        try {
+          const statusRes = await fetch('/api/auth/webauthn/status');
+          const statusData = await statusRes.json();
+          passkeyRegistered = !!statusData.registered;
+        } catch { /* ignore — proceed to login */ }
+        if (passkeyRegistered) {
+          await goAfterLogin();
+        } else {
+          setStage('register-passkey');
+        }
       } else {
-        setStage('register-passkey');
+        setError((data as any).error || 'Incorrect email or password.');
       }
-    } else {
-      setError(data.error || 'Incorrect email or password.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Sign-in failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleBiometricLogin = async () => {
