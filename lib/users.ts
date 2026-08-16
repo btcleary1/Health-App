@@ -1,6 +1,6 @@
 import { r2Get, r2Put, r2Del } from './r2';
 import { createHash, randomBytes, timingSafeEqual } from 'crypto';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 const PREFIX = 'health-app/users/';
 const INDEX_PATH = 'health-app/users-index.json';

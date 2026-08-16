@@ -1,5 +1,5 @@
 import { r2Get, r2Put } from './r2';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 const BLOB_PATH = 'health-app/passphrase.json';
 const BCRYPT_ROUNDS = 12;
