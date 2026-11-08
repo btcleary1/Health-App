@@ -79,7 +79,7 @@ export function setSessionCookie(res: NextResponse, payload: Omit<SessionPayload
   res.cookies.set(COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: 'lax', // 'strict' drops the cookie after the Google redirect, bouncing you back to /login
     maxAge: SESSION_TTL,
     path: '/',
   });

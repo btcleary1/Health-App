@@ -4,8 +4,10 @@ import { getSessionFromRequest } from '@/lib/session';
 
 export const runtime = 'nodejs';
 
-const RP_ID = process.env.WEBAUTHN_RP_ID ||
-  (process.env.NEXT_PUBLIC_APP_URL ? new URL(process.env.NEXT_PUBLIC_APP_URL).hostname : 'localhost');
+// Passkeys are tied to the exact site the person is on, so use the request's own host.
+function getRpId(req: NextRequest): string {
+  return req.nextUrl.hostname || 'localhost';
+}
 
 function toLatin1(s: string): string {
   // Remove any character whose code point exceeds U+00FF (Latin-1 range)
@@ -13,6 +15,7 @@ function toLatin1(s: string): string {
 }
 
 export async function POST(req: NextRequest) {
+  const RP_ID = getRpId(req);
   const session = await getSessionFromRequest(req);
   if (!session) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });

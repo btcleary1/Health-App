@@ -5,10 +5,13 @@ import { getCredentialsForUser } from '@/lib/webauthn-store';
 
 export const runtime = 'nodejs';
 
-const RP_ID = process.env.WEBAUTHN_RP_ID ||
-  (process.env.NEXT_PUBLIC_APP_URL ? new URL(process.env.NEXT_PUBLIC_APP_URL).hostname : 'localhost');
+// Passkeys are tied to the exact site the person is on, so use the request's own host.
+function getRpId(req: NextRequest): string {
+  return req.nextUrl.hostname || 'localhost';
+}
 
 export async function POST(req: NextRequest) {
+  const RP_ID = getRpId(req);
   // If email is provided, look up that user's credentials so we can target their
   // specific authenticator — this prevents the cross-device QR code from appearing.
   let allowCredentials: { id: string; transports?: string[] }[] | undefined;
