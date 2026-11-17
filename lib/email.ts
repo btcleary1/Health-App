@@ -12,9 +12,9 @@ export async function sendWelcomeEmail(toAddress: string, name: string): Promise
   const firstName = escapeHtml(name.trim().split(/\s+/)[0]);
   const resend = new Resend(process.env.RESEND_API_KEY);
   await resend.emails.send({
-    from: 'Health Wiz AI <onboarding@resend.dev>',
+    from: 'Cleary Health <onboarding@resend.dev>',
     to: toAddress,
-    subject: "Welcome to Health Wiz AI — You're all set",
+    subject: "Welcome to Cleary Health — You're all set",
     html: `
 <!DOCTYPE html>
 <html>
@@ -30,14 +30,14 @@ export async function sendWelcomeEmail(toAddress: string, name: string): Promise
               <img src="https://em-content.zobj.net/source/apple/354/heart-with-pulse_1f493.png" width="36" height="36" alt="❤️" style="display:block;margin:14px auto;" />
             </td></tr>
           </table>
-          <h1 style="margin:20px 0 4px;font-size:24px;font-weight:700;color:#0F172A;letter-spacing:-0.5px;">Health Wiz AI</h1>
+          <h1 style="margin:20px 0 4px;font-size:24px;font-weight:700;color:#0F172A;letter-spacing:-0.5px;">Cleary Health</h1>
           <p style="margin:0;font-size:14px;color:#64748B;">Secure family health tracking</p>
         </td></tr>
 
         <tr><td style="background:#FFFFFF;border-radius:20px;border:1px solid #E2E8F0;padding:36px 36px 32px;box-shadow:0 4px 24px rgba(0,0,0,0.06);">
           <h2 style="margin:0 0 8px;font-size:20px;font-weight:700;color:#0F172A;">Welcome, ${firstName}! 👋</h2>
           <p style="margin:0 0 24px;font-size:15px;color:#475569;line-height:1.6;">
-            Your Health Wiz AI account is ready. You now have a secure, private space to track health events, doctor visits, and get AI-powered insights — all in one place.
+            Your Cleary Health account is ready. You now have a secure, private space to track health events, doctor visits, and get AI-powered insights — all in one place.
           </p>
 
           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
@@ -67,7 +67,7 @@ export async function sendWelcomeEmail(toAddress: string, name: string): Promise
             <tr><td align="center">
               <a href="${APP_URL}/dashboard"
                 style="display:inline-block;background:linear-gradient(135deg,#3B82F6,#6366F1);color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;padding:14px 36px;border-radius:12px;box-shadow:0 4px 16px rgba(99,102,241,0.35);">
-                Open Health Wiz AI →
+                Open Cleary Health →
               </a>
             </td></tr>
           </table>
@@ -79,7 +79,7 @@ export async function sendWelcomeEmail(toAddress: string, name: string): Promise
             AI analysis is for research preparation only, not medical advice.
           </p>
           <p style="margin:0;font-size:12px;color:#CBD5E1;">
-            © ${new Date().getFullYear()} Health Wiz AI · In an emergency, call <strong>911</strong>
+            © ${new Date().getFullYear()} Cleary Health · In an emergency, call <strong>911</strong>
           </p>
         </td></tr>
 

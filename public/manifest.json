@@ -1,6 +1,6 @@
 {
-  "name": "Health Wiz AI",
-  "short_name": "Health Wiz AI",
+  "name": "Cleary Health",
+  "short_name": "Cleary Health",
   "description": "Personal health tracking, AI medical analysis, and doctor briefings.",
   "start_url": "/dashboard",
   "display": "standalone",

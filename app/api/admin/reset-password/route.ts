@@ -35,9 +35,9 @@ export async function POST(req: NextRequest) {
   try {
     const resend = new Resend(process.env.RESEND_API_KEY);
     await resend.emails.send({
-      from: 'Health Wiz AI <onboarding@resend.dev>',
+      from: 'Cleary Health <onboarding@resend.dev>',
       to: user.email,
-      subject: 'Your Health Wiz AI temporary password',
+      subject: 'Your Cleary Health temporary password',
       html: `
         <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px;">
           <h2 style="color:#111827;">Temporary Password</h2>

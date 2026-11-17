@@ -1,9 +1,10 @@
 'use client';
 
+import SuiteMark from '@/components/SuiteMark';
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Activity, LayoutDashboard, Brain, Clipboard, Upload, LogOut, Settings } from 'lucide-react';
+import { LayoutDashboard, Brain, Clipboard, Upload, LogOut, Settings } from 'lucide-react';
 import { usePersonContext } from '@/lib/PersonContext';
 import PersonSelector from '@/components/PersonSelector';
 
@@ -38,16 +39,8 @@ export default function HealthHeader() {
 
             {/* Brand */}
             <Link href="/dashboard" className="flex items-center gap-2.5">
-              <div
-                className="flex items-center justify-center w-8 h-8 rounded-xl shrink-0"
-                style={{
-                  background: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
-                  boxShadow: '0 2px 10px rgba(99,102,241,0.4)',
-                }}
-              >
-                <Activity className="w-4 h-4 text-white" />
-              </div>
-              <span className="font-bold text-white text-[15px] tracking-tight">Health Wiz AI</span>
+              <SuiteMark size={32} />
+              <span className="font-bold text-white text-[15px] tracking-tight">Cleary Health</span>
             </Link>
 
             {/* Desktop nav */}
