@@ -2,7 +2,7 @@ import { HUMAN_CHECK_FAILED, isBotTrap, verifyHuman } from '@/lib/turnstile';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserByEmail, verifyPassword, hashPassword, isBcryptHash, recordLogin } from '@/lib/users';
 import { setSessionCookie } from '@/lib/session';
-import { recordAgreement } from '@/lib/agreements';
+import { agreedVersion, recordAgreement } from '@/lib/agreements';
 import { checkRateLimit, recordFailure, clearFailures } from '@/lib/rate-limit';
 import { logAudit, getClientIp } from '@/lib/audit';
 
@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
 
     logAudit({ timestamp: new Date().toISOString(), userId: user.userId, email: user.email, action: 'login_success', ip });
     if (agreed === true) await recordAgreement(user.userId, ip).catch(() => {});
+    const tv = await agreedVersion(user.userId);
 
     const safeName = user.name.replace(/[^ -ÿ]/g, '').trim() || user.email;
     const res = NextResponse.json({ success: true, name: safeName });
@@ -54,6 +55,7 @@ export async function POST(req: NextRequest) {
       email: user.email,
       name: safeName,
       role: user.role,
+      tv,
     });
     return res;
   } catch (err) {

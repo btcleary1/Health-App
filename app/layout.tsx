@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     default: "Cleary Health",
     template: "%s | Cleary Health",
   },
-  description: 'Personal health tracking, AI medical analysis, and doctor briefings.',
+  description: 'Personal health tracking, AI research summaries, and doctor briefings.',
   applicationName: 'Cleary Health',
   appleWebApp: {
     capable: true,

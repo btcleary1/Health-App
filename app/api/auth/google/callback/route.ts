@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUserByEmail, createUser, userCount, markGoogleAuth, recordLogin } from '@/lib/users';
 import { setSessionCookie } from '@/lib/session';
 import { logAudit, getClientIp } from '@/lib/audit';
+import { agreedVersion } from '@/lib/agreements';
 
 export const runtime = 'nodejs';
 
@@ -72,6 +73,9 @@ export async function GET(req: NextRequest) {
     await markGoogleAuth(user.userId);
     await recordLogin(user.userId);
 
+    // Google sign-ups and returning users who haven't agreed to the current Terms (and given
+    // health data consent) get no tv, so the middleware sends them to the agreement screen.
+    const tv = await agreedVersion(user.userId);
     const safeName = user.name.replace(/[^\u0000-\u00FF]/g, '').trim() || user.email;
     const res = NextResponse.redirect(`${APP_URL}/dashboard`);
     setSessionCookie(res, {
@@ -79,6 +83,7 @@ export async function GET(req: NextRequest) {
       email: user.email,
       name: safeName,
       role: user.role,
+      tv,
     });
     return res;
   } catch (err) {

@@ -1,6 +1,6 @@
 import { Activity } from 'lucide-react';
 import Link from 'next/link';
-import { BRAND, GOVERNING_STATE, LEGAL_NAME, LEGAL_OWNER, TERMS_UPDATED } from '@/lib/legal';
+import { BRAND, GOVERNING_STATE, LEGAL_NAME, LEGAL_OWNER, TERMS_UPDATED, TERMS_VERSION } from '@/lib/legal';
 
 export const metadata = { title: 'Terms of Service' };
 
@@ -15,7 +15,7 @@ export default function TermsPage() {
 
         <div className="bg-white rounded-2xl border border-gray-200 p-8">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Terms of Service</h1>
-          <p className="text-sm text-gray-500 mb-8">Last updated: {TERMS_UPDATED}. These Terms are a contract between you and {LEGAL_NAME} (&quot;{BRAND},&quot; &quot;we,&quot; &quot;us&quot;).</p>
+          <p className="text-sm text-gray-500 mb-8">Last updated: {TERMS_UPDATED} (version {TERMS_VERSION}). These Terms are a contract between you and {LEGAL_NAME} (&quot;{BRAND},&quot; &quot;we,&quot; &quot;us&quot;).</p>
 
           <div className="prose prose-sm text-gray-700 space-y-6">
 
@@ -27,7 +27,7 @@ export default function TermsPage() {
 
             <section>
               <h2 className="text-lg font-bold text-gray-900 mb-2">1. Acceptance of Terms</h2>
-              <p>By creating an account and accessing this application, you confirm that:</p>
+              <p>You agree to these Terms by checking the agreement box when you sign up or on the agreement screen, or by using the application. By doing so, you confirm that:</p>
               <ul className="list-disc pl-5 space-y-1">
                 <li>You are at least 18 years of age</li>
                 <li>You are an authorized user who has been granted access by the application owner</li>
@@ -52,6 +52,7 @@ export default function TermsPage() {
               <h2 className="text-lg font-bold text-gray-900 mb-2">3. Not Medical Advice — Important Disclaimer</h2>
               <p className="text-red-700 font-semibold">IMPORTANT: This application does not provide medical advice and is not a substitute for professional medical care.</p>
               <p className="mt-1">AI-generated analysis, summaries, and content are for informational and research purposes only. They do not constitute medical advice, diagnosis, or treatment recommendations. Never make medical decisions based solely on this application. Always consult a licensed healthcare provider.</p>
+              <p className="mt-1">Using the application does not create a doctor–patient or any other healthcare provider relationship. The AI analysis and the follow-up chat are produced by an AI, not by a person, a doctor or any licensed healthcare professional, and AI can be wrong or incomplete.</p>
             </section>
 
             <section>
@@ -60,7 +61,7 @@ export default function TermsPage() {
               <ul className="list-disc pl-5 space-y-1">
                 <li>You are an authorized user with the right to upload and share these documents</li>
                 <li>The files are health-related and relevant to the registered patient's care</li>
-                <li>You understand uploaded files are stored on Vercel's cloud infrastructure</li>
+                <li>You understand uploaded files are stored with our cloud storage provider (Cloudflare R2), as described in the <Link href="/privacy" className="underline">Privacy Policy</Link></li>
                 <li>You will not upload files containing information about other individuals without their consent</li>
                 <li>You will not upload illegal content</li>
               </ul>
@@ -139,7 +140,7 @@ export default function TermsPage() {
 
             <section>
               <h2 className="text-lg font-bold text-gray-900 mb-2">15. Ending Your Use</h2>
-              <p>You can stop using the application at any time. We may suspend or end access at any time, for example to protect the security of the application or other users. Sections 3, 5, 7 to 9 and 11 to 17 survive.</p>
+              <p>You can stop using the application at any time. We may suspend or end access at any time, for example to protect the security of the application or other users. Sections 3, 5, 7 to 9, 11 to 14 and 16 to 19 survive.</p>
             </section>
 
             <section>
@@ -149,7 +150,22 @@ export default function TermsPage() {
 
             <section>
               <h2 className="text-lg font-bold text-gray-900 mb-2">17. Severability and Entire Agreement</h2>
-              <p>If any part of these Terms can&apos;t be enforced, the rest still applies, and that part is enforced as far as the law allows. These Terms and the <Link href="/privacy" className="underline">Privacy Policy</Link> are the whole agreement between you and us about the application. Our not enforcing a term right away doesn&apos;t waive it. Questions: contact {LEGAL_NAME}.</p>
+              <p>If any part of these Terms can&apos;t be enforced, the rest still applies, and that part is enforced as far as the law allows. These Terms and the <Link href="/privacy" className="underline">Privacy Policy</Link> are the whole agreement between you and us about the application. Our not enforcing a term right away doesn&apos;t waive it.</p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-bold text-gray-900 mb-2">18. Assumption of Risk</h2>
+              <p>You use the application, its AI analysis and its records at your own risk. Health decisions are yours and your healthcare providers&apos;, and you accept the risk that information in the application may be wrong, missing or out of date.</p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-bold text-gray-900 mb-2">19. Third-Party Services</h2>
+              <p>The application relies on other companies to work, such as hosting, storage, email, Google sign-in, the human check on sign-in pages, and the AI provider (listed in the <Link href="/privacy" className="underline">Privacy Policy</Link>). Their services have their own terms, and we aren&apos;t responsible for their outages, errors or actions.</p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-bold text-gray-900 mb-2">20. Contact</h2>
+              <p>Questions about these Terms: contact {LEGAL_NAME}, who runs the application, through the administrator who gave you access.</p>
             </section>
 
           </div>

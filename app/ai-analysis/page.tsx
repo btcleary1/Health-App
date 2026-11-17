@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import HealthHeader from '@/components/HealthHeader';
-import HIPAAFooter from '@/components/HIPAAFooter';
+import MedicalDisclaimer from '@/components/MedicalDisclaimer';
 import { Brain, Loader2, ChevronDown, ChevronUp, AlertTriangle, Search, ClipboardList, Lightbulb, HeartPulse, Shield, Send, BookmarkPlus, Check } from 'lucide-react';
 import { usePersonContext } from '@/lib/PersonContext';
 
@@ -439,6 +439,9 @@ export default function AIAnalysisPage() {
                   <span className="font-semibold text-white text-sm">Ask a follow-up question</span>
                 </div>
                 <p className="text-xs mt-1" style={{ color: '#6B7280' }}>Ask Claude anything about this analysis. Responses can be saved as notes to your dashboard.</p>
+                <p role="note" className="text-xs mt-2 leading-relaxed" style={{ color: '#C4B5FD' }}>
+                  <strong>You are chatting with an AI, not a person.</strong> It is not a doctor or licensed healthcare professional, it can be wrong, and it does not give medical advice. In an emergency, call <strong>911</strong>.
+                </p>
               </div>
 
               {/* Chat messages */}
@@ -511,7 +514,7 @@ export default function AIAnalysisPage() {
         )}
         </>}
       </div>
-      <HIPAAFooter />
+      <MedicalDisclaimer />
     </div>
   );
 }

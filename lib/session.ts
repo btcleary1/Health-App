@@ -25,6 +25,7 @@ export interface SessionPayload {
   email: string;
   name: string;
   role: 'admin' | 'user';
+  tv?: string; // Terms version this person has agreed to (with health data consent); see lib/agreements.ts
   iat: number;
   exp: number;
 }

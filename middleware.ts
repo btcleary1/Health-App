@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionToken } from '@/lib/session';
+import { TERMS_VERSION } from '@/lib/legal';
 
 const PUBLIC_PATHS = [
   '/login',
@@ -16,6 +17,9 @@ const PUBLIC_PATHS = [
   '/api/auth/google',
 ];
 
+// Until someone agrees to the current Terms and gives health data consent, only these work.
+const AGREE_OK = ['/agree', '/api/terms/', '/api/auth/'];
+
 function isPublic(req: NextRequest) {
   return PUBLIC_PATHS.some(p => req.nextUrl.pathname.startsWith(p));
 }
@@ -28,6 +32,19 @@ export async function middleware(req: NextRequest) {
 
   if (!session) {
     return NextResponse.redirect(new URL('/login', req.url));
+  }
+
+  // Agreement gate (Cleary suite legal baseline): everyone, admins included, agrees to the
+  // current Terms version and consents to health data collection before using the app.
+  const { pathname, search } = req.nextUrl;
+  if (session.tv !== TERMS_VERSION && !AGREE_OK.some(p => pathname.startsWith(p))) {
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Please agree to the Terms and health data consent first.' }, { status: 403 });
+    }
+    const url = req.nextUrl.clone();
+    url.pathname = '/agree';
+    url.search = `?next=${encodeURIComponent(pathname + search)}`;
+    return NextResponse.redirect(url);
   }
 
   return NextResponse.next();

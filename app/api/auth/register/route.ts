@@ -6,7 +6,7 @@ import { setSessionCookie } from '@/lib/session';
 import { checkRateLimit, recordFailure } from '@/lib/rate-limit';
 import { logAudit, getClientIp } from '@/lib/audit';
 import { sendWelcomeEmail } from '@/lib/email';
-import { recordAgreement } from '@/lib/agreements';
+import { agreedVersion, recordAgreement } from '@/lib/agreements';
 
 export const runtime = 'nodejs';
 
@@ -16,8 +16,9 @@ export async function POST(req: NextRequest) {
   try {
     await checkRateLimit(ip, 5, 'register');
 
-    const { email, name, password, agreed, turnstile, website } = await req.json();
+    const { email, name, password, agreed, healthConsent, turnstile, website } = await req.json();
     if (agreed !== true) return NextResponse.json({ error: 'Agree to the Terms of Service and Privacy Policy to create an account.' }, { status: 400 });
+    if (healthConsent !== true) return NextResponse.json({ error: 'Check the health data consent box to create an account.' }, { status: 400 });
     if (isBotTrap(website)) return NextResponse.json({ error: 'Could not create your account.' }, { status: 400 });
     if (!(await verifyHuman(turnstile, ip))) return NextResponse.json({ error: HUMAN_CHECK_FAILED }, { status: 400 });
 
@@ -41,7 +42,8 @@ export async function POST(req: NextRequest) {
 
     const user = await createUser(email, name, password, role);
     logAudit({ timestamp: new Date().toISOString(), userId: user.userId, email: user.email, action: 'register', ip });
-    await recordAgreement(user.userId, ip).catch(() => {});
+    await recordAgreement(user.userId, ip, { healthConsent: true }).catch(() => {});
+    const tv = await agreedVersion(user.userId);
 
     // Send welcome email — fire and forget, don't block registration
     sendWelcomeEmail(email, name).catch(() => {});
@@ -53,6 +55,7 @@ export async function POST(req: NextRequest) {
       email: user.email,
       name: user.name,
       role: user.role,
+      tv,
     });
     return res;
   } catch (err) {
