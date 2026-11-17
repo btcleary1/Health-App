@@ -1,8 +1,9 @@
 'use client';
 
+import SuiteMark from '@/components/SuiteMark';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Activity, Eye, EyeOff, CheckCircle, XCircle, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, CheckCircle, XCircle, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { PASSWORD_REQUIREMENTS } from '@/lib/password-rules';
 
@@ -62,16 +63,8 @@ export default function RegisterPage() {
     >
       {/* Brand hero */}
       <div className="text-center mb-7 animate-fade-in">
-        <div
-          className="inline-flex items-center justify-center w-20 h-20 rounded-3xl mb-5"
-          style={{
-            background: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
-            boxShadow: '0 0 0 8px rgba(99,102,241,0.12), 0 8px 32px rgba(99,102,241,0.4)',
-          }}
-        >
-          <Activity className="w-10 h-10 text-white" />
-        </div>
-        <h1 className="text-2xl font-bold text-white tracking-tight">Health Wiz AI</h1>
+        <span className="mb-5" style={{ display: "inline-flex" }}><SuiteMark size={80} /></span>
+        <h1 className="text-2xl font-bold text-white tracking-tight">Cleary Health</h1>
         <p className="text-sm text-gray-400 mt-1.5">Create your secure account</p>
       </div>
 
