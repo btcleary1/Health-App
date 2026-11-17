@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import HumanCheck, { humanCheckOn, type HumanCheckHandle } from '@/components/HumanCheck';
 import { useRouter } from 'next/navigation';
 import { Activity, Loader2, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
@@ -18,21 +19,30 @@ export default function ForgotPasswordPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [humanToken, setHuman] = useState('');
+  const human = useRef<HumanCheckHandle>(null);
 
   const handleRequestCode = async (e: React.FormEvent) => {
     e.preventDefault();
+    const trap = ((e.currentTarget as HTMLFormElement).elements.namedItem('website') as HTMLInputElement | null)?.value || '';
     setLoading(true);
     setError('');
     try {
-      await fetch('/api/auth/forgot-password', {
+      const res = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, turnstile: humanToken, website: trap }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError((data as { error?: string }).error || 'Something went wrong. Try again.');
+        return;
+      }
       // Always advance — don't reveal if email exists
       setStage('verify');
     } finally {
       setLoading(false);
+      human.current?.reset();
     }
   };
 
@@ -90,9 +100,11 @@ export default function ForgotPasswordPage() {
                   className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500"
                 />
               </div>
+              {error && <p className="text-xs text-red-600">{error}</p>}
+              <HumanCheck ref={human} onToken={setHuman} action="reset" />
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || (humanCheckOn && !humanToken)}
                 className="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold text-sm disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}

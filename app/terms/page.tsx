@@ -1,5 +1,6 @@
 import { Activity } from 'lucide-react';
 import Link from 'next/link';
+import { BRAND, GOVERNING_STATE, LEGAL_NAME, LEGAL_OWNER, TERMS_UPDATED } from '@/lib/legal';
 
 export const metadata = { title: 'Terms of Service' };
 
@@ -14,7 +15,7 @@ export default function TermsPage() {
 
         <div className="bg-white rounded-2xl border border-gray-200 p-8">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Terms of Service</h1>
-          <p className="text-sm text-gray-500 mb-8">Last updated: {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+          <p className="text-sm text-gray-500 mb-8">Last updated: {TERMS_UPDATED}. These Terms are a contract between you and {LEGAL_NAME} (&quot;{BRAND},&quot; &quot;we,&quot; &quot;us&quot;).</p>
 
           <div className="prose prose-sm text-gray-700 space-y-6">
 
@@ -113,7 +114,42 @@ export default function TermsPage() {
 
             <section>
               <h2 className="text-lg font-bold text-gray-900 mb-2">10. Changes to Terms</h2>
-              <p>These terms may be updated periodically. Continued use of the application constitutes acceptance of updated terms.</p>
+              <p>These terms may be updated periodically. We&apos;ll post the new version with a new date and, for material changes, ask you to confirm again when you next sign in. Continued use of the application constitutes acceptance of updated terms.</p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-bold text-gray-900 mb-2">11. Disclaimer of Warranties</h2>
+              <p>THE APPLICATION IS PROVIDED &quot;AS IS&quot; AND &quot;AS AVAILABLE,&quot; WITHOUT WARRANTIES OF ANY KIND, WHETHER EXPRESS OR IMPLIED, INCLUDING MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, ACCURACY AND NON-INFRINGEMENT. We don&apos;t promise that the application, its AI analysis or its records are accurate, complete, secure, always available or free of errors, or that data will never be lost. Keep your own copies of important medical records.</p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-bold text-gray-900 mb-2">12. Limit on Damages</h2>
+              <p>TO THE FULLEST EXTENT THE LAW ALLOWS, {LEGAL_OWNER.toUpperCase()} AND {BRAND.toUpperCase()} WON&apos;T BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL OR PUNITIVE DAMAGES, OR FOR ANY HEALTH OUTCOME, AND OUR TOTAL LIABILITY FOR ANY CLAIM IS LIMITED TO THE GREATER OF $100 OR WHAT YOU PAID US FOR THE APPLICATION IN THE 12 MONTHS BEFORE THE CLAIM. Some places don&apos;t allow some of these limits, so they may not all apply to you.</p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-bold text-gray-900 mb-2">13. Indemnity</h2>
+              <p>You agree to cover {LEGAL_OWNER}&apos;s losses and reasonable legal costs from claims by others that arise from your use of the application, the data or files you upload (including information about other people), or your breaking these Terms.</p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-bold text-gray-900 mb-2">14. Our Intellectual Property</h2>
+              <p>The application, its software, design, names and logos (including the CT monogram) belong to {LEGAL_OWNER} and are protected by copyright and other laws. © {LEGAL_OWNER}. All rights reserved. Your health data stays yours; you let us store and process it only to run the application for you.</p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-bold text-gray-900 mb-2">15. Ending Your Use</h2>
+              <p>You can stop using the application at any time. We may suspend or end access at any time, for example to protect the security of the application or other users. Sections 3, 5, 7 to 9 and 11 to 17 survive.</p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-bold text-gray-900 mb-2">16. Governing Law and Disputes</h2>
+              <p>These Terms are governed by the laws of the State of {GOVERNING_STATE}, without regard to its conflict-of-laws rules. Any dispute will be handled only in the state or federal courts located in {GOVERNING_STATE}, and you and we consent to their jurisdiction.</p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-bold text-gray-900 mb-2">17. Severability and Entire Agreement</h2>
+              <p>If any part of these Terms can&apos;t be enforced, the rest still applies, and that part is enforced as far as the law allows. These Terms and the <Link href="/privacy" className="underline">Privacy Policy</Link> are the whole agreement between you and us about the application. Our not enforcing a term right away doesn&apos;t waive it. Questions: contact {LEGAL_NAME}.</p>
             </section>
 
           </div>

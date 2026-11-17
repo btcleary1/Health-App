@@ -1,7 +1,8 @@
 'use client';
 
 import SuiteMark from '@/components/SuiteMark';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import HumanCheck, { humanCheckOn, type HumanCheckHandle } from '@/components/HumanCheck';
 import { useRouter } from 'next/navigation';
 import { Fingerprint, Loader2, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { startAuthentication, startRegistration, browserSupportsWebAuthn } from '@simplewebauthn/browser';
@@ -16,6 +17,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState('');
+  const [humanToken, setHuman] = useState('');
+  const human = useRef<HumanCheckHandle>(null);
   const [loading, setLoading] = useState(false);
   const [biometricLoading, setBiometricLoading] = useState(false);
   const [biometricError, setBiometricError] = useState('');
@@ -67,6 +70,7 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    const trap = ((e.currentTarget as HTMLFormElement).elements.namedItem('website') as HTMLInputElement | null)?.value || '';
     if (!agreed) { setError('You must confirm you are an authorized user.'); return; }
     setLoading(true);
     setError('');
@@ -74,7 +78,7 @@ export default function LoginPage() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, agreed, turnstile: humanToken, website: trap }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
@@ -96,6 +100,7 @@ export default function LoginPage() {
       setError(err instanceof Error ? err.message : 'Sign-in failed. Please try again.');
     } finally {
       setLoading(false);
+      human.current?.reset();
     }
   };
 
@@ -349,9 +354,10 @@ export default function LoginPage() {
               </div>
             )}
 
+            <HumanCheck ref={human} onToken={setHuman} action="login" />
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || (humanCheckOn && !humanToken)}
               className="w-full py-3.5 font-semibold text-sm rounded-xl text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               style={{
                 background: loading ? 'rgba(59,130,246,0.5)' : 'linear-gradient(135deg, #3B82F6, #6366F1)',

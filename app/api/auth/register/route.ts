@@ -1,3 +1,4 @@
+import { HUMAN_CHECK_FAILED, isBotTrap, verifyHuman } from '@/lib/turnstile';
 import { NextRequest, NextResponse } from 'next/server';
 import { createUser, userCount, recordLogin } from '@/lib/users';
 import { validatePassword } from '@/lib/password-rules';
@@ -5,6 +6,7 @@ import { setSessionCookie } from '@/lib/session';
 import { checkRateLimit, recordFailure } from '@/lib/rate-limit';
 import { logAudit, getClientIp } from '@/lib/audit';
 import { sendWelcomeEmail } from '@/lib/email';
+import { recordAgreement } from '@/lib/agreements';
 
 export const runtime = 'nodejs';
 
@@ -14,7 +16,10 @@ export async function POST(req: NextRequest) {
   try {
     await checkRateLimit(ip, 5, 'register');
 
-    const { email, name, password } = await req.json();
+    const { email, name, password, agreed, turnstile, website } = await req.json();
+    if (agreed !== true) return NextResponse.json({ error: 'Agree to the Terms of Service and Privacy Policy to create an account.' }, { status: 400 });
+    if (isBotTrap(website)) return NextResponse.json({ error: 'Could not create your account.' }, { status: 400 });
+    if (!(await verifyHuman(turnstile, ip))) return NextResponse.json({ error: HUMAN_CHECK_FAILED }, { status: 400 });
 
     if (!email || !name || !password) {
       return NextResponse.json({ error: 'Email, name, and password are required.' }, { status: 400 });
@@ -36,6 +41,7 @@ export async function POST(req: NextRequest) {
 
     const user = await createUser(email, name, password, role);
     logAudit({ timestamp: new Date().toISOString(), userId: user.userId, email: user.email, action: 'register', ip });
+    await recordAgreement(user.userId, ip).catch(() => {});
 
     // Send welcome email — fire and forget, don't block registration
     sendWelcomeEmail(email, name).catch(() => {});

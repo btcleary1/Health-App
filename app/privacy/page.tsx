@@ -1,5 +1,6 @@
 import { Activity } from 'lucide-react';
 import Link from 'next/link';
+import { BRAND, LEGAL_NAME, TERMS_UPDATED } from '@/lib/legal';
 
 export const metadata = { title: 'Privacy Policy' };
 
@@ -14,7 +15,7 @@ export default function PrivacyPage() {
 
         <div className="bg-white rounded-2xl border border-gray-200 p-8">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Privacy Policy</h1>
-          <p className="text-sm text-gray-500 mb-8">Last updated: {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+          <p className="text-sm text-gray-500 mb-8">Last updated: {TERMS_UPDATED}. Operated by {LEGAL_NAME}.</p>
 
           <div className="prose prose-sm text-gray-700 space-y-6">
 
@@ -113,8 +114,21 @@ export default function PrivacyPage() {
             </section>
 
             <section>
-              <h2 className="text-lg font-bold text-gray-900 mb-2">11. Contact</h2>
-              <p>For privacy-related questions or data deletion requests, contact the application administrator directly.</p>
+              <h2 className="text-lg font-bold text-gray-900 mb-2">11. Consumer Health Data Notice</h2>
+              <p>Some states (for example Washington, Nevada and Connecticut) give you extra rights over &quot;consumer health data.&quot; In plain terms:</p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li><strong>What we collect:</strong> the health events, symptoms, conditions, medications, measurements, notes and medical files you or your family members choose to enter or upload, and the AI summaries made from them.</li>
+                <li><strong>Where it comes from:</strong> only from you. We don&apos;t buy health data or get it from other companies.</li>
+                <li><strong>Why:</strong> only to store and show it to you, prepare doctor briefings and AI research summaries you ask for, and keep your account secure.</li>
+                <li><strong>Who gets it:</strong> only the service providers listed in section 4, which process it for us. <strong>We never sell your health data</strong> and never use it for advertising.</li>
+                <li><strong>Your consent:</strong> you consent to this collection by creating an account and choosing to enter data, and to AI processing each time you run an analysis. You can stop at any time.</li>
+                <li><strong>Your rights:</strong> you can see, export or delete your health data, and withdraw consent. Ask the administrator and we&apos;ll act within 45 days.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-bold text-gray-900 mb-2">12. Contact</h2>
+              <p>For privacy-related questions or data deletion requests, contact the application administrator ({LEGAL_NAME}) directly.</p>
             </section>
           </div>
         </div>
