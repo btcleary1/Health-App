@@ -16,6 +16,7 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [agreed, setAgreed] = useState(false);
+  const [healthConsent, setHealthConsent] = useState(false);
   const [error, setError] = useState('');
   const [humanToken, setHuman] = useState('');
   const human = useRef<HumanCheckHandle>(null);
@@ -35,6 +36,7 @@ export default function RegisterPage() {
     setError('');
 
     if (!agreed) { setError('You must accept the Terms of Service and Privacy Policy.'); return; }
+    if (!healthConsent) { setError('Check the health data consent box to continue.'); return; }
     if (password !== confirmPassword) { setError('Passwords do not match.'); return; }
 
     const failedChecks = PASSWORD_REQUIREMENTS.filter(r => !r.test(password));
@@ -47,7 +49,7 @@ export default function RegisterPage() {
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, name, password, agreed, turnstile: humanToken, website: trap }),
+      body: JSON.stringify({ email, name, password, agreed, healthConsent, turnstile: humanToken, website: trap }),
     });
     const data = await res.json();
     human.current?.reset();
@@ -59,7 +61,7 @@ export default function RegisterPage() {
     setLoading(false);
   };
 
-  const canSubmit = agreed && password === confirmPassword && allChecksPassed && !loading;
+  const canSubmit = agreed && healthConsent && password === confirmPassword && allChecksPassed && !loading;
 
   return (
     <div
@@ -83,7 +85,7 @@ export default function RegisterPage() {
           >
             <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
             <p className="text-[11px] text-amber-300 leading-relaxed">
-              Your data is encrypted and stored securely. Not a medical device — AI analysis is not medical advice.
+              Your data is sent over encrypted connections and kept in private storage. Not a medical device. AI analysis is not medical advice.
             </p>
           </div>
 
@@ -177,10 +179,24 @@ export default function RegisterPage() {
               />
               <span className="text-[11px] text-gray-400 leading-relaxed">
                 I accept responsibility for health data I upload and understand this is{' '}
-                <strong className="text-gray-300">not a medical device</strong>. I agree to the{' '}
+                <strong className="text-gray-300">not a medical device</strong>. I&apos;m 18 or older and I agree to the{' '}
                 <a href="/terms" target="_blank" className="text-blue-400 hover:underline">Terms</a>
                 {' '}and{' '}
                 <a href="/privacy" target="_blank" className="text-blue-400 hover:underline">Privacy Policy</a>.
+              </span>
+            </label>
+
+            <label className="flex items-start gap-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={healthConsent}
+                onChange={e => setHealthConsent(e.target.checked)}
+                className="mt-0.5 shrink-0 rounded"
+                style={{ minHeight: 'unset', accentColor: '#3B82F6' }}
+              />
+              <span className="text-[11px] text-gray-400 leading-relaxed">
+                I consent to Cleary Health collecting and storing the health information I enter or upload, as described in the{' '}
+                <a href="/privacy#consumer-health-data" target="_blank" className="text-blue-400 hover:underline">Consumer Health Data Notice</a>.
               </span>
             </label>
 

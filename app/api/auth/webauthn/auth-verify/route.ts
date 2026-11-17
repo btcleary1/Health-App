@@ -3,6 +3,7 @@ import { verifyAuthenticationResponse } from '@simplewebauthn/server';
 import { findCredentialById, updateCredentialCounter } from '@/lib/webauthn-store';
 import { getUserById, recordLogin } from '@/lib/users';
 import { setSessionCookie } from '@/lib/session';
+import { agreedVersion } from '@/lib/agreements';
 
 export const runtime = 'nodejs';
 
@@ -56,12 +57,14 @@ export async function POST(req: NextRequest) {
     }
 
     await recordLogin(user.userId);
+    const tv = await agreedVersion(user.userId);
     const res = NextResponse.json({ success: true });
     setSessionCookie(res, {
       userId: user.userId,
       email: user.email,
       name: user.name,
       role: user.role,
+      tv,
     });
     res.cookies.delete('webauthn_challenge');
     return res;

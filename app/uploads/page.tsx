@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import HealthHeader from '@/components/HealthHeader';
-import HIPAAFooter from '@/components/HIPAAFooter';
+import MedicalDisclaimer from '@/components/MedicalDisclaimer';
 import UploadConsent from '@/components/UploadConsent';
 import { Upload, FileImage, FileText, File, X, Check, AlertCircle, Brain, Loader2, ShieldAlert, ImagePlus } from 'lucide-react';
 import { usePersonContext } from '@/lib/PersonContext';
@@ -491,7 +491,7 @@ export default function UploadsPage() {
           </div>
         )}
       </div>
-      <HIPAAFooter />
+      <MedicalDisclaimer />
     </div>
   );
 }

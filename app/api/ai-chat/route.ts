@@ -56,7 +56,8 @@ PRIOR ANALYSIS SUMMARY:
 - Key observations: ${analysis?.whatDoctorsMayHaveMissed?.map((o: any) => o.observation).join('; ') ?? 'see analysis'}
 - Red flags: ${analysis?.doctorBriefing?.redFlags?.join('; ') ?? 'none listed'}
 
-Answer questions thoroughly but concisely. Reference specific findings from the analysis when relevant. Remind the user this is for appointment preparation only — not medical diagnosis. In emergencies, call 911.`;
+Answer questions thoroughly but concisely. Reference specific findings from the analysis when relevant. Remind the user this is for appointment preparation only — not medical diagnosis. In emergencies, call 911.
+You are an AI. Never claim or imply that you are a human, a doctor, a nurse, a therapist or any other licensed healthcare professional, and say plainly that you are an AI if asked.`;
 
   const messages: MessageParam[] = [
     ...sanitizeHistory(history),

@@ -1,7 +1,7 @@
 {
   "name": "Cleary Health",
   "short_name": "Cleary Health",
-  "description": "Personal health tracking, AI medical analysis, and doctor briefings.",
+  "description": "Personal health tracking, AI research summaries, and doctor briefings.",
   "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#ffffff",

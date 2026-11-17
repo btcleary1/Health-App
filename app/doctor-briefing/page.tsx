@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import HealthHeader from '@/components/HealthHeader';
-import HIPAAFooter from '@/components/HIPAAFooter';
+import MedicalDisclaimer from '@/components/MedicalDisclaimer';
 import { Printer, Brain, Loader2, AlertTriangle, ClipboardList, HeartPulse, User } from 'lucide-react';
 import { usePersonContext } from '@/lib/PersonContext';
 
@@ -324,7 +324,7 @@ export default function DoctorBriefingPage() {
           </div>
         </div>
       </div>
-      <HIPAAFooter />
+      <MedicalDisclaimer />
     </div>
   );
 }
