@@ -1,7 +1,8 @@
 'use client';
 
 import SuiteMark from '@/components/SuiteMark';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import HumanCheck, { humanCheckOn, type HumanCheckHandle } from '@/components/HumanCheck';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, CheckCircle, XCircle, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
@@ -16,6 +17,8 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState('');
+  const [humanToken, setHuman] = useState('');
+  const human = useRef<HumanCheckHandle>(null);
   const [loading, setLoading] = useState(false);
 
   const passwordChecks = PASSWORD_REQUIREMENTS.map(r => ({
@@ -28,6 +31,7 @@ export default function RegisterPage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    const trap = ((e.currentTarget as HTMLFormElement).elements.namedItem('website') as HTMLInputElement | null)?.value || '';
     setError('');
 
     if (!agreed) { setError('You must accept the Terms of Service and Privacy Policy.'); return; }
@@ -43,9 +47,10 @@ export default function RegisterPage() {
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, name, password }),
+      body: JSON.stringify({ email, name, password, agreed, turnstile: humanToken, website: trap }),
     });
     const data = await res.json();
+    human.current?.reset();
     if (res.ok) {
       window.location.href = '/dashboard';
     } else {
@@ -185,9 +190,10 @@ export default function RegisterPage() {
               </div>
             )}
 
+            <HumanCheck ref={human} onToken={setHuman} action="signup" />
             <button
               type="submit"
-              disabled={!canSubmit}
+              disabled={!canSubmit || (humanCheckOn && !humanToken)}
               className="w-full py-3.5 font-semibold text-sm rounded-xl text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               style={{
                 background: canSubmit ? 'linear-gradient(135deg, #3B82F6, #6366F1)' : 'rgba(59,130,246,0.5)',

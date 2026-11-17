@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import './globals.css';
 import Providers from '@/components/Providers';
+import LegalFooter from '@/components/LegalFooter';
 
 export const metadata: Metadata = {
   title: {
@@ -21,7 +22,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body><Providers>{children}</Providers></body>
+      <body><Providers>{children}</Providers><LegalFooter /></body>
     </html>
   );
 }

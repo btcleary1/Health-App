@@ -1,3 +1,4 @@
+import { HUMAN_CHECK_FAILED, isBotTrap, verifyHuman } from '@/lib/turnstile';
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { getUserByEmail } from '@/lib/users';
@@ -11,7 +12,9 @@ export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
   try {
     await checkRateLimit(ip, 5, 'forgot-password');
-    const { email } = await req.json();
+    const { email, turnstile, website } = await req.json();
+    if (isBotTrap(website)) return NextResponse.json({ success: true });
+    if (!(await verifyHuman(turnstile, ip))) return NextResponse.json({ error: HUMAN_CHECK_FAILED }, { status: 400 });
     if (!email) return NextResponse.json({ error: 'Email is required.' }, { status: 400 });
 
     // Always return success even if email not found (prevents user enumeration)
