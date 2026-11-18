@@ -108,11 +108,7 @@ export default function LoginPage() {
     setBiometricLoading(true);
     setBiometricError('');
     try {
-      const optRes = await fetch('/api/auth/webauthn/auth-options', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim() || undefined }),
-      });
+      const optRes = await fetch('/api/auth/webauthn/auth-options', { method: 'POST' });
       const options = await optRes.json();
       if (!optRes.ok) { setBiometricError(options.error); setBiometricLoading(false); return; }
       const assertion = await startAuthentication({ optionsJSON: options, useBrowserAutofill: false });
@@ -130,7 +126,7 @@ export default function LoginPage() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes('NotAllowedError') || msg.includes('cancelled') || msg.includes('not allowed') || msg.includes('current context')) {
-        setBiometricError('No passkey found. Sign in with email, then re-enable Face ID in Settings.');
+        setBiometricError("No passkey for this app on this phone yet, or it was cancelled. Log in with Google or email once, and we'll offer to set up Face ID.");
       } else if (msg.includes('InvalidStateError') || msg.includes('not recognized')) {
         setBiometricError('Passkey not recognized. Sign in with email, then re-enable Face ID in Settings.');
       } else if (msg.includes('did not match') || msg.includes('expected pattern')) {
