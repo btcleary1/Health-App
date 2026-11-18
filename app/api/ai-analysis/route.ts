@@ -5,7 +5,7 @@ import { getSessionFromRequest } from '@/lib/session';
 import { checkRateLimit, recordFailure } from '@/lib/rate-limit';
 import { getClientIp } from '@/lib/audit';
 import { r2GetBytes } from '@/lib/r2';
-import { getUploadManifest } from '@/lib/health-data';
+import { getUploadManifest, ownsPerson, saveLatestAnalysis } from '@/lib/health-data';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -188,6 +188,10 @@ IMPORTANT: For appointment prep only — not medical diagnosis. All findings are
       });
     }
     const analysis = JSON.parse(rawText.slice(start, end + 1));
+    // Keep the latest analysis for this person so the chat can answer questions about it anywhere in the app.
+    if (await ownsPerson(session.userId, personId).catch(() => false)) {
+      await saveLatestAnalysis(session.userId, { analysis, createdAt: new Date().toISOString(), focusArea: typeof focusArea === 'string' ? focusArea.slice(0, 300) : undefined, model: message.model }, personId).catch(() => null);
+    }
     return new Response(JSON.stringify({ analysis, model: message.model }), {
       headers: { 'Content-Type': 'application/json' },
     });

@@ -76,6 +76,14 @@ export default function TermsPage() {
                 <li>Receiving AI-generated research that may contain errors or inaccuracies</li>
               </ul>
               <p className="mt-2">AI analysis is a research tool to help prepare for doctor appointments — not a diagnostic service.</p>
+              <p className="font-semibold text-gray-900 mt-4 mb-1">The health chat</p>
+              <p>A chat is available on the pages you see after signing in. It is an AI, not a person, and it is not a doctor, nurse, pharmacist or any licensed healthcare professional. By using it, you agree that:</p>
+              <ul className="list-disc pl-5 mt-2 space-y-1">
+                <li>When you send a message, the chat may read the records of the person you are viewing (events, visits, notes, profile and medicines) and their latest saved AI analysis, and send them to Anthropic to answer you.</li>
+                <li>The chat saves, and at your request deletes, events, doctor visits and notes based on what you tell it. It can misunderstand you. Check what it saves (each entry shows an Undo button), and you are responsible for the accuracy of your records.</li>
+                <li>The chat does not give medical advice, diagnoses, treatment plans or medicine and dose instructions, and it may decline some questions. Ask a licensed healthcare provider.</li>
+                <li><strong>The chat is not an emergency or crisis service and is not monitored by people.</strong> If you or someone else may be in danger or having a medical emergency, call 911 right away.</li>
+              </ul>
             </section>
 
             <section>

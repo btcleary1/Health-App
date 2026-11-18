@@ -181,6 +181,14 @@ export default function HealthDashboard() {
     }
   });
 
+  // Reload when the chat logs or undoes something.
+  const [reloadKey, setReloadKey] = useState(0);
+  useEffect(() => {
+    const bump = () => setReloadKey((k) => k + 1);
+    window.addEventListener('health-data:changed', bump);
+    return () => window.removeEventListener('health-data:changed', bump);
+  }, []);
+
   useEffect(() => {
     setMounted(true);
     const loadAll = async () => {
@@ -227,7 +235,7 @@ export default function HealthDashboard() {
       setDataLoading(false);
     };
     loadAll();
-  }, [activeId, personQuery, persons.length]);
+  }, [activeId, personQuery, persons.length, reloadKey]);
 
   const [toastMessage, setToastMessage] = useState('');
   const [piiWarning, setPiiWarning] = useState('');
