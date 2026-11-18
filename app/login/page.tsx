@@ -4,7 +4,9 @@ import SuiteMark from '@/components/SuiteMark';
 import { useState, useEffect, useRef } from 'react';
 import HumanCheck, { humanCheckOn, type HumanCheckHandle } from '@/components/HumanCheck';
 import { useRouter } from 'next/navigation';
-import { Fingerprint, Loader2, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { Loader2, ShieldCheck } from 'lucide-react';
+import '../cleary-auth.css';
+import { unlockName } from '@/lib/biometric';
 import { startAuthentication, startRegistration, browserSupportsWebAuthn } from '@simplewebauthn/browser';
 import Link from 'next/link';
 
@@ -14,7 +16,6 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState('');
   const [humanToken, setHuman] = useState('');
@@ -25,6 +26,8 @@ export default function LoginPage() {
   const [stage, setStage] = useState<Stage>('login');
   const [supportsWebAuthn, setSupportsWebAuthn] = useState(false);
   const [biometricLabel, setBiometricLabel] = useState('Sign in with Biometrics');
+  const [bio, setBio] = useState('fingerprint, face, or screen lock');
+  useEffect(() => setBio(unlockName()), []);
 
   const GOOGLE_ERRORS: Record<string, string> = {
     google_cancelled: 'Google sign-in was cancelled.',
@@ -108,11 +111,7 @@ export default function LoginPage() {
     setBiometricLoading(true);
     setBiometricError('');
     try {
-      const optRes = await fetch('/api/auth/webauthn/auth-options', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim() || undefined }),
-      });
+      const optRes = await fetch('/api/auth/webauthn/auth-options', { method: 'POST' });
       const options = await optRes.json();
       if (!optRes.ok) { setBiometricError(options.error); setBiometricLoading(false); return; }
       const assertion = await startAuthentication({ optionsJSON: options, useBrowserAutofill: false });
@@ -130,7 +129,7 @@ export default function LoginPage() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes('NotAllowedError') || msg.includes('cancelled') || msg.includes('not allowed') || msg.includes('current context')) {
-        setBiometricError('No passkey found. Sign in with email, then re-enable Face ID in Settings.');
+        setBiometricError("No passkey for this app on this phone yet, or it was cancelled. Log in with Google or email once, and we'll offer to set up Face ID.");
       } else if (msg.includes('InvalidStateError') || msg.includes('not recognized')) {
         setBiometricError('Passkey not recognized. Sign in with email, then re-enable Face ID in Settings.');
       } else if (msg.includes('did not match') || msg.includes('expected pattern')) {
@@ -168,43 +167,22 @@ export default function LoginPage() {
     setLoading(false);
   };
 
+
   /* ── Passkey setup screen ── */
   if (stage === 'register-passkey') {
     return (
-      <div
-        className="min-h-screen flex flex-col items-center justify-center px-5"
-        style={{ background: 'linear-gradient(160deg, #050814 0%, #0B1120 60%, #0f172a 100%)' }}
-      >
-        <div className="glass-card w-full max-w-sm p-8 text-center animate-slide-up">
-          <div
-            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-5"
-            style={{ background: 'linear-gradient(135deg, #3B82F6, #6366F1)', boxShadow: '0 4px 20px rgba(99,102,241,0.45)' }}
-          >
-            <Fingerprint className="w-8 h-8 text-white" />
-          </div>
-          <h2 className="text-xl font-bold text-white mb-2">Enable Face ID?</h2>
-          <p className="text-sm text-gray-400 mb-7 leading-relaxed">
-            Skip the password next time. Sign in instantly with Face ID or Touch ID — stored only on this device.
-          </p>
-          {error && (
-            <div className="bg-red-500/15 border border-red-500/30 rounded-xl p-3 mb-5 text-left">
-              <p className="text-xs text-red-300 font-mono break-all">{error}</p>
-            </div>
-          )}
-          <button
-            onClick={handleRegisterPasskey}
-            disabled={loading}
-            className="w-full py-3.5 text-white font-semibold text-sm rounded-xl flex items-center justify-center gap-2 mb-3 transition-all disabled:opacity-40"
-            style={{ background: 'linear-gradient(135deg, #3B82F6, #6366F1)', boxShadow: '0 4px 16px rgba(99,102,241,0.35)' }}
-          >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Fingerprint className="w-4 h-4" />}
-            Set Up Face ID / Touch ID
+      <div className="cl-auth">
+        <div className="cl-card">
+          <div className="cl-icon-tile"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden><path d="M15 7a4 4 0 1 1-3.9 5H3v3h3v3h3v-3h2.1A4 4 0 0 1 15 7zm1 3h.01" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg></div>
+          <h1>Create a passkey?</h1>
+          <p className="cl-muted">Next time, log in with your {bio} on this device. No password to remember.</p>
+          {error && <p role="alert" className="cl-error">{error}</p>}
+          <button className="cl-btn primary" onClick={handleRegisterPasskey} disabled={loading}>
+            {loading ? <Loader2 className="w-4 h-4 cl-spin" /> : <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden><path d="M15 7a4 4 0 1 1-3.9 5H3v3h3v3h3v-3h2.1A4 4 0 0 1 15 7zm1 3h.01" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+            {loading ? 'Waiting for your device…' : 'Create a passkey'}
           </button>
-          <button
-            onClick={goAfterLogin}
-            className="w-full py-2.5 text-sm text-gray-500 hover:text-gray-300 transition-colors"
-          >
-            Skip for now
+          <button className="cl-btn ghost" onClick={goAfterLogin}>
+            Not now
           </button>
         </div>
       </div>
@@ -213,166 +191,80 @@ export default function LoginPage() {
 
   /* ── Main login screen ── */
   return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-center px-5 py-10"
-      style={{ background: 'linear-gradient(160deg, #050814 0%, #0B1120 60%, #0f172a 100%)' }}
-    >
-      {/* Brand hero */}
-      <div className="text-center mb-8 animate-fade-in">
-        <span className="mb-5" style={{ display: "inline-flex" }}><SuiteMark size={80} /></span>
-        <h1 className="text-2xl font-bold text-white tracking-tight">Cleary Health</h1>
-        <p className="text-sm text-gray-400 mt-1.5">Secure health tracking</p>
-      </div>
+    <div className="cl-auth">
+      <div className="cl-card">
+        <span className="cl-logo" aria-hidden><SuiteMark size={52} /></span>
+        <h1>Cleary Health</h1>
+        <p className="cl-muted">Log in to your health records</p>
 
-      <div className="w-full max-w-sm animate-slide-up">
+        <p className="cl-notice">
+          <ShieldCheck className="w-4 h-4" style={{ display: 'inline', verticalAlign: '-3px', marginRight: 6 }} />
+          Sensitive health data. Authorized access only.
+        </p>
 
-        {/* Face ID / biometric button — primary CTA when available */}
+        {error && <p role="alert" className="cl-error">{error}</p>}
+
         {supportsWebAuthn && (
-          <div className="mb-5">
-            <button
-              onClick={handleBiometricLogin}
-              disabled={biometricLoading}
-              className="w-full py-3.5 font-semibold text-sm flex items-center justify-center gap-2.5 rounded-2xl transition-all disabled:opacity-50"
-              style={{
-                background: 'rgba(255,255,255,0.09)',
-                border: '1px solid rgba(255,255,255,0.13)',
-                color: 'white',
-                backdropFilter: 'blur(10px)',
-              }}
-            >
-              {biometricLoading
-                ? <Loader2 className="w-4 h-4 animate-spin" />
-                : <Fingerprint className="w-4 h-4 text-blue-400" />
-              }
-              {biometricLoading ? 'Verifying…' : biometricLabel}
+          <div className="cl-passkey">
+            <button className="cl-btn primary" onClick={handleBiometricLogin} disabled={biometricLoading}>
+              {biometricLoading ? <Loader2 className="w-4 h-4 cl-spin" /> : <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden><path d="M15 7a4 4 0 1 1-3.9 5H3v3h3v3h3v-3h2.1A4 4 0 0 1 15 7zm1 3h.01" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+              {biometricLoading ? 'Waiting for your device…' : 'Log in with a passkey'}
             </button>
-            {biometricError && (
-              <p className="mt-2 text-xs text-red-400 text-center leading-relaxed">{biometricError}</p>
-            )}
-
+            <span className="cl-muted cl-small">Use your {bio}</span>
+            {biometricError && <p role="alert" className="cl-error">{biometricError}</p>}
           </div>
         )}
 
-        {/* Google button */}
-        <div className="mb-5">
-          <a
-            href="/api/auth/google"
-            className="w-full py-3.5 font-semibold text-sm flex items-center justify-center gap-2.5 rounded-2xl transition-all"
-            style={{ background: 'rgba(255,255,255,0.09)', border: '1px solid rgba(255,255,255,0.13)', color: 'white', textDecoration: 'none' }}
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-            </svg>
-            Sign in with Google
-          </a>
+        <a className="cl-btn google" href="/api/auth/google">
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden xmlns="http://www.w3.org/2000/svg">
+            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+          </svg>
+          Continue with Google
+        </a>
+
+        <div className="cl-divider"><span>or log in with email</span></div>
+
+        <form onSubmit={handleLogin} className="cl-form">
+          <input
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="Email"
+            required
+            autoComplete="username"
+            autoCapitalize="none"
+            inputMode="email"
+            aria-label="Email"
+          />
+          <input
+            type="password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            placeholder="Password"
+            required
+            autoComplete="current-password"
+            aria-label="Password"
+          />
+          <label className="cl-check">
+            <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} />
+            <span>
+              I am an authorized user. I agree to the <a href="/terms" target="_blank">Terms</a> and{' '}
+              <a href="/privacy" target="_blank">Privacy Policy</a>.
+            </span>
+          </label>
+          <HumanCheck ref={human} onToken={setHuman} action="login" />
+          <button type="submit" className="cl-btn" disabled={!email || !password || loading || (humanCheckOn && !humanToken)}>
+            {loading ? 'Logging in…' : 'Log in'}
+          </button>
+        </form>
+
+        <div className="cl-links">
+          <Link href="/forgot-password" className="cl-link">Forgot password?</Link>
+          <Link href="/register" className="cl-link">Create account</Link>
         </div>
-
-        <div className="flex items-center gap-3 mb-5">
-          <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
-          <span className="text-[11px] text-gray-500 tracking-wide uppercase">or sign in with email</span>
-          <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
-        </div>
-
-        {/* Login form card */}
-        <div className="glass-card p-6">
-
-          {/* Health data notice — compact */}
-          <div
-            className="flex items-start gap-2.5 rounded-xl px-3 py-2.5 mb-5"
-            style={{ background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.2)' }}
-          >
-            <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-            <p className="text-[11px] text-amber-300 leading-relaxed">
-              Sensitive health data — authorized access only.
-            </p>
-          </div>
-
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1.5">Email Address</label>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-                autoComplete="email"
-                className="w-full px-3.5 py-2.5 rounded-xl text-sm text-gray-900 bg-white/95 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 border-0"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1.5">Password</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  required
-                  autoComplete="current-password"
-                  className="w-full pr-10 px-3.5 py-2.5 rounded-xl text-sm text-gray-900 bg-white/95 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 border-0"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(v => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  style={{ minHeight: 'unset' }}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              <div className="mt-1.5 text-right">
-                <Link href="/forgot-password" className="text-[11px] text-blue-400 hover:text-blue-300">
-                  Forgot password?
-                </Link>
-              </div>
-            </div>
-
-            <label className="flex items-start gap-2.5 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={agreed}
-                onChange={e => setAgreed(e.target.checked)}
-                className="mt-0.5 shrink-0 rounded"
-                style={{ minHeight: 'unset', accentColor: '#3B82F6' }}
-              />
-              <span className="text-[11px] text-gray-400 leading-relaxed">
-                I am an authorized user. I agree to the{' '}
-                <a href="/terms" target="_blank" className="text-blue-400 hover:underline">Terms</a>
-                {' '}and{' '}
-                <a href="/privacy" target="_blank" className="text-blue-400 hover:underline">Privacy Policy</a>.
-              </span>
-            </label>
-
-            {error && (
-              <div className="bg-red-500/15 border border-red-500/30 rounded-xl px-3 py-2">
-                <p className="text-xs text-red-300 text-center">{error}</p>
-              </div>
-            )}
-
-            <HumanCheck ref={human} onToken={setHuman} action="login" />
-            <button
-              type="submit"
-              disabled={loading || (humanCheckOn && !humanToken)}
-              className="w-full py-3.5 font-semibold text-sm rounded-xl text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{
-                background: loading ? 'rgba(59,130,246,0.5)' : 'linear-gradient(135deg, #3B82F6, #6366F1)',
-                boxShadow: !loading ? '0 4px 16px rgba(99,102,241,0.4)' : 'none',
-              }}
-            >
-              {loading ? 'Signing in…' : 'Sign In'}
-            </button>
-          </form>
-        </div>
-
-        <p className="text-center text-xs text-gray-500 mt-5">
-          No account?{' '}
-          <Link href="/register" className="text-blue-400 hover:text-blue-300 font-medium">Create one</Link>
-        </p>
       </div>
     </div>
   );
