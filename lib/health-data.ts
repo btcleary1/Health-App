@@ -97,3 +97,25 @@ export async function getUploadManifest(userId: string, personId?: string): Prom
 export async function saveUploadManifest(userId: string, files: unknown[], personId?: string): Promise<void> {
   await writeBlob(`${personPrefix(userId, personId)}/uploads-manifest.json`, files);
 }
+
+// --- Latest Deep Medical Analysis (so the chat can answer questions about it on any page) ---
+export interface SavedAnalysis {
+  analysis: unknown;
+  createdAt: string;
+  focusArea?: string;
+  model?: string;
+}
+
+export async function getLatestAnalysis(userId: string, personId?: string): Promise<SavedAnalysis | null> {
+  return readBlob<SavedAnalysis>(`${personPrefix(userId, personId)}/analysis-latest.json`);
+}
+
+export async function saveLatestAnalysis(userId: string, saved: SavedAnalysis, personId?: string): Promise<void> {
+  await writeBlob(`${personPrefix(userId, personId)}/analysis-latest.json`, saved);
+}
+
+// Only a person this account tracks (or the primary profile) can be read or written.
+export async function ownsPerson(userId: string, personId?: string | null): Promise<boolean> {
+  if (!personId || personId === 'primary') return true;
+  return (await getPersons(userId)).some((p) => p.id === personId);
+}

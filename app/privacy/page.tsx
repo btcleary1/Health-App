@@ -37,7 +37,8 @@ export default function PrivacyPage() {
                 <li>Medical documents, lab results, and imaging files you upload</li>
                 <li>Doctor visit notes and care team information</li>
                 <li>Medication records and dosage information</li>
-                <li>Questions and focus areas submitted for AI analysis, and your follow-up chat messages</li>
+                <li>Questions and focus areas submitted for AI analysis, and the latest AI analysis for each person you track (saved so the chat can answer questions about it)</li>
+                <li>Chat messages: sent to the AI to answer you and not saved by us. We keep only a count of messages the chat declined, by type (no message text and no names). Entries the chat saves at your request are stored like the ones you enter yourself.</li>
                 <li>Account details: your name, email address, a scrambled (hashed) password, and a passkey public key if you turn on Face ID or fingerprint sign-in</li>
                 <li>Security records: sign-in times, network (IP) addresses, and when you agreed to the Terms and gave health data consent</li>
               </ul>
@@ -67,13 +68,13 @@ export default function PrivacyPage() {
                 <li><strong>Anthropic, PBC</strong> (Claude AI) runs the AI analysis and the follow-up chat.</li>
               </ul>
               <p className="font-semibold text-gray-900 mb-2">AI Analysis: what is sent</p>
-              <p>When you use the AI analysis or the follow-up chat, the following information is sent to Anthropic through its API:</p>
+              <p>When you run an AI analysis, or send a message in the chat, the following information about the person you are viewing may be sent to Anthropic through its API:</p>
               <ul className="list-disc pl-5 space-y-1 mb-3">
                 <li>Patient first name, age, and primary medical concern</li>
                 <li>Medication list with dosages</li>
                 <li>Health event history, visits and notes</li>
                 <li>Care team information</li>
-                <li>Uploaded files you include in the analysis, and your chat questions</li>
+                <li>Uploaded files you include in the analysis, their latest saved AI analysis, and your chat messages</li>
               </ul>
               <p>Anthropic processes this data to generate responses. You choose each time whether to run an analysis or send a chat message. Review Anthropic&apos;s privacy policy at <span className="text-blue-600">anthropic.com/privacy</span>.</p>
             </section>
