@@ -1,5 +1,7 @@
 'use client';
 
+import AccountCard from '@/components/AccountCard';
+
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -297,6 +299,8 @@ export default function SettingsPage() {
       <HealthHeader />
       <div className="max-w-lg mx-auto px-4 py-6 pb-24 sm:pb-10">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">Settings</h1>
+
+        <AccountCard theme="light" />
 
         {/* ── Account Holder ── */}
         <section className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-4">
