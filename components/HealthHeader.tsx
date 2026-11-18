@@ -4,7 +4,7 @@ import SuiteMark from '@/components/SuiteMark';
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Brain, Clipboard, Upload, LogOut, Settings } from 'lucide-react';
+import { LayoutDashboard, Brain, Clipboard, Upload, Settings } from 'lucide-react';
 import { usePersonContext } from '@/lib/PersonContext';
 import PersonSelector from '@/components/PersonSelector';
 
@@ -19,10 +19,6 @@ export default function HealthHeader() {
   const pathname = usePathname();
   const { persons, activeId, setActiveId } = usePersonContext();
 
-  const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    window.location.href = '/login';
-  };
 
   return (
     <>
@@ -86,18 +82,9 @@ export default function HealthHeader() {
               >
                 <Settings className="w-4 h-4" />
               </Link>
-
-              <button
-                onClick={handleLogout}
-                title="Sign out"
-                className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-gray-200 transition-all"
-                style={{ minHeight: 'unset' }}
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
             </div>
 
-            {/* Mobile top-right: person selector + settings + logout */}
+            {/* Mobile top-right: person selector + settings */}
             <div className="sm:hidden flex items-center gap-1">
               {persons.length > 0 && (
                 <PersonSelector persons={persons} activeId={activeId} onChange={setActiveId} />
@@ -110,14 +97,6 @@ export default function HealthHeader() {
               >
                 <Settings className="w-4 h-4" />
               </Link>
-              <button
-                onClick={handleLogout}
-                className="flex items-center justify-center w-9 h-9 rounded-xl text-gray-400 hover:text-white transition-colors"
-                title="Sign out"
-                style={{ minHeight: 'unset' }}
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
             </div>
 
           </div>
