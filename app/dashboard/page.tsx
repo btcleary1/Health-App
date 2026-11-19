@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import HealthHeader from '@/components/HealthHeader';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, ReferenceLine, Legend } from 'recharts';
 import { detectPiiInText, validateDoctorName } from '@/lib/pii-validator';
@@ -134,7 +133,6 @@ const SAMPLE_DOCTOR_VISITS: DoctorVisit[] = [
 ];
 
 export default function HealthDashboard() {
-  const router = useRouter();
   const { persons, activeId, personQuery } = usePersonContext();
   const [mounted, setMounted] = useState(false);
   const [showNewEventForm, setShowNewEventForm] = useState(false);
@@ -268,14 +266,6 @@ export default function HealthDashboard() {
         showToast(d.error || "Couldn't save. Try again.");
       })
       .catch(() => {});
-  };
-
-  const handleMessageClick = (memberName: string) => {
-    showToast(`Message to ${memberName} — messaging coming soon`);
-  };
-
-  const handleViewDetails = (incidentType: string, incidentDate: string) => {
-    showToast(`${incidentType} details from ${incidentDate} — expanded view coming soon`);
   };
 
   const handleAddCardiacEvent = () => {
@@ -494,10 +484,6 @@ export default function HealthDashboard() {
       ...prev,
       parentNotes: { ...(prev.parentNotes || {}), [field]: value } as any
     }));
-  };
-
-  const handleAnalyzeWithAI = () => {
-    router.push('/ai-analysis');
   };
 
   if (!mounted || dataLoading) {

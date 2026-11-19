@@ -33,7 +33,7 @@ export async function savePersons(userId: string, persons: TrackedPerson[]): Pro
 }
 
 // --- Account holder info ---
-export interface AccountInfo {
+interface AccountInfo {
   firstName: string;
 }
 
@@ -99,7 +99,7 @@ export async function saveUploadManifest(userId: string, files: unknown[], perso
 }
 
 // --- Latest Deep Medical Analysis (so the chat can answer questions about it on any page) ---
-export interface SavedAnalysis {
+interface SavedAnalysis {
   analysis: unknown;
   createdAt: string;
   focusArea?: string;

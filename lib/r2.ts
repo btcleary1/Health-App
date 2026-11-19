@@ -7,7 +7,7 @@ import {
   ListObjectsV2Command,
 } from '@aws-sdk/client-s3';
 
-export const r2Client = new S3Client({
+const r2Client = new S3Client({
   region: 'auto',
   endpoint: process.env.R2_ENDPOINT,
   credentials: {

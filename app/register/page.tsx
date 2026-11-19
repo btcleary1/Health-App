@@ -3,13 +3,11 @@
 import SuiteMark from '@/components/SuiteMark';
 import { useState, useRef } from 'react';
 import HumanCheck, { humanCheckOn, type HumanCheckHandle } from '@/components/HumanCheck';
-import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, CheckCircle, XCircle, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { PASSWORD_REQUIREMENTS } from '@/lib/password-rules';
 
 export default function RegisterPage() {
-  const router = useRouter();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

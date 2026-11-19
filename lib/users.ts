@@ -6,7 +6,7 @@ const PREFIX = 'health-app/users/';
 const INDEX_PATH = 'health-app/users-index.json';
 const BCRYPT_ROUNDS = 12;
 
-export interface User {
+interface User {
   userId: string;
   email: string;
   name: string;
@@ -17,7 +17,7 @@ export interface User {
   googleAuth?: boolean;
 }
 
-export type PublicUser = Omit<User, 'passwordHash'>;
+type PublicUser = Omit<User, 'passwordHash'>;
 
 function legacySha256Hash(password: string): string {
   const salt = process.env.SESSION_SECRET ?? 'health-app-salt';

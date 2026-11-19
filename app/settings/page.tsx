@@ -9,7 +9,7 @@ import {
   KeyRound, Eye, EyeOff, Users, Trash2, RefreshCw, AlertTriangle,
   UserCircle, UserPlus, Pencil, X, Plus,
 } from 'lucide-react';
-import { startRegistration, browserSupportsWebAuthn } from '@simplewebauthn/browser';
+import { startRegistration } from '@simplewebauthn/browser';
 import HealthHeader from '@/components/HealthHeader';
 import { validateFirstName } from '@/lib/pii-validator';
 
@@ -35,7 +35,6 @@ export default function SettingsPage() {
   const [registered, setRegistered] = useState<boolean | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
   const [authMessage, setAuthMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [supportsWebAuthn, setSupportsWebAuthn] = useState(false);
   const [biometricLabel, setBiometricLabel] = useState('Biometrics');
 
   // Admin
@@ -74,7 +73,6 @@ export default function SettingsPage() {
   const [showNew, setShowNew] = useState(false);
 
   useEffect(() => {
-    setSupportsWebAuthn(browserSupportsWebAuthn());
     fetchStatus();
     const ua = navigator.userAgent;
     if (/iPhone|iPad|iPod/.test(ua)) setBiometricLabel('Face ID');
@@ -236,17 +234,16 @@ export default function SettingsPage() {
     } finally { setDeleteAccountLoading(false); }
   };
 
-  const handleChangePassphrase = async (e: React.FormEvent) => {
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setCpMessage(null);
     if (cpNew !== cpConfirm) { setCpMessage({ type: 'error', text: 'New passwords do not match.' }); return; }
-    if (cpNew.length < 4) { setCpMessage({ type: 'error', text: 'Must be at least 4 characters.' }); return; }
     setCpLoading(true);
     try {
-      const res = await fetch('/api/auth/change-passphrase', {
+      const res = await fetch('/api/auth/change-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ currentPassphrase: cpCurrent, newPassphrase: cpNew }),
+        body: JSON.stringify({ currentPassword: cpCurrent, newPassword: cpNew }),
       });
       const data = await res.json();
       if (!res.ok) setCpMessage({ type: 'error', text: data.error || 'Failed.' });
@@ -559,7 +556,7 @@ export default function SettingsPage() {
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-gray-900 mb-1">Change Password</p>
                 <p className="text-sm text-gray-500 mb-4">Update the password used to sign in.</p>
-                <form onSubmit={handleChangePassphrase} className="space-y-3">
+                <form onSubmit={handleChangePassword} className="space-y-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Current Password</label>
                     <div className="relative">
