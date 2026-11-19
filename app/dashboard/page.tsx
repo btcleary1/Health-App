@@ -257,6 +257,19 @@ export default function HealthDashboard() {
     setTimeout(() => setToastMessage(''), 3000);
   };
 
+  // Saves a list to the server. If the server refuses it (for example, text the guardrails don't allow),
+  // the change is undone on screen and the reason is shown.
+  const persist = (url: string, payload: unknown, undo: () => void) => {
+    fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      .then(async (r) => {
+        if (r.ok) return;
+        const d = await r.json().catch(() => ({}));
+        undo();
+        showToast(d.error || "Couldn't save. Try again.");
+      })
+      .catch(() => {});
+  };
+
   const handleMessageClick = (memberName: string) => {
     showToast(`Message to ${memberName} — messaging coming soon`);
   };
@@ -365,11 +378,7 @@ export default function HealthDashboard() {
     };
     setAllCardiacEvents(prev => {
       const updated = [eventToSave, ...prev];
-      fetch(`/api/health-data/events${personQuery}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ events: updated }),
-      }).catch(() => {});
+      persist(`/api/health-data/events${personQuery}`, { events: updated }, () => setAllCardiacEvents(prev));
       return updated;
     });
     setShowNewEventForm(false);
@@ -397,11 +406,7 @@ export default function HealthDashboard() {
 
     setAllCardiacEvents(prev => {
       const updated = prev.map(e => e.id === editingEventId ? { ...e, parentNotes: editingNotes } : e);
-      fetch(`/api/health-data/events${personQuery}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ events: updated }),
-      }).catch(() => {});
+      persist(`/api/health-data/events${personQuery}`, { events: updated }, () => setAllCardiacEvents(prev));
       return updated;
     });
     setEditingEventId(null);
@@ -453,11 +458,7 @@ export default function HealthDashboard() {
       // If prev was sample data, don't persist it — only save the new real visit
       const base = isVisitsSample ? [] : prev;
       const updated = [visitToSave, ...base];
-      fetch(`/api/health-data/visits${personQuery}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ visits: updated }),
-      }).catch(() => {});
+      persist(`/api/health-data/visits${personQuery}`, { visits: updated }, () => setDoctorVisitsData(prev));
       return updated;
     });
     setIsVisitsSample(false);

@@ -7,6 +7,7 @@ import { checkRateLimit, recordFailure } from '@/lib/rate-limit';
 import { logAudit, getClientIp } from '@/lib/audit';
 import { sendWelcomeEmail } from '@/lib/email';
 import { agreedVersion, recordAgreement } from '@/lib/agreements';
+import { screenSaved } from '@/lib/saved-text';
 
 export const runtime = 'nodejs';
 
@@ -25,6 +26,9 @@ export async function POST(req: NextRequest) {
     if (!email || !name || !password) {
       return NextResponse.json({ error: 'Email, name, and password are required.' }, { status: 400 });
     }
+
+    const savedName = screenSaved(String(name).slice(0, 80));
+    if (!savedName.ok) return NextResponse.json({ error: savedName.error }, { status: 400 });
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {

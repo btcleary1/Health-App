@@ -50,7 +50,8 @@ export default function SetupPage() {
       if (res.ok) {
         router.push('/dashboard');
       } else {
-        setError('Failed to save. Try again.');
+        const d = await res.json().catch(() => ({}));
+        setError(d.error || 'Failed to save. Try again.');
         setSaving(false);
       }
     } catch {

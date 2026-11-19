@@ -6,6 +6,7 @@ import { checkRateLimit, recordFailure } from '@/lib/rate-limit';
 import { getClientIp } from '@/lib/audit';
 import { r2GetBytes } from '@/lib/r2';
 import { getUploadManifest, ownsPerson, saveLatestAnalysis } from '@/lib/health-data';
+import { screenSaved } from '@/lib/saved-text';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -68,6 +69,11 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const { patientData, events, doctorVisits, notes, focusArea, uploadedFiles, personId } = body;
+
+  const focus = screenSaved(typeof focusArea === 'string' ? focusArea.slice(0, 300) : '');
+  if (!focus.ok) {
+    return new Response(JSON.stringify({ error: focus.error }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+  }
 
   const { addressAs, context } = getPatientContext(patientData);
 
