@@ -111,6 +111,14 @@ export default function LoginPage() {
       if (verRes.ok) {
         await goAfterLogin();
       } else {
+        if (result.code === 'unknown_credential' && result.credentialId) {
+          // Ask the phone to remove the stale passkey so it stops offering it (Safari/iOS 26+,
+          // Chrome 132+). Older browsers skip this; setting up Face ID again replaces it.
+          const pkc = window.PublicKeyCredential as unknown as {
+            signalUnknownCredential?: (o: { rpId: string; credentialId: string }) => Promise<void>;
+          };
+          pkc?.signalUnknownCredential?.({ rpId: result.rpId, credentialId: result.credentialId }).catch(() => {});
+        }
         setBiometricError(result.error || 'Biometric sign-in failed.');
       }
     } catch (err: unknown) {

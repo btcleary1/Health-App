@@ -41,6 +41,20 @@ export async function r2Get<T>(key: string): Promise<T | null> {
   }
 }
 
+// Like r2Get, but only a missing object counts as empty. Any other failure throws, so a
+// read-modify-write never mistakes a passing storage error for an empty file and overwrites it.
+export async function r2GetStrict<T>(key: string): Promise<T | null> {
+  try {
+    const res = await r2.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }));
+    const text = await res.Body?.transformToString();
+    if (!text) return null;
+    return JSON.parse(text) as T;
+  } catch (err: unknown) {
+    if ((err as { name?: string }).name === 'NoSuchKey') return null;
+    throw err;
+  }
+}
+
 export async function r2Del(keys: string | string[]): Promise<void> {
   const arr = Array.isArray(keys) ? keys : [keys];
   if (arr.length === 0) return;

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuthenticationResponse } from '@simplewebauthn/server';
-import { findCredentialById, updateCredentialCounter } from '@/lib/webauthn-store';
+import { findCredentialForLogin, updateCredentialCounter } from '@/lib/webauthn-store';
 import { getUserById, recordLogin } from '@/lib/users';
 import { setSessionCookie } from '@/lib/session';
 import { agreedVersion } from '@/lib/agreements';
@@ -25,10 +25,20 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const stored = await findCredentialById(body.id);
+    const stored = await findCredentialForLogin(body?.id, body?.response?.userHandle);
 
     if (!stored) {
-      return NextResponse.json({ error: 'Passkey not recognized on this account.' }, { status: 400 });
+      // The phone still holds a passkey the server no longer has (removed in Settings, or
+      // from an older setup). Tell the client so it can ask the phone to drop it.
+      return NextResponse.json(
+        {
+          error: "This phone's passkey is out of date. Log in with Google or email, and we'll set up Face ID again.",
+          code: 'unknown_credential',
+          credentialId: typeof body?.id === 'string' ? body.id : undefined,
+          rpId: RP_ID,
+        },
+        { status: 404 },
+      );
     }
 
     const verification = await verifyAuthenticationResponse({
@@ -48,7 +58,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Verification failed.' }, { status: 400 });
     }
 
-    await updateCredentialCounter(stored.id, verification.authenticationInfo.newCounter);
+    await updateCredentialCounter(stored.id, verification.authenticationInfo.newCounter, stored.userId);
 
     // Look up the user who owns this credential
     const user = await getUserById(stored.userId);
