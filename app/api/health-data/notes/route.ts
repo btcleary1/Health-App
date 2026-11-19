@@ -3,6 +3,7 @@ import { getSessionFromRequest } from '@/lib/session';
 import { getNotes, saveNotes, HealthNote } from '@/lib/health-data';
 import { detectPiiInText } from '@/lib/pii-validator';
 import { randomBytes } from 'crypto';
+import { checkText } from '@/lib/saved-text';
 
 export const runtime = 'nodejs';
 
@@ -28,6 +29,9 @@ export async function POST(req: NextRequest) {
   if (piiWarnings.length > 0) {
     return NextResponse.json({ error: piiWarnings[0] }, { status: 400 });
   }
+
+  const saved = await checkText(text, 'note');
+  if (!saved.ok) return NextResponse.json({ error: saved.error }, { status: 400 });
 
   const notes = await getNotes(session.userId, personId);
   const newNote: HealthNote = {

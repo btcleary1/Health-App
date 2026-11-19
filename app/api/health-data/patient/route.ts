@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest } from '@/lib/session';
 import { getPatientInfo, savePatientInfo } from '@/lib/health-data';
 import { validateFirstName } from '@/lib/pii-validator';
+import { checkTexts, newStrings } from '@/lib/saved-text';
 
 export const runtime = 'nodejs';
 
@@ -28,6 +29,9 @@ export async function POST(req: NextRequest) {
     // Strip to single word for safety
     patient.name = patient.name.trim().split(/\s+/)[0];
   }
+
+  const saved = await checkTexts(newStrings(patient, await getPatientInfo(session.userId, personId)), 'patient');
+  if (!saved.ok) return NextResponse.json({ error: saved.error }, { status: 400 });
 
   await savePatientInfo(session.userId, patient, personId);
   return NextResponse.json({ success: true });

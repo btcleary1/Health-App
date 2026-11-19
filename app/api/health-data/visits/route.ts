@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest } from '@/lib/session';
 import { getDoctorVisits, saveDoctorVisits } from '@/lib/health-data';
+import { checkTexts, newStrings } from '@/lib/saved-text';
 
 export const runtime = 'nodejs';
 
@@ -17,6 +18,8 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const personId = req.nextUrl.searchParams.get('personId') ?? undefined;
   const { visits } = await req.json();
+  const saved = await checkTexts(newStrings(visits, await getDoctorVisits(session.userId, personId)), 'visits');
+  if (!saved.ok) return NextResponse.json({ error: saved.error }, { status: 400 });
   await saveDoctorVisits(session.userId, visits, personId);
   return NextResponse.json({ success: true });
 }

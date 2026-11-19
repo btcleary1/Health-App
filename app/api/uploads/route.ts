@@ -4,6 +4,7 @@ import { r2PutBytes, r2Del } from '@/lib/r2';
 import { getSessionFromRequest } from '@/lib/session';
 import { redactPiiFromText, detectPiiInText } from '@/lib/pii-validator';
 import { getUploadManifest, saveUploadManifest } from '@/lib/health-data';
+import { checkText, screenSaved } from '@/lib/saved-text';
 
 export const runtime = 'nodejs';
 
@@ -36,6 +37,9 @@ export async function POST(req: NextRequest) {
     if (noteWarnings.length > 0) {
       return NextResponse.json({ error: 'Note contains personal information (phone number or address). Please remove it before uploading.' }, { status: 400 });
     }
+
+    const savedNote = await checkText(note, 'upload-note');
+    if (!savedNote.ok) return NextResponse.json({ error: savedNote.error }, { status: 400 });
 
     // Support both multi-file ('files') and legacy single-file ('file') fields
     const multiFiles = formData.getAll('files') as File[];
@@ -70,6 +74,10 @@ export async function POST(req: NextRequest) {
     for (const file of toProcess) {
       if (!ALLOWED_TYPES.includes(file.type)) {
         errors.push(`${file.name}: unsupported type (use JPEG, PNG, GIF, WebP, PDF, or TXT)`);
+        continue;
+      }
+      if (!screenSaved(file.name.replace(/\.[a-z0-9]+$/i, '').replace(/[_.-]+/g, ' ')).ok) {
+        errors.push(`${file.name}: I can't save that file name here. Rename the file and try again.`);
         continue;
       }
       if (file.size > MAX_FILE_SIZE) {

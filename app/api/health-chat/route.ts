@@ -13,6 +13,10 @@ import {
 import { redactPiiFromText, validateDoctorName } from '@/lib/pii-validator';
 import { removeEntries, type Kind, type LoggedItem } from '@/lib/health-chat-entries';
 import { GUARDRAIL_RULES, noApology, screen, scrubReply, type Flag } from '@/lib/chat-guardrails';
+import { screenSaved } from '@/lib/saved-text';
+
+// Anything the chat saves gets the same check as text typed into the app's forms.
+const refusedSave = (...vals: unknown[]) => vals.flat().map(screenSaved).find((r) => !r.ok) as { ok: false; error: string } | undefined;
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -243,6 +247,8 @@ async function runTool(name: string, input: Record<string, unknown>, ctx: Ctx, a
       resolved: false,
       source: 'ai-chat',
     };
+    const refusedEvent = refusedSave(event.duration, event.symptoms, event.triggers, event.notes);
+    if (refusedEvent) return { ok: false, error: refusedEvent.error };
     const events = (await getEvents(userId, personId)) as unknown[];
     await saveEvents(userId, [event, ...events], personId);
     const item: LoggedItem = { kind: 'event', id: event.id, date, title: `${type.replace('_', ' ')} · ${severity}`, detail: [event.time, event.duration, event.symptoms.join(', ')].filter(Boolean).join(' · ') };
@@ -269,6 +275,8 @@ async function runTool(name: string, input: Record<string, unknown>, ctx: Ctx, a
       cardiacEventsDuringVisit: 0,
       source: 'ai-chat',
     };
+    const refusedVisit = refusedSave(visit.doctor, visit.diagnosis, visit.doctorNotes, visit.personalNotes, visit.treatment);
+    if (refusedVisit) return { ok: false, error: refusedVisit.error };
     const visits = (await getDoctorVisits(userId, personId)) as unknown[];
     await saveDoctorVisits(userId, [visit, ...visits], personId);
     const item: LoggedItem = { kind: 'visit', id: visit.id, date, title: `${visit.visitType.replace('_', ' ')} visit${doctor ? ` · ${doctor}` : ''}`, detail: [visit.diagnosis, visit.treatment.join(', ')].filter(Boolean).join(' · ') };
@@ -279,6 +287,8 @@ async function runTool(name: string, input: Record<string, unknown>, ctx: Ctx, a
   if (name === 'add_note') {
     const text = clean(input.text, 1000);
     if (!text) return { ok: false, error: 'Empty note.' };
+    const refusedNote = refusedSave(text);
+    if (refusedNote) return { ok: false, error: refusedNote.error };
     const date = day(input.date);
     if (date > today) return { ok: false, error: 'That date is in the future.' };
     const note: HealthNote = { id: randomBytes(8).toString('hex'), date, text, source: 'ai-chat', createdAt: new Date().toISOString() };

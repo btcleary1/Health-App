@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest } from '@/lib/session';
 import { getPersons, savePersons, TrackedPerson } from '@/lib/health-data';
 import { randomBytes } from 'crypto';
+import { screenSaved } from '@/lib/saved-text';
 
 export const runtime = 'nodejs';
 
@@ -20,6 +21,9 @@ export async function POST(req: NextRequest) {
   if (!name || !ageGroup) {
     return NextResponse.json({ error: 'Name and age group are required.' }, { status: 400 });
   }
+
+  const saved = screenSaved(name);
+  if (!saved.ok) return NextResponse.json({ error: saved.error }, { status: 400 });
 
   // Always read from R2 server-side — never trust client-supplied person list
   const base = await getPersons(session.userId);
