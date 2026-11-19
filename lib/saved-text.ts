@@ -7,11 +7,11 @@
 // Refused text gets one flat line: "I can't save that here." (sensitive numbers get the "don't share" line).
 import { screen, type Flag } from './chat-guardrails';
 
-export const CANT_SAVE = "I can't save that here.";
+const CANT_SAVE = "I can't save that here.";
 
 const OK_IN_RECORDS: Flag[] = ['urgent', 'dosing', 'eating'];
 
-export type SavedCheck = { ok: true } | { ok: false; error: string };
+type SavedCheck = { ok: true } | { ok: false; error: string };
 
 // Screen only (fast, no AI). For names, short fields and anything the chat saves.
 export function screenSaved(text: unknown): SavedCheck {

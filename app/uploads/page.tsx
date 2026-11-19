@@ -207,9 +207,6 @@ export default function UploadsPage() {
     }).catch(() => {});
   };
 
-  const totalAfterUpload = uploads.length + pendingFiles.length;
-  const slotsRemaining = MAX_TOTAL - uploads.length;
-
   return (
     <div className="min-h-screen" style={{ background: 'linear-gradient(160deg,#050814 0%,#0B1120 60%,#0f172a 100%)' }}>
       {showConsent && (

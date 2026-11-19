@@ -1,4 +1,4 @@
-import { createHmac, randomBytes } from 'crypto';
+import { createHmac } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 
 const COOKIE_NAME = 'health_session';
@@ -20,7 +20,7 @@ function fromB64url(s: string): string {
   return Buffer.from(padded + '='.repeat((4 - (padded.length % 4)) % 4), 'base64').toString('utf8');
 }
 
-export interface SessionPayload {
+interface SessionPayload {
   userId: string;
   email: string;
   name: string;
@@ -31,7 +31,7 @@ export interface SessionPayload {
 }
 
 // Uses Node.js crypto — only call from nodejs runtime (API routes)
-export function createSessionToken(payload: Omit<SessionPayload, 'iat' | 'exp'>): string {
+function createSessionToken(payload: Omit<SessionPayload, 'iat' | 'exp'>): string {
   const now = Math.floor(Date.now() / 1000);
   const full: SessionPayload = { ...payload, iat: now, exp: now + SESSION_TTL };
   const data = b64url(JSON.stringify(full));

@@ -4,7 +4,6 @@ import { randomBytes } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest } from '@/lib/session';
 import { checkRateLimit } from '@/lib/rate-limit';
-import { getClientIp } from '@/lib/audit';
 import { r2Get, r2Put } from '@/lib/r2';
 import {
   getEvents, saveEvents, getDoctorVisits, saveDoctorVisits, getNotes, saveNotes, getPatientInfo, getPersons,

@@ -8,12 +8,12 @@
 // are stopped.
 
 export type Flag = 'urgent' | 'crisis' | 'concern' | 'minors' | 'eating' | 'sensitive' | 'dosing' | 'drugs' | 'violence' | 'hacking' | 'sexual' | 'hate' | 'illegal' | 'foul' | 'secrets';
-export type Screen = { flag: Flag; reply: string } | null;
+type Screen = { flag: Flag; reply: string } | null;
 
 // House style (owner's rule, same as the other Cleary chats): refusals are one flat line. No "please", no "sorry".
 const CANT = "I can't discuss this topic.";
-export const MEDICAL = "I can't give medical advice. Ask the doctor or pharmacist.";
-export const URGENT = 'If this is happening now, call 911.';
+const MEDICAL = "I can't give medical advice. Ask the doctor or pharmacist.";
+const URGENT = 'If this is happening now, call 911.';
 
 const NO: Record<Flag, string> = {
   urgent: URGENT,

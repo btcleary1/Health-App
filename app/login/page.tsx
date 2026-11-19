@@ -25,7 +25,6 @@ export default function LoginPage() {
   const [biometricError, setBiometricError] = useState('');
   const [stage, setStage] = useState<Stage>('login');
   const [supportsWebAuthn, setSupportsWebAuthn] = useState(false);
-  const [biometricLabel, setBiometricLabel] = useState('Sign in with Biometrics');
   const [bio, setBio] = useState('fingerprint, face, or screen lock');
   useEffect(() => setBio(unlockName()), []);
 
@@ -38,18 +37,6 @@ export default function LoginPage() {
 
   useEffect(() => {
     setSupportsWebAuthn(browserSupportsWebAuthn());
-    const ua = navigator.userAgent;
-    if (/iPhone|iPad|iPod/.test(ua)) {
-      setBiometricLabel('Sign in with Face ID');
-    } else if (/Mac/.test(ua) && !/CrOS/.test(ua)) {
-      setBiometricLabel('Sign in with Touch ID');
-    } else if (/CrOS/.test(ua)) {
-      setBiometricLabel('Sign in with Screen Lock');
-    } else if (/Win/.test(ua)) {
-      setBiometricLabel('Sign in with Windows Hello');
-    } else {
-      setBiometricLabel('Sign in with Biometrics');
-    }
     const params = new URLSearchParams(window.location.search);
     const errorParam = params.get('error');
     if (errorParam) {
