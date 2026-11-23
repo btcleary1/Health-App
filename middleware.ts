@@ -15,6 +15,7 @@ const PUBLIC_PATHS = [
   '/privacy',
   '/terms',
   '/api/auth/google',
+  '/api/auth/legacy-salt',
 ];
 
 // Until someone agrees to the current Terms and gives health data consent, only these work.

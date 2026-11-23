@@ -1,6 +1,7 @@
 import { r2Get, r2Put, r2Del } from './r2';
 import { createHash, randomBytes, timingSafeEqual } from 'crypto';
 import bcrypt from 'bcryptjs';
+import { legacySalt } from './legacy-salt';
 
 const PREFIX = 'health-app/users/';
 const INDEX_PATH = 'health-app/users-index.json';
@@ -19,8 +20,8 @@ interface User {
 
 type PublicUser = Omit<User, 'passwordHash'>;
 
-function legacySha256Hash(password: string): string {
-  const salt = process.env.SESSION_SECRET ?? 'health-app-salt';
+async function legacySha256Hash(password: string): Promise<string> {
+  const salt = await legacySalt();
   return createHash('sha256').update(salt + password).digest('hex');
 }
 
@@ -37,7 +38,7 @@ export async function verifyPassword(password: string, storedHash: string): Prom
     return bcrypt.compare(password, storedHash);
   }
   // Legacy SHA-256 — constant-time compare
-  const legacy = legacySha256Hash(password);
+  const legacy = await legacySha256Hash(password);
   const a = Buffer.from(legacy, 'hex');
   const b = Buffer.from(storedHash.padEnd(a.length, '0').slice(0, a.length), 'hex');
   return a.length === b.length && timingSafeEqual(a, b);
